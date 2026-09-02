@@ -221,15 +221,50 @@ node dist/cli/escalate.js              # run the escalation sweep once, out of b
 curl localhost:3001/health             # db reachability and projection lag
 ```
 
+### Deploying the shared preview
+
+The console is a Next.js app and deploys to Vercel unchanged. The gateway does
+not: it is a long-running process with two timers — the projector sweeping the
+event store into the read models, and the escalation worker marking findings
+overdue — and a serverless host would build it happily and then run neither.
+The console would keep rendering, just with projections that quietly stopped
+advancing. It also needs PostgreSQL with PostGIS, because check-in distances are
+`geography` columns.
+
+So the gateway ships as a container. `render.yaml` is a Render blueprint for a
+web service plus a Postgres instance; the same `Dockerfile` runs anywhere.
+
+```bash
+# Point the console at the deployed gateway (Vercel project env var)
+AGROASSURE_API_URL=https://agroassure-gateway.onrender.com
+
+# Mint a sign-in token for a seeded user, on the gateway host
+pnpm --filter @agroassure/sync-gateway run token:mint -- --list
+pnpm --filter @agroassure/sync-gateway run token:mint -- aisha.bello@demo.agroassure.ng
+```
+
+Migrations run on container boot; the runner is forward-only and idempotent, so
+a restart is a no-op. `SEED_DEMO_DATA=true` additionally loads the Katsina seed
+and five fictional staff. **Leave it unset anywhere holding real data** — the
+seed asserts that people exist who do not.
+
+Two things this deployment is not. It is not NDPA-resident: no mainstream
+container host has a Nigerian region, and the platform's own processing record
+(`GET /v1/audit/ropa`) states that no personal data leaves the country, so this
+preview must carry seeded data only. And evidence objects are written to a
+container-local directory that is lost on redeploy; production needs the
+object-locked bucket, which is what makes "cannot be replaced after submission"
+a storage guarantee rather than a UI rule.
+
 ## What is not built yet
 
-The server-side spine is complete and tested; two client surfaces are not written:
+The server-side spine is complete and tested. What remains:
 
-- **The field application's UI (React Native / Expo).** The screens, the camera
-  and geolocation bindings, the Keystore-held device key, and the bilingual
-  runtime. The logic underneath them is `field-core`, which is written and
-  tested; what remains is presentation and the native bindings, and those can
-  only be verified on a real handset.
+- **Verification of the field application on a handset.** The Expo app is
+  written — today's visits, the checklist, capture, sign-off, the bilingual
+  runtime — and it typechecks against `field-core`, but no screen and none of
+  the native bindings have been run. There is no emulator on the machine it was
+  built on.
 - **A map on the registry screen.** Facilities carry coordinates and the screen
   shows them numerically; plotting them needs a tile source the institution is
   willing to send facility locations to, which is a residency decision rather

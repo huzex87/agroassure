@@ -1,0 +1,44 @@
+# Render blueprint for the shared preview deployment.
+#
+# The gateway is a long-running process, not a set of functions: it sweeps the
+# event store into the read models on a timer and escalates overdue findings on
+# another. A serverless host would build this happily and then never run either
+# sweep, so the console would keep rendering stale projections without
+# complaining — which is why this is a container service.
+#
+# Residency: this is a demo. It holds seeded, fictional data and runs in
+# whichever region Render is given below. Real inspector and facility
+# representative data is NDPA-resident in Nigeria, and the platform's own
+# processing record says so, so this deployment must not be pointed at live
+# data without moving it first.
+
+services:
+  - type: web
+    name: agroassure-gateway
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agroassure-db
+          property: connectionString
+      # No OIDC provider yet, so the gateway signs and verifies its own tokens.
+      # Render generates the secret; nobody, including this file, ever sees it.
+      - key: AUTH_JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3001
+      - key: PUBLIC_VERIFY_BASE_URL
+        sync: false
+      # Seeded, fictional staff and one Katsina instrument, so a reviewer has
+      # something to sign in to. Unset this on any deployment holding real data.
+      - key: SEED_DEMO_DATA
+        value: "true"
+
+databases:
+  - name: agroassure-db
+    plan: basic-256mb
+    postgresMajorVersion: "16"

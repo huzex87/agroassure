@@ -11,6 +11,7 @@
     "start:dev": "ts-node-dev --respawn src/main.ts",
     "test": "vitest run",
     "worker:escalate": "node dist/cli/escalate.js",
+    "token:mint": "node dist/cli/mint-token.js",
     "projections:rebuild": "node dist/cli/rebuild-projections.js",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
