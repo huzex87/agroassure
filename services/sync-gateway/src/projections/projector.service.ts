@@ -101,13 +101,18 @@ export class ProjectorService {
     return this.applyPending();
   }
 
+  // projection_cursor holds one row per projection, keyed by name, so the
+  // cursor is read with a LEFT JOIN rather than an aggregate. An earlier version
+  // wrapped the columns in max(), which PostgreSQL has no uuid overload for.
+
   /** How far the projection lags the store, in events. Used by /health. */
   async lag(): Promise<number> {
     const rows = await this.pg.query<{ lag: string }>(
       `WITH c AS (
-         SELECT coalesce(max(last_recorded_at), '-infinity'::timestamptz) AS at,
-                coalesce(max(last_event_id), '00000000-0000-0000-0000-000000000000'::uuid) AS id
-         FROM projection_cursor WHERE projection_name = $1
+         SELECT coalesce(pc.last_recorded_at, '-infinity'::timestamptz) AS at,
+                coalesce(pc.last_event_id, '00000000-0000-0000-0000-000000000000'::uuid) AS id
+         FROM (SELECT 1) AS one
+         LEFT JOIN projection_cursor pc ON pc.projection_name = $1
        )
        SELECT count(*)::text AS lag FROM event_store e, c
        WHERE (e.recorded_at, e.event_id) > (c.at, c.id)`,
@@ -119,9 +124,10 @@ export class ProjectorService {
   private async nextBatch(limit: number): Promise<StoredEvent[]> {
     return this.pg.query<StoredEvent>(
       `WITH c AS (
-         SELECT coalesce(max(last_recorded_at), '-infinity'::timestamptz) AS at,
-                coalesce(max(last_event_id), '00000000-0000-0000-0000-000000000000'::uuid) AS id
-         FROM projection_cursor WHERE projection_name = $1
+         SELECT coalesce(pc.last_recorded_at, '-infinity'::timestamptz) AS at,
+                coalesce(pc.last_event_id, '00000000-0000-0000-0000-000000000000'::uuid) AS id
+         FROM (SELECT 1) AS one
+         LEFT JOIN projection_cursor pc ON pc.projection_name = $1
        )
        SELECT e.event_id, e.aggregate_type, e.aggregate_id, e.seq, e.event_type,
               e.payload, e.actor_user_id, e.device_id, e.hlc,
