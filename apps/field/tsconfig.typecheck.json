@@ -1,0 +1,20 @@
+{
+  // Type-checking only. The React types are pinned here rather than in
+  // tsconfig.json because jest-expo reads that file's "paths" and turns them
+  // into runtime module mappings — pinning "react" there points Jest at the
+  // @types package and every test fails to resolve React at all.
+  //
+  // The pin is needed because the console is Next 15 on React 19 types and this
+  // app is Expo 52 on React 18 types. Both are reachable in a pnpm workspace,
+  // @react-navigation drags the 19 copy into this graph, and the two disagree
+  // about ReactNode.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@agroassure/domain": ["../../packages/domain/src/index.ts"],
+      "@agroassure/field-core": ["../../packages/field-core/src/index.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"]
+    }
+  }
+}
