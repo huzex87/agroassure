@@ -23,6 +23,7 @@ import { PlanningService } from "./planning.service";
 import { DashboardService } from "./dashboard.service";
 import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService, type CertificateFields } from "../certificate/render.service";
+import { AdminService } from "./admin.service";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "./validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
@@ -38,6 +39,14 @@ const DECISION_TYPES = [
   "authorise_certificate",
 ] as const;
 const ASSIGNMENT_KINDS = ["routine", "risk_targeted", "follow_up"] as const;
+const ROLES = [
+  "inspector",
+  "desk_supervisor",
+  "authorising_officer",
+  "state_admin",
+  "national_admin",
+  "auditor",
+] as const;
 
 @Controller("v1/facilities")
 @UseGuards(DeviceAuthGuard, RolesGuard)
@@ -374,4 +383,116 @@ function toFields(row: Record<string, unknown>): CertificateFields {
     issuingAuthorityLegal: String(row.issuing_authority_legal),
     markAssetUrl: (row.mark_asset_url as string | null) ?? null,
   };
+}
+
+// Users and devices. Enrolling a device is what makes field attribution
+// cryptographic rather than clerical, so it sits behind an administrator role
+// and validates the key it is given rather than trusting the caller.
+
+@Controller("v1/users")
+@UseGuards(DeviceAuthGuard, RolesGuard)
+export class UsersController {
+  constructor(private readonly admin: AdminService) {}
+
+  @Get()
+  @Roles("state_admin", "national_admin", "auditor")
+  list(@Req() req: Request) {
+    return this.admin.listUsers(getPrincipal(req));
+  }
+
+  @Post()
+  @Roles("state_admin", "national_admin")
+  async create(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    const roles = (Array.isArray(body.roles) ? body.roles : []).map((r) =>
+      oneOf("roles[]", r, ROLES),
+    );
+    const id = await this.admin.createUser(getPrincipal(req), {
+      fullName: requiredString("fullName", body.fullName, 200),
+      email: optionalString("email", body.email, 200),
+      phone: optionalString("phone", body.phone, 40),
+      oidcSubject: optionalString("oidcSubject", body.oidcSubject, 200),
+      roles,
+      jurisdictionId: body.jurisdictionId ? uuid("jurisdictionId", body.jurisdictionId) : undefined,
+    });
+    return { id };
+  }
+
+  @Post(":id/roles")
+  @Roles("state_admin", "national_admin")
+  @HttpCode(200)
+  async grant(
+    @Req() req: Request,
+    @Param("id") id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    await this.admin.grantRole(
+      getPrincipal(req),
+      uuid("id", id),
+      oneOf("role", body.role, ROLES),
+    );
+    return { granted: true };
+  }
+
+  @Post(":id/roles/:role/revoke")
+  @Roles("state_admin", "national_admin")
+  @HttpCode(200)
+  async revoke(
+    @Req() req: Request,
+    @Param("id") id: string,
+    @Param("role") role: string,
+  ) {
+    await this.admin.revokeRole(getPrincipal(req), uuid("id", id), oneOf("role", role, ROLES));
+    return { revoked: true };
+  }
+
+  @Post(":id/suspend")
+  @Roles("state_admin", "national_admin")
+  @HttpCode(200)
+  async suspend(@Req() req: Request, @Param("id") id: string) {
+    await this.admin.suspendUser(getPrincipal(req), uuid("id", id));
+    return { suspended: true };
+  }
+}
+
+@Controller("v1/devices")
+@UseGuards(DeviceAuthGuard, RolesGuard)
+export class DevicesController {
+  constructor(private readonly admin: AdminService) {}
+
+  @Get()
+  @Roles("state_admin", "national_admin", "auditor")
+  list(@Req() req: Request) {
+    return this.admin.listDevices(getPrincipal(req));
+  }
+
+  // The device generates its own keypair and keeps the private half in its
+  // Keystore. Enrollment registers the public half; the server never asks for,
+  // and has no use for, the other one.
+  @Post()
+  @Roles("state_admin", "national_admin")
+  async enroll(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    const id = await this.admin.enrollDevice(getPrincipal(req), {
+      assignedUserId: uuid("assignedUserId", body.assignedUserId),
+      label: optionalString("label", body.label, 120),
+      publicKeyBase64: requiredString("publicKeyBase64", body.publicKeyBase64, 200),
+      jurisdictionId: body.jurisdictionId ? uuid("jurisdictionId", body.jurisdictionId) : undefined,
+    });
+    return { id };
+  }
+
+  @Post(":id/revoke")
+  @Roles("state_admin", "national_admin")
+  @HttpCode(200)
+  async revoke(
+    @Req() req: Request,
+    @Param("id") id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    await this.admin.revokeDevice(
+      getPrincipal(req),
+      uuid("id", id),
+      requiredString("reason", body.reason, 500),
+    );
+    return { revoked: true };
+  }
 }

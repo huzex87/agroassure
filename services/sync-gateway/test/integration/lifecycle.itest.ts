@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   FieldInspection,
-  FieldStore,
   EventAuthor,
   applyBootstrap,
   toDeviceEvent,
-  type InstrumentStructure,
 } from "@agroassure/field-core";
-import { derivePublicKey, hexToBytes, signEventHash, uuidv7 } from "@agroassure/domain";
+import {
+  bytesToBase64,
+  derivePublicKey,
+  signEventHash,
+  type BootstrapBundle,
+  type InstrumentStructure,
+} from "@agroassure/domain";
 import type { AppConfig } from "../../src/config/config";
 import { PgService } from "../../src/db/pg.service";
 import { ProjectorService } from "../../src/projections/projector.service";
@@ -18,6 +22,9 @@ import { RegistryService } from "../../src/console/registry.service";
 import { InspectionsService } from "../../src/console/inspections.service";
 import { FindingsService } from "../../src/console/findings.service";
 import { CertificatesService } from "../../src/console/certificates.service";
+import { AdminService } from "../../src/console/admin.service";
+import { PlanningService } from "../../src/console/planning.service";
+import { QueryService } from "../../src/sync/query.service";
 import type { Principal } from "../../src/common/principal";
 import { nodeSqliteStore } from "./sqlite-driver";
 
@@ -81,6 +88,10 @@ runIf("an inspection, from an offline device to the public page", () => {
   let inspections: InspectionsService;
   let findings: FindingsService;
   let certificates: CertificatesService;
+  let admin: AdminService;
+  let planning: PlanningService;
+  let queries: QueryService;
+  let bundle: BootstrapBundle;
 
   let jurisdictionId: string;
   let inspectorId: string;
@@ -102,6 +113,9 @@ runIf("an inspection, from an offline device to the public page", () => {
     inspections = new InspectionsService(pg, appender);
     findings = new FindingsService(pg, appender);
     certificates = new CertificatesService(pg, appender);
+    admin = new AdminService(pg);
+    planning = new PlanningService(pg);
+    queries = new QueryService(pg);
 
     // ---- the jurisdiction, its people, and its instrument ------------------
     const code = `T${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
@@ -118,26 +132,38 @@ runIf("an inspection, from an offline device to the public page", () => {
       [jurisdictionId],
     );
 
-    inspectorId = (
+    // The first administrator has to come from somewhere; every account after
+    // it is created through the service, the way a real jurisdiction is set up.
+    const adminId = (
       await pg.query<{ id: string }>(
-        `INSERT INTO app_user (jurisdiction_id, full_name) VALUES ($1, 'Musa Danladi') RETURNING id`,
+        `INSERT INTO app_user (jurisdiction_id, full_name) VALUES ($1, 'State Administrator')
+         RETURNING id`,
         [jurisdictionId],
       )
     )[0]!.id;
-    officerId = (
-      await pg.query<{ id: string }>(
-        `INSERT INTO app_user (jurisdiction_id, full_name) VALUES ($1, 'Hauwa Ibrahim') RETURNING id`,
-        [jurisdictionId],
-      )
-    )[0]!.id;
+    const stateAdmin: Principal = {
+      userId: adminId,
+      deviceId: null,
+      jurisdictionId,
+      roles: ["state_admin"],
+    };
 
-    deviceId = (
-      await pg.query<{ id: string }>(
-        `INSERT INTO device (jurisdiction_id, assigned_user_id, public_key, label)
-         VALUES ($1, $2, $3, 'field tablet') RETURNING id`,
-        [jurisdictionId, inspectorId, Buffer.from(DEVICE_PUBLIC_KEY)],
-      )
-    )[0]!.id;
+    inspectorId = await admin.createUser(stateAdmin, {
+      fullName: "Musa Danladi",
+      roles: ["inspector"],
+    });
+    officerId = await admin.createUser(stateAdmin, {
+      fullName: "Hauwa Ibrahim",
+      roles: ["desk_supervisor", "authorising_officer"],
+    });
+
+    // The device generated this keypair itself and kept the private half; only
+    // the public half is ever handed to the regulator.
+    deviceId = await admin.enrollDevice(stateAdmin, {
+      assignedUserId: inspectorId,
+      label: "field tablet",
+      publicKeyBase64: bytesToBase64(DEVICE_PUBLIC_KEY),
+    });
 
     const instrumentId = (
       await pg.query<{ id: string }>(
@@ -204,10 +230,65 @@ runIf("an inspection, from an offline device to the public page", () => {
       lga: "Katsina",
       registeredPoint: { lat: 12.98547, lng: 7.61893, accuracyM: 4 },
     });
+
+    // ---- the supervisor schedules the visit --------------------------------
+    await planning.createAssignment(officer, {
+      facilityId,
+      assignedToUserId: inspectorId,
+      kind: "risk_targeted",
+      reason: "certificate expires in 21 days",
+      dueBy: "2026-08-20",
+    });
+
+    // ---- and the device fetches its day, from the real endpoint ------------
+    // Built by the server, not by this test: a bundle the field app cannot
+    // actually work from would otherwise pass unnoticed.
+    bundle = await queries.bootstrap(inspectorId, jurisdictionId);
   }, 60_000);
 
   afterAll(async () => {
     await pg?.onModuleDestroy();
+  });
+
+  it("hands the device a day it can actually work: the whole instrument", async () => {
+    // The bug this guards against shipped once: the bundle carried a version
+    // label and bands but no sections, so the app knew which form to use and
+    // nothing about what was on it.
+    expect(bundle.instrumentVersions).toHaveLength(1);
+    const version = bundle.instrumentVersions[0]!;
+    expect(version.id).toBe(versionId);
+    expect(version.structureHash).toBe(structureHashHex);
+    expect(version.satisfactoryMin).toBe(80);
+    expect(version.needsImprovementMin).toBe(60);
+
+    expect(version.structure.sections).toHaveLength(9);
+    const checkpoints = version.structure.sections.flatMap((sec) => sec.checkpoints);
+    expect(checkpoints).toHaveLength(41);
+    // Bilingual, weighted, and carrying the severity a No would raise.
+    expect(checkpoints.every((c) => c.promptEn && c.promptHa)).toBe(true);
+    expect(checkpoints.every((c) => c.weight >= 1)).toBe(true);
+    expect(checkpoints.every((c) => c.severityOnFail === "minor")).toBe(true);
+    // Section 7 is the equipment a small warehouse may not have.
+    expect(checkpoints.filter((c) => c.allowsNa)).toHaveLength(5);
+  });
+
+  it("scopes the bundle to the facilities this inspector was assigned", async () => {
+    expect(bundle.facilities).toHaveLength(1);
+    const facility = bundle.facilities[0]!;
+    expect(facility.id).toBe(facilityId);
+    expect(facility.name).toBe("Rimin Zakara Agro Ventures Ltd");
+    expect(facility.regLat).toBeCloseTo(12.98547, 5);
+    // The reason the supervisor scheduled it travels with the assignment, so
+    // the inspector arriving on site can see why this one.
+    expect(facility.assignmentKind).toBe("risk_targeted");
+    expect(facility.assignmentReason).toBe("certificate expires in 21 days");
+  });
+
+  it("gives another inspector nothing, because nothing is assigned to them", async () => {
+    const other = await queries.bootstrap(officerId, jurisdictionId);
+    expect(other.facilities).toEqual([]);
+    // The instruments are still there: they are reference data, not a worklist.
+    expect(other.instrumentVersions).toHaveLength(1);
   });
 
   it("projects a facility registered through the console", async () => {
@@ -224,33 +305,7 @@ runIf("an inspection, from an offline device to the public page", () => {
   it("carries an offline inspection through ingest into the read models", async () => {
     // ---- the device's day, with no network -------------------------------
     const store = nodeSqliteStore();
-    applyBootstrap(store, {
-      facilities: [
-        {
-          id: facilityId,
-          licenceNumber: "FISS/KT/AD/2026/0417",
-          facilityType: "agro_dealer",
-          name: "Rimin Zakara Agro Ventures Ltd",
-          lga: "Katsina",
-          regLat: 12.98547,
-          regLng: 7.61893,
-          regAccuracyM: 4,
-        },
-      ],
-      instrumentVersions: [
-        {
-          id: versionId,
-          instrumentId: uuidv7(),
-          facilityType: "agro_dealer",
-          versionLabel: "v3.1",
-          satisfactoryMin: 80,
-          needsImprovementMin: 60,
-          structureHash: structureHashHex,
-          structure,
-        },
-      ],
-      priorFindings: [],
-    });
+    applyBootstrap(store, bundle);
 
     const author = new EventAuthor(
       store,
@@ -371,33 +426,7 @@ runIf("an inspection, from an offline device to the public page", () => {
 
   it("refuses to replay a chain that has been tampered with", async () => {
     const store = nodeSqliteStore();
-    applyBootstrap(store, {
-      facilities: [
-        {
-          id: facilityId,
-          licenceNumber: "x",
-          facilityType: "agro_dealer",
-          name: "x",
-          lga: null,
-          regLat: 12.98547,
-          regLng: 7.61893,
-          regAccuracyM: 4,
-        },
-      ],
-      instrumentVersions: [
-        {
-          id: versionId,
-          instrumentId: uuidv7(),
-          facilityType: "agro_dealer",
-          versionLabel: "v3.1",
-          satisfactoryMin: 80,
-          needsImprovementMin: 60,
-          structureHash: structureHashHex,
-          structure,
-        },
-      ],
-      priorFindings: [],
-    });
+    applyBootstrap(store, bundle);
     const author = new EventAuthor(
       store,
       { deviceId, sign: (hash) => signEventHash(hash, DEVICE_PRIVATE_KEY) },

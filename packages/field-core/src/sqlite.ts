@@ -1,4 +1,15 @@
-import type { CheckpointResponse, FindingSeverity } from "@agroassure/domain";
+import type {
+  AssignedFacility,
+  BootstrapInstrumentVersion,
+  CheckpointResponse,
+  FindingSeverity,
+  InstrumentStructure,
+} from "@agroassure/domain";
+
+// The bundle shapes are the server's contract, defined once in the shared
+// domain. Re-exported here so the rest of this package reads naturally.
+export type { AssignedFacility, InstrumentStructure };
+export type LocalInstrumentVersion = BootstrapInstrumentVersion;
 
 // The on-device store: the reference data the inspector needs for the day, the
 // local projections they read while working, and an append-only outbox of the
@@ -82,45 +93,6 @@ CREATE INDEX IF NOT EXISTS outbox_pending ON outbox_event (sync_state, created_a
 
 CREATE TABLE IF NOT EXISTS pull_cursor (name TEXT PRIMARY KEY, cursor TEXT);
 `;
-
-export interface AssignedFacility {
-  id: string;
-  licenceNumber: string;
-  facilityType: string;
-  name: string;
-  lga: string | null;
-  regLat: number | null;
-  regLng: number | null;
-  regAccuracyM: number | null;
-}
-
-export interface LocalInstrumentVersion {
-  id: string;
-  instrumentId: string;
-  facilityType: string;
-  versionLabel: string;
-  satisfactoryMin: number;
-  needsImprovementMin: number;
-  structureHash: string;
-  /** The frozen structure, as published. Sections, checkpoints, weights. */
-  structure: InstrumentStructure;
-}
-
-export interface InstrumentStructure {
-  sections: Array<{
-    ordinal: number;
-    titleEn: string;
-    titleHa: string;
-    checkpoints: Array<{
-      ordinal: number;
-      promptEn: string;
-      promptHa: string;
-      weight: number;
-      severityOnFail: FindingSeverity;
-      allowsNa: boolean;
-    }>;
-  }>;
-}
 
 export interface LocalResponse {
   checkpointRef: string;

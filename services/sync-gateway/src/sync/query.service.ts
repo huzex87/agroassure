@@ -1,4 +1,11 @@
 import { Injectable } from "@nestjs/common";
+import type {
+  AssignedFacility,
+  BootstrapBundle,
+  BootstrapInstrumentVersion,
+  BootstrapPriorFinding,
+  InstrumentStructure,
+} from "@agroassure/domain";
 import { PgService } from "../db/pg.service";
 
 // Read side of sync: server-authored events to pull, and the pre-departure
@@ -8,12 +15,6 @@ import { PgService } from "../db/pg.service";
 export interface PullResult {
   events: unknown[];
   nextCursor: string;
-}
-
-export interface BootstrapBundle {
-  facilities: unknown[];
-  instrumentVersions: unknown[];
-  priorFindings: unknown[];
 }
 
 @Injectable()
@@ -59,21 +60,86 @@ export class QueryService {
     return { events, nextCursor };
   }
 
-  // Pre-departure bundle: after this the field app needs no network for the day.
+  /**
+   * The pre-departure bundle. Its shape is BootstrapBundle from the shared
+   * domain, which the field app consumes, so a field renamed or left out here
+   * is a build error rather than an empty checklist in a warehouse with no
+   * signal.
+   *
+   * The instrument arrives whole — every section and checkpoint, in both
+   * languages, with its weights — because the device has to render and score
+   * the form with no network. Sending only the version label would leave an
+   * inspector holding an app that knows which form to use and not what is on it.
+   */
   async bootstrap(userId: string, jurisdictionId: string | null): Promise<BootstrapBundle> {
-    const facilities = await this.pg.query(
-      `SELECT id, licence_number, facility_type, name, address, lga,
-              ST_Y(registered_point::geometry) AS reg_lat,
-              ST_X(registered_point::geometry) AS reg_lng,
-              registered_accuracy_m
-       FROM facility
-       WHERE ($1::uuid IS NULL OR jurisdiction_id = $1)`,
-      [jurisdictionId],
+    // Today's list: what this inspector has been assigned, with the reason the
+    // supervisor scheduled it travelling alongside (principle P6).
+    const facilities = await this.pg.query<{
+      id: string;
+      licence_number: string;
+      facility_type: string;
+      name: string;
+      lga: string | null;
+      reg_lat: string | null;
+      reg_lng: string | null;
+      registered_accuracy_m: string | null;
+      assignment_kind: string | null;
+      assignment_reason: string | null;
+      due_by: string | null;
+    }>(
+      `SELECT f.id, f.licence_number, f.facility_type, f.name, f.lga,
+              ST_Y(f.registered_point::geometry) AS reg_lat,
+              ST_X(f.registered_point::geometry) AS reg_lng,
+              f.registered_accuracy_m,
+              a.kind   AS assignment_kind,
+              a.reason AS assignment_reason,
+              a.due_by::text AS due_by
+       FROM assignment a
+       JOIN facility f ON f.id = a.facility_id
+       WHERE a.assigned_to_user_id = $1
+         AND a.status IN ('planned','in_progress')
+         AND ($2::uuid IS NULL OR f.jurisdiction_id = $2)
+       ORDER BY a.due_by NULLS LAST, f.name`,
+      [userId, jurisdictionId],
     );
 
-    const instrumentVersions = await this.pg.query(
+    const versions = await this.pg.query<{
+      id: string;
+      instrument_id: string;
+      facility_type: string;
+      version_label: string;
+      satisfactory_min: string;
+      needs_improve_min: string;
+      structure_hash: string;
+      structure: InstrumentStructure | null;
+    }>(
       `SELECT iv.id, iv.instrument_id, i.facility_type, iv.version_label,
-              iv.satisfactory_min, iv.needs_improve_min, encode(iv.structure_hash, 'hex') AS structure_hash
+              iv.satisfactory_min, iv.needs_improve_min,
+              encode(iv.structure_hash, 'hex') AS structure_hash,
+              (
+                SELECT json_build_object('sections', coalesce(json_agg(sec ORDER BY sec->>'ordinal'), '[]'::json))
+                FROM (
+                  SELECT json_build_object(
+                           'ordinal', s.ordinal,
+                           'titleEn', s.title_en,
+                           'titleHa', s.title_ha,
+                           'checkpoints', coalesce((
+                             SELECT json_agg(json_build_object(
+                               'ordinal', c.ordinal,
+                               'promptEn', c.prompt_en,
+                               'promptHa', c.prompt_ha,
+                               'weight', c.weight,
+                               'severityOnFail', c.severity_on_fail,
+                               'allowsNa', c.allows_na
+                             ) ORDER BY c.ordinal)
+                             FROM checkpoint c WHERE c.section_id = s.id
+                           ), '[]'::json)
+                         ) AS sec
+                  FROM section s
+                  WHERE s.instrument_version_id = iv.id
+                  ORDER BY s.ordinal
+                ) sections
+              ) AS structure
        FROM instrument_version iv
        JOIN instrument i ON i.id = iv.instrument_id
        WHERE iv.status = 'in_force'
@@ -81,17 +147,66 @@ export class QueryService {
       [jurisdictionId],
     );
 
-    const priorFindings = await this.pg.query(
-      `SELECT f.id, f.reference, f.inspection_id, f.summary, f.severity, f.status, f.due_date,
-              insp.facility_id
+    // Prior findings at the facilities on today's list: what is still
+    // outstanding when the inspector arrives.
+    const priorFindings = await this.pg.query<{
+      id: string;
+      facility_id: string;
+      reference: string;
+      summary: string;
+      severity: string;
+      status: string;
+      due_date: string | null;
+    }>(
+      `SELECT f.id, insp.facility_id, f.reference, f.summary, f.severity, f.status,
+              f.due_date::text AS due_date
        FROM finding f
        JOIN inspection insp ON insp.id = f.inspection_id
-       JOIN facility fac ON fac.id = insp.facility_id
+       JOIN facility fac    ON fac.id = insp.facility_id
        WHERE f.status <> 'closed'
-         AND ($1::uuid IS NULL OR fac.jurisdiction_id = $1)`,
-      [jurisdictionId],
+         AND ($2::uuid IS NULL OR fac.jurisdiction_id = $2)
+         AND EXISTS (
+           SELECT 1 FROM assignment a
+           WHERE a.facility_id = fac.id AND a.assigned_to_user_id = $1
+             AND a.status IN ('planned','in_progress')
+         )`,
+      [userId, jurisdictionId],
     );
 
-    return { facilities, instrumentVersions, priorFindings };
+    return {
+      facilities: facilities.map<AssignedFacility>((f) => ({
+        id: f.id,
+        licenceNumber: f.licence_number,
+        facilityType: f.facility_type,
+        name: f.name,
+        lga: f.lga,
+        regLat: f.reg_lat === null ? null : Number(f.reg_lat),
+        regLng: f.reg_lng === null ? null : Number(f.reg_lng),
+        regAccuracyM:
+          f.registered_accuracy_m === null ? null : Number(f.registered_accuracy_m),
+        assignmentKind: f.assignment_kind,
+        assignmentReason: f.assignment_reason,
+        dueBy: f.due_by,
+      })),
+      instrumentVersions: versions.map<BootstrapInstrumentVersion>((v) => ({
+        id: v.id,
+        instrumentId: v.instrument_id,
+        facilityType: v.facility_type,
+        versionLabel: v.version_label,
+        satisfactoryMin: Number(v.satisfactory_min),
+        needsImprovementMin: Number(v.needs_improve_min),
+        structureHash: v.structure_hash,
+        structure: v.structure ?? { sections: [] },
+      })),
+      priorFindings: priorFindings.map<BootstrapPriorFinding>((f) => ({
+        id: f.id,
+        facilityId: f.facility_id,
+        reference: f.reference,
+        summary: f.summary,
+        severity: f.severity,
+        status: f.status,
+        dueDate: f.due_date,
+      })),
+    };
   }
 }

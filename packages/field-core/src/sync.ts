@@ -1,25 +1,13 @@
-import type { DeviceEvent } from "@agroassure/domain";
+import type { BootstrapBundle, DeviceEvent } from "@agroassure/domain";
 import { toDeviceEvent } from "./outbox";
-import type { AssignedFacility, FieldStore, LocalInstrumentVersion } from "./sqlite";
+import type { FieldStore } from "./sqlite";
 
 // The queue drains when a signal returns. Nothing is fetched during the day and
 // nothing is lost while there is no network: the outbox is the record until the
 // server acknowledges it, and every step here is safe to repeat, because ingest
 // is idempotent by event id and evidence is content-addressed.
 
-export interface BootstrapBundle {
-  facilities: AssignedFacility[];
-  instrumentVersions: LocalInstrumentVersion[];
-  priorFindings: Array<{
-    id: string;
-    facilityId: string;
-    reference: string;
-    summary: string;
-    severity: string;
-    status: string;
-    dueDate: string | null;
-  }>;
-}
+export type { BootstrapBundle };
 
 export interface PushAck {
   acked: string[];

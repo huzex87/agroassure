@@ -35,6 +35,8 @@ computes and the number a server verifies come from the same function.
 - `certificate.ts` — validity, issuance eligibility, serial and verification-token minting
 - `hashing.ts` — canonical serialization, SHA-256, ed25519 sign/verify
 - `hlc.ts` — hybrid logical clocks, so ordering never implies overwriting
+- `bootstrap.ts` — the pre-departure bundle's wire shape, defined once because
+  both ends must agree on it and neither owns it
 - `events.ts`, `ids.ts`, `types.ts` — event shapes, UUIDv7, the ubiquitous language
 
 ### The field offline core (`packages/field-core`)
@@ -96,7 +98,7 @@ sprawl of services. The module boundaries are still real.
 | `sync/` | Ingests device-signed, hash-chained events: verifies signature, hash, and chain continuity, appends idempotently, never rejects a well-formed event on business grounds. Serves pull and the pre-departure bootstrap bundle, and stores checksummed evidence write-once. |
 | `projections/` | Applies events to read models in record order, with a cursor. Projections carry no authority: `rebuild()` drops them and replays the store. |
 | `events/` | The only way a server-authored fact reaches the store: attributed to the verified principal, sequenced per aggregate under an advisory lock. |
-| `console/` | The regulator surface — registry and map data, instrument versioning, inspection review, officer decisions, findings workflow, planning and risk suggestions, dashboard, certificates. |
+| `console/` | The regulator surface — registry and map data, instrument versioning, inspection review, officer decisions, findings workflow, planning and risk suggestions, dashboard, certificates, users and device enrollment. |
 | `certificate/` | Deterministic HTML render with a QR code, and PDF via headless Chromium. |
 | `public-verify/` | The public surface. Its own connection pool, its own database role, one view. |
 | `workers/` | The escalation sweep: overdue and escalation are time-driven and each one is an event. |
@@ -111,6 +113,7 @@ sprawl of services. The module boundaries are still real.
 | A certificate cannot exist without a named authorising officer | `NOT NULL` columns plus the only command that can mint one |
 | The public page never publishes an accusation | A separate module, a separate role, one view that physically excludes adverse data |
 | A published instrument version never changes | Publish freezes the structure and its hash; inspections bind to the version they used |
+| A field event can be traced to the device that wrote it | Enrollment registers an ed25519 public key the device generated and never exported; revoking it stops new events without invalidating old ones |
 
 ## Getting started
 
@@ -147,16 +150,21 @@ If you use npm instead of pnpm, replace the `workspace:*` dependency on
 ## Tests
 
 ```bash
-pnpm -r run test              # 97 tests, no database needed
+pnpm -r run test              # 103 tests, no database needed
 node db/verify-invariants.mjs # the schema invariants, against a live database
 pnpm test:integration         # a full lifecycle, against a disposable database
 ```
 
 The integration suite walks one inspection from an offline device to the public
-verification page: it authors the day through `field-core`, pushes the real
-signed chain through the real ingest path, projects it, closes the findings,
-records the officer decision, authorises the certificate, and rebuilds every
-projection from the event store alone. It needs `DATABASE_URL` and
+verification page: it enrolls the device through the administration service,
+schedules the visit, fetches the day from the real `bootstrap` endpoint, authors
+the inspection through `field-core`, pushes the real signed chain through the
+real ingest path, projects it, closes the findings, records the officer
+decision, authorises the certificate, and rebuilds every projection from the
+event store alone. It builds nothing by hand that the server can build, because
+a bundle the field app could not work from would otherwise pass unnoticed —
+which is exactly how an earlier bootstrap shipped carrying a version label and
+no checkpoints. It needs `DATABASE_URL` and
 `ALLOW_DESTRUCTIVE_TEST_DB=1`, and refuses to run without the second: it appends
 events that cannot be deleted afterwards and drops every projection row.
 

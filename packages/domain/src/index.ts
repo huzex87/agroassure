@@ -6,6 +6,7 @@ export * from "./types";
 export * from "./ids";
 export * from "./hlc";
 export * from "./events";
+export * from "./bootstrap";
 export * from "./hashing";
 export * from "./scoring";
 export * from "./risk";
