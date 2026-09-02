@@ -269,11 +269,67 @@ The server-side spine is complete and tested. What remains:
   shows them numerically; plotting them needs a tile source the institution is
   willing to send facility locations to, which is a residency decision rather
   than a rendering one.
-- **Authentication.** The console and the API both use a development token
-  rather than the institution-controlled OIDC provider the guide specifies.
+- **The console's sign-in flow.** The gateway now verifies real OIDC tokens,
+  but the console still asks for a pasted token rather than redirecting to the
+  provider. Finishing it needs a registered client id, secret and redirect URI
+  at an actual provider, so it is written when there is one to test against
+  rather than shipped unexercised.
 
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.
+
+## Authentication and evidence
+
+Both were development stand-ins and are now real, though only the gateway side
+is finished.
+
+**Tokens.** With `OIDC_ISSUER` and `OIDC_AUDIENCE` set, bearer tokens are
+verified against the provider's published keys, checking issuer and audience,
+and only asymmetric algorithms are accepted — a symmetric token is refused even
+if it is otherwise well formed, which is what closes the algorithm-confusion
+hole. Roles and jurisdiction arrive as namespaced custom claims (they are this
+platform's concepts, not the provider's), and a role the service does not
+implement is dropped rather than carried through. Without an issuer configured
+the gateway falls back to a shared secret, says so loudly at boot, and refuses
+to start if it has neither.
+
+Authorization did not change and is still evaluated server-side from the
+verified principal (P5). A device's authority to author events is still its
+enrolled signing key; the token only says which device is talking.
+
+**Evidence.** `EVIDENCE_STORE=s3` puts exhibits in a bucket under object-lock in
+COMPLIANCE mode with a per-object retention, which no one can shorten — not the
+operator, not the account root, not this code. The bucket must be created with
+versioning and object-lock enabled; object-lock cannot be turned on afterwards.
+`EVIDENCE_S3_ENDPOINT` points at a Nigeria-resident S3-compatible provider or at
+MinIO locally. The default `local` store emulates write-once on a filesystem and
+is honest about it in `/health`: it stops this application replacing an exhibit,
+but not an operator with a shell.
+
+The checksum is verified against the bytes in one place regardless of backend,
+before anything is written, so a device cannot upload one file while claiming
+the hash of another. `StorageService.verify()` re-reads an object and confirms it
+still hashes to its own content address — which is what answers "has this
+photograph been altered", rather than trusting a `locked` flag.
+
+## Observability
+
+```bash
+curl localhost:3001/health    # db, projection lag, and which evidence store is live
+curl localhost:3001/metrics   # Prometheus text format
+```
+
+Logs are JSON lines carrying a correlation id, the route, and — once the token
+is verified — the acting user and device. An inbound `x-request-id` is honoured
+so a trace continues from the console rather than restarting at the gateway, and
+it is echoed back so a caller can quote it. Ids are logged; event content is not.
+Remarks, representative names and coordinates are personal data and stay in the
+event store, which is access-controlled and covered by the processing record.
+
+`/metrics` carries no identifiers at all — no user, device or facility labels —
+so it is scrapeable by the institution's monitoring without that being a
+disclosure. There is a test asserting exactly that, because a helpful label is
+the easy way to turn this endpoint into a data export by accident.
 
 ## Reference
 

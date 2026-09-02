@@ -16,6 +16,7 @@ import { base64ToBytes } from "@agroassure/domain";
 import { IngestService } from "./ingest.service";
 import { QueryService } from "./query.service";
 import { StorageService } from "./storage.service";
+import { MetricsService } from "../health/metrics.service";
 import { ProjectorService } from "../projections/projector.service";
 import type { PushEventsDto, UploadEvidenceDto } from "./dto/push-events.dto";
 import type { PullQueryDto } from "./dto/pull-query.dto";
@@ -29,6 +30,7 @@ export class SyncController {
     private readonly ingest: IngestService,
     private readonly queries: QueryService,
     private readonly storage: StorageService,
+    private readonly metrics: MetricsService,
     private readonly projector: ProjectorService,
   ) {}
 
@@ -64,7 +66,8 @@ export class SyncController {
       throw new UnprocessableEntityException("invalid base64 content");
     }
     try {
-      const stored = await this.storage.store(body.sha256, bytes);
+      const stored = await this.storage.store(body.sha256, bytes, body.mime);
+      this.metrics.increment("evidence_stored");
       // The capture event already recorded the exhibit and its content address.
       // This marks the moment the bytes themselves became immutable in storage.
       await this.storage.markLocked(body.evidenceId, stored.objectKey);
@@ -76,6 +79,9 @@ export class SyncController {
         deduplicated: stored.deduplicated,
       };
     } catch (err) {
+      // A checksum mismatch is the interesting case: it means the bytes are not
+      // the ones the device signed for. Worth watching, not just logging.
+      this.metrics.increment("evidence_rejected");
       throw new UnprocessableEntityException(
         err instanceof Error ? err.message : "evidence rejected",
       );

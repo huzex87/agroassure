@@ -1,16 +1,16 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
-import { mkdir, writeFile, chmod, access, readFile } from "node:fs/promises";
-import { constants as FS } from "node:fs";
-import { join } from "node:path";
+import { Inject, Injectable } from "@nestjs/common";
 import { sha256Hex } from "@agroassure/domain";
-import { CONFIG, type AppConfig } from "../config/config";
 import { PgService } from "../db/pg.service";
 import { evidenceObjectKey } from "./object-key";
+import { BLOB_STORE, type BlobStore } from "./blob-store.port";
 
-// Content-addressed, write-once evidence storage. This local implementation
-// emulates the object-lock (WORM) guarantee described in the guide: an object
-// is written once, made read-only, and never overwritten. In production this is
-// an S3-compatible bucket with object-lock in compliance mode, Nigeria-resident.
+// Content-addressed, write-once evidence storage.
+//
+// The check that matters lives here rather than in either backing store: the
+// declared hash is verified against the actual bytes before anything is written,
+// so a device cannot upload one file while claiming the checksum of another. The
+// hash was computed on the handset at the instant of capture and is already in a
+// signed event, which is what binds these bytes to that moment.
 
 export interface StoredEvidence {
   objectKey: string;
@@ -21,10 +21,8 @@ export interface StoredEvidence {
 
 @Injectable()
 export class StorageService {
-  private readonly logger = new Logger("Storage");
-
   constructor(
-    @Inject(CONFIG) private readonly config: AppConfig,
+    @Inject(BLOB_STORE) private readonly blobs: BlobStore,
     private readonly pg: PgService,
   ) {}
 
@@ -35,46 +33,46 @@ export class StorageService {
    * upload, only left unlocked and visibly awaiting its bytes.
    */
   async markLocked(evidenceId: string, objectKey: string): Promise<void> {
-    await this.pg.query(
-      `UPDATE evidence SET locked = true, object_key = $2 WHERE id = $1`,
-      [evidenceId, objectKey],
-    );
+    await this.pg.query(`UPDATE evidence SET locked = true, object_key = $2 WHERE id = $1`, [
+      evidenceId,
+      objectKey,
+    ]);
   }
 
-  // Verify the declared hash against the actual bytes, then store immutably.
-  async store(declaredSha256: string, bytes: Uint8Array): Promise<StoredEvidence> {
+  /** Verify the declared hash against the actual bytes, then store immutably. */
+  async store(
+    declaredSha256: string,
+    bytes: Uint8Array,
+    contentType = "application/octet-stream",
+  ): Promise<StoredEvidence> {
     const actual = sha256Hex(bytes);
     if (actual !== declaredSha256.toLowerCase()) {
       throw new Error("hash mismatch: declared checksum does not match content");
     }
 
     const key = evidenceObjectKey(actual);
-    const path = join(this.config.evidenceStoreDir, ...key.split("/"));
+    const result = await this.blobs.putIfAbsent(key, bytes, contentType);
 
-    // Content-addressed dedup: identical bytes map to one object.
-    if (await this.exists(path)) {
-      const existing = await readFile(path);
-      if (sha256Hex(new Uint8Array(existing)) === actual) {
-        return { objectKey: key, sha256: actual, locked: true, deduplicated: true };
-      }
-      // A different file at the same content-address is impossible for SHA-256;
-      // treat as a hard error rather than overwrite.
-      throw new Error("content-address collision detected");
-    }
-
-    await mkdir(join(this.config.evidenceStoreDir, actual.slice(0, 2)), { recursive: true });
-    await writeFile(path, bytes, { flag: "wx" }); // wx: fail if exists (write-once)
-    await chmod(path, 0o444); // read-only: emulate WORM
-    this.logger.log(`stored evidence ${key} (${bytes.length} bytes), locked`);
-    return { objectKey: key, sha256: actual, locked: true, deduplicated: false };
+    return {
+      objectKey: key,
+      sha256: actual,
+      locked: result.locked,
+      deduplicated: result.deduplicated,
+    };
   }
 
-  private async exists(path: string): Promise<boolean> {
-    try {
-      await access(path, FS.F_OK);
-      return true;
-    } catch {
-      return false;
-    }
+  /**
+   * Re-read an exhibit and confirm the stored bytes still hash to their own
+   * content address. Storage says an object is locked; this proves it, which is
+   * what an auditor asking "has this photograph been altered" actually needs.
+   */
+  async verify(objectKey: string): Promise<{ present: boolean; intact: boolean }> {
+    const bytes = await this.blobs.get(objectKey);
+    if (!bytes) return { present: false, intact: false };
+    return { present: true, intact: evidenceObjectKey(sha256Hex(bytes)) === objectKey };
+  }
+
+  describeStore(): string {
+    return this.blobs.describe();
   }
 }

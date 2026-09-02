@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
 } from "@nestjs/common";
 import {
   computeEventHash,
@@ -12,6 +13,7 @@ import {
   type DeviceEvent,
 } from "@agroassure/domain";
 import { EVENT_STORE, type EventStorePort } from "./ports";
+import { MetricsService } from "../health/metrics.service";
 
 export interface IngestResult {
   acked: string[];
@@ -29,7 +31,12 @@ export interface IngestResult {
 export class IngestService {
   private readonly logger = new Logger("Ingest");
 
-  constructor(@Inject(EVENT_STORE) private readonly store: EventStorePort) {}
+  constructor(
+    @Inject(EVENT_STORE) private readonly store: EventStorePort,
+    // Optional: counting is not part of being correct, and the unit tests
+    // construct this service directly with nothing to count into.
+    @Optional() private readonly metrics?: MetricsService,
+  ) {}
 
   async ingest(deviceId: string, events: DeviceEvent[]): Promise<IngestResult> {
     const device = await this.store.getDevice(deviceId);
@@ -79,6 +86,7 @@ export class IngestService {
       acked.push(e.eventId);
     }
 
+    this.metrics?.increment("events_ingested", acked.length);
     if (head !== null) await this.store.setChainHead(deviceId, head);
     const serverCursor = await this.store.latestCursor();
     return { acked, rejected: [], serverCursor };
@@ -87,6 +95,7 @@ export class IngestService {
   private flag(deviceId: string, e: DeviceEvent, reason: string): void {
     // In production this raises a security alert and marks the device for
     // supervisor review. Here it logs; the batch is rejected by the caller.
+    this.metrics?.increment("events_rejected");
     this.logger.warn(`device ${deviceId} event ${e.eventId} rejected: ${reason}`);
   }
 }

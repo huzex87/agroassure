@@ -25,10 +25,18 @@ services:
         fromDatabase:
           name: agroassure-db
           property: connectionString
-      # No OIDC provider yet, so the gateway signs and verifies its own tokens.
-      # Render generates the secret; nobody, including this file, ever sees it.
+      # No identity provider on the preview, so the gateway signs and verifies
+      # its own tokens. Render generates the secret; nobody, including this
+      # file, ever sees it. Set OIDC_ISSUER and OIDC_AUDIENCE instead for a
+      # pilot — with those present the shared secret is not consulted at all.
       - key: AUTH_JWT_SECRET
         generateValue: true
+      # Evidence on the container filesystem: write-once as far as this
+      # application is concerned, and lost on redeploy. Set EVIDENCE_STORE=s3
+      # with EVIDENCE_S3_BUCKET for object-lock in compliance mode, which is the
+      # only version of this that survives an operator with credentials.
+      - key: EVIDENCE_STORE
+        value: local
       - key: PORT
         value: 3001
       - key: PUBLIC_VERIFY_BASE_URL
