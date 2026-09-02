@@ -449,8 +449,10 @@ runIf("an inspection, from an offline device to the public page", () => {
     // The closure records who verified it; a facility cannot close its own.
     expect(closed.every((f) => f.closed_by_user_id === officerId)).toBe(true);
 
+    // AA-<jurisdiction>-<licence tail>-<yymm>, with this suite's generated
+    // four-character jurisdiction code in the middle.
     const { serial } = await certificates.authorise(officer, inspectionId);
-    expect(serial).toMatch(/^AA-T[A-Z0-9]{2}-0417-\d{4}$/);
+    expect(serial).toMatch(/^AA-T[A-Z0-9]{3}-0417-\d{4}$/);
 
     const [certificate] = await pg.query<{
       authorising_officer_id: string;
