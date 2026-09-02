@@ -308,11 +308,12 @@ runIf("an inspection, from an offline device to the public page", () => {
     expect(onDevice.ratingPercent).toBe(86.49);
 
     // ---- the signal returns ----------------------------------------------
+    // 1 start + 1 capture + 41 responses + 5 findings + 1 submit
     const queued = store.pendingEvents(1000);
-    expect(queued).toHaveLength(48); // 1 start + 1 capture + 41 responses + 5 findings + 1 submit
+    expect(queued).toHaveLength(49);
 
     const ack = await ingest.ingest(deviceId, queued.map(toDeviceEvent));
-    expect(ack.acked).toHaveLength(48);
+    expect(ack.acked).toHaveLength(49);
     store.markAcked(ack.acked);
     expect(store.pendingCount()).toBe(0);
 
