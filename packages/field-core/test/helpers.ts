@@ -129,6 +129,9 @@ export function bootstrapBundle(
         regLat: 12.98547,
         regLng: 7.61893,
         regAccuracyM: 4,
+        assignmentReason: "Two findings from the last visit are still open.",
+        assignmentKind: "follow_up",
+        dueBy: "2026-09-30",
       },
     ],
     instrumentVersions: [

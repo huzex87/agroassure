@@ -24,6 +24,7 @@ import { DashboardService } from "./dashboard.service";
 import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService, type CertificateFields } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
+import { AuditService } from "./audit.service";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "./validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
@@ -494,5 +495,47 @@ export class DevicesController {
       requiredString("reason", body.reason, 500),
     );
     return { revoked: true };
+  }
+}
+
+// NDPA exports. The event store is the audit log; these read it rather than a
+// separate application log, so what an auditor sees is what happened.
+
+@Controller("v1/audit")
+@UseGuards(DeviceAuthGuard, RolesGuard)
+export class AuditController {
+  constructor(private readonly audit: AuditService) {}
+
+  @Get("record-of-processing")
+  @Roles("state_admin", "national_admin", "auditor")
+  recordOfProcessing(@Req() req: Request) {
+    return this.audit.recordOfProcessing(getPrincipal(req));
+  }
+
+  @Get("processing-log")
+  @Roles("state_admin", "national_admin", "auditor")
+  processingLog(@Req() req: Request, @Query() q: Record<string, string>) {
+    return this.audit.processingLog(
+      getPrincipal(req),
+      isoDate("from", q.from),
+      isoDate("to", q.to),
+    );
+  }
+
+  // A data subject access request, answered for a named platform user.
+  @Get("subject/:userId")
+  @Roles("state_admin", "national_admin", "auditor")
+  subject(@Req() req: Request, @Param("userId") userId: string) {
+    return this.audit.subjectAccessExport(getPrincipal(req), uuid("userId", userId));
+  }
+
+  // A facility representative is named in events rather than held as a user.
+  @Get("representative")
+  @Roles("state_admin", "national_admin", "auditor")
+  representative(@Req() req: Request, @Query("name") name: string) {
+    return this.audit.representativeExport(
+      getPrincipal(req),
+      requiredString("name", name, 200),
+    );
   }
 }

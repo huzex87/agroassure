@@ -8,6 +8,7 @@ import {
   PlanningController,
   UsersController,
   DevicesController,
+  AuditController,
 } from "./console.controller";
 import { RegistryService } from "./registry.service";
 import { InstrumentsService } from "./instruments.service";
@@ -18,6 +19,7 @@ import { DashboardService } from "./dashboard.service";
 import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
+import { AuditService } from "./audit.service";
 
 @Module({
   controllers: [
@@ -29,6 +31,7 @@ import { AdminService } from "./admin.service";
     CertificatesController,
     UsersController,
     DevicesController,
+    AuditController,
   ],
   providers: [
     RegistryService,
@@ -40,6 +43,7 @@ import { AdminService } from "./admin.service";
     CertificatesService,
     CertificateRenderService,
     AdminService,
+    AuditService,
   ],
   exports: [FindingsService],
 })

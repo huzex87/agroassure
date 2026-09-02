@@ -12,3 +12,6 @@ evidence-store/
 # Next.js
 .next/
 next-env.d.ts
+
+# TypeScript incremental build state
+*.tsbuildinfo

@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "AgroAssure",
+    "slug": "agroassure-field",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "agroassure",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "package": "ng.gov.katsina.agroassure",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-camera", { "cameraPermission": "AgroAssure attaches photographs to inspection findings at the moment they are observed." }],
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "AgroAssure records where an inspection took place, to bind the record to the site." }]
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}

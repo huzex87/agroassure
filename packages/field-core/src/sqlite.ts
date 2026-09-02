@@ -40,9 +40,13 @@ export interface SqliteDriver {
 }
 
 export const SCHEMA = `
+-- assignment_reason is carried all the way to the handset on purpose: an
+-- inspector is told why a facility is on today's list, in the words the
+-- supervisor or the risk engine used, never just handed a name (principle P6).
 CREATE TABLE IF NOT EXISTS assigned_facility (
   id TEXT PRIMARY KEY, licence_number TEXT, facility_type TEXT, name TEXT,
-  address_json TEXT, lga TEXT, reg_lat REAL, reg_lng REAL, reg_accuracy_m REAL
+  address_json TEXT, lga TEXT, reg_lat REAL, reg_lng REAL, reg_accuracy_m REAL,
+  assignment_reason TEXT, assignment_kind TEXT, due_by TEXT
 );
 
 CREATE TABLE IF NOT EXISTS instrument_version_local (
@@ -141,9 +145,29 @@ function nullableStr(v: unknown): string | null {
   return v === null || v === undefined ? null : String(v);
 }
 
+function toFacility(row: Record<string, unknown>): AssignedFacility {
+  return {
+    id: str(row.id),
+    licenceNumber: str(row.licence_number),
+    facilityType: str(row.facility_type),
+    name: str(row.name),
+    lga: nullableStr(row.lga),
+    regLat: nullableNum(row.reg_lat),
+    regLng: nullableNum(row.reg_lng),
+    regAccuracyM: nullableNum(row.reg_accuracy_m),
+    assignmentReason: nullableStr(row.assignment_reason),
+    assignmentKind: nullableStr(row.assignment_kind),
+    dueBy: nullableStr(row.due_by),
+  };
+}
+
 export class FieldStore {
   constructor(private readonly db: SqliteDriver) {}
 
+  // ponytail: CREATE TABLE IF NOT EXISTS only, so a device that already holds
+  // an older schema does not gain new columns. Nothing is deployed yet, so the
+  // upgrade path is a reinstall. Add a user_version pragma and ALTER steps here
+  // before the first handset leaves the office with real work on it.
   migrate(): void {
     for (const statement of SCHEMA.split(";")) {
       if (statement.trim()) this.db.run(statement);
@@ -157,26 +181,78 @@ export class FieldStore {
     for (const f of facilities) {
       this.db.run(
         `INSERT INTO assigned_facility
-           (id, licence_number, facility_type, name, lga, reg_lat, reg_lng, reg_accuracy_m)
-         VALUES (?,?,?,?,?,?,?,?)`,
-        [f.id, f.licenceNumber, f.facilityType, f.name, f.lga, f.regLat, f.regLng, f.regAccuracyM],
+           (id, licence_number, facility_type, name, lga, reg_lat, reg_lng, reg_accuracy_m,
+            assignment_reason, assignment_kind, due_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          f.id,
+          f.licenceNumber,
+          f.facilityType,
+          f.name,
+          f.lga,
+          f.regLat,
+          f.regLng,
+          f.regAccuracyM,
+          f.assignmentReason ?? null,
+          f.assignmentKind ?? null,
+          f.dueBy ?? null,
+        ],
       );
     }
   }
 
   facility(id: string): AssignedFacility | null {
     const row = this.db.run(`SELECT * FROM assigned_facility WHERE id = ?`, [id])[0];
-    if (!row) return null;
-    return {
-      id: str(row.id),
-      licenceNumber: str(row.licence_number),
-      facilityType: str(row.facility_type),
-      name: str(row.name),
-      lga: nullableStr(row.lga),
-      regLat: nullableNum(row.reg_lat),
-      regLng: nullableNum(row.reg_lng),
-      regAccuracyM: nullableNum(row.reg_accuracy_m),
-    };
+    return row ? toFacility(row) : null;
+  }
+
+  /** Today's list, in the order the bootstrap supplied it. */
+  facilities(): AssignedFacility[] {
+    return this.db.run(`SELECT * FROM assigned_facility ORDER BY rowid`).map(toFacility);
+  }
+
+  /**
+   * The visit already under way at this facility, if the app was closed
+   * mid-inspection. Resuming is the normal case, not the exception: a warehouse
+   * visit is interrupted constantly.
+   */
+  openInspectionFor(facilityId: string): { id: string; reference: string } | null {
+    const row = this.db.run(
+      `SELECT id, reference FROM local_inspection
+        WHERE facility_id = ? AND status = 'in_progress'
+        ORDER BY rowid DESC LIMIT 1`,
+      [facilityId],
+    )[0];
+    return row ? { id: str(row.id), reference: str(row.reference) } : null;
+  }
+
+  /** Whether this facility's visit is already signed off and queued. */
+  submittedInspectionFor(facilityId: string): { id: string; ratingBand: string | null } | null {
+    const row = this.db.run(
+      `SELECT id, rating_band FROM local_inspection
+        WHERE facility_id = ? AND status = 'submitted'
+        ORDER BY rowid DESC LIMIT 1`,
+      [facilityId],
+    )[0];
+    return row ? { id: str(row.id), ratingBand: nullableStr(row.rating_band) } : null;
+  }
+
+  /** Exhibits captured against one checkpoint, for the thumbnail strip. */
+  evidenceFor(inspectionId: string, checkpointRef: string): PendingEvidence[] {
+    return this.db
+      .run(
+        `SELECT * FROM local_evidence WHERE inspection_id = ? AND checkpoint_ref = ?
+          ORDER BY rowid`,
+        [inspectionId, checkpointRef],
+      )
+      .map((row) => ({
+        evidenceId: str(row.evidence_id),
+        inspectionId: str(row.inspection_id),
+        checkpointRef: str(row.checkpoint_ref),
+        sha256: str(row.sha256),
+        localUri: str(row.local_uri),
+        mime: str(row.mime),
+      }));
   }
 
   replaceInstrumentVersions(versions: LocalInstrumentVersion[]): void {
