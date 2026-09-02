@@ -204,36 +204,43 @@ async function main() {
 
     // ---- 4. the view shows currently valid certificates only ---------------
     console.log("\nthe public view shows currently valid certificates only");
-    const visible = async () => {
+    const visible = async (serial) => {
       const { rows } = await client.query(
-        `SELECT count(*)::int AS n FROM public_certificate_view WHERE serial = 'AA-ZZ-0001-0004'`,
+        `SELECT count(*)::int AS n FROM public_certificate_view WHERE serial = $1`,
+        [serial],
       );
       return rows[0].n;
     };
-    if ((await visible()) === 1) {
+    if ((await visible("AA-ZZ-0001-0004")) === 1) {
       pass("a valid certificate is visible");
     } else {
       fail("a valid certificate is visible", "it was not returned by the view");
+    }
+
+    // A lapsed certificate is one issued long enough ago that its validity has
+    // run out. It cannot be made by dating an existing one backwards: the
+    // schema refuses valid_to <= issued_on, which is itself the point.
+    await client.query(
+      `INSERT INTO certificate ${certColumns}
+       VALUES (gen_random_uuid(), 'AA-ZZ-0001-0005', $1, $2, $3, $4, $5,
+               'satisfactory', 86.49, current_date - 400, current_date - 1,
+               current_date - 200, 'TOK-5')`,
+      [facility.id, inspection.id, decision.id, officer.id, authority.id],
+    );
+    if ((await visible("AA-ZZ-0001-0005")) === 0) {
+      pass("a lapsed certificate never appears in the view");
+    } else {
+      fail("a lapsed certificate never appears in the view", "the view returned it");
     }
 
     if (certificate) {
       await client.query(`UPDATE certificate SET status = 'revoked' WHERE id = $1`, [
         certificate.rows[0].id,
       ]);
-      if ((await visible()) === 0) {
+      if ((await visible("AA-ZZ-0001-0004")) === 0) {
         pass("a revoked certificate disappears from the view");
       } else {
         fail("a revoked certificate disappears from the view", "the view still returns it");
-      }
-
-      await client.query(
-        `UPDATE certificate SET status = 'valid', valid_to = current_date - 1 WHERE id = $1`,
-        [certificate.rows[0].id],
-      );
-      if ((await visible()) === 0) {
-        pass("a lapsed certificate disappears from the view");
-      } else {
-        fail("a lapsed certificate disappears from the view", "the view still returns it");
       }
     }
 
