@@ -2,6 +2,7 @@ import Link from "next/link";
 import { get, type FacilityRow } from "../../lib/api";
 import { Card, Cell, Empty, Row, Table } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
+import { RegistryMap } from "../../components/registry-map";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 
 // The registry: every regulated site, with the status of its certificate.
@@ -39,6 +40,10 @@ export default async function FacilitiesPage({
           {counts.never_inspected ?? 0} not yet inspected
         </p>
       </header>
+
+      <Card>
+        <RegistryMap facilities={facilities} />
+      </Card>
 
       <Card>
         <form className="mb-4 flex flex-wrap gap-3" action="/facilities">

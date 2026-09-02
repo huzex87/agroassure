@@ -265,10 +265,6 @@ The server-side spine is complete and tested. What remains:
   runtime — and it typechecks against `field-core`, but no screen and none of
   the native bindings have been run. There is no emulator on the machine it was
   built on.
-- **A map on the registry screen.** Facilities carry coordinates and the screen
-  shows them numerically; plotting them needs a tile source the institution is
-  willing to send facility locations to, which is a residency decision rather
-  than a rendering one.
 - **The console's sign-in flow.** The gateway now verifies real OIDC tokens,
   but the console still asks for a pasted token rather than redirecting to the
   provider. Finishing it needs a registered client id, secret and redirect URI
@@ -311,6 +307,21 @@ before anything is written, so a device cannot upload one file while claiming
 the hash of another. `StorageService.verify()` re-reads an object and confirms it
 still hashes to its own content address — which is what answers "has this
 photograph been altered", rather than trusting a `locked` flag.
+
+## The registry map
+
+Facilities are plotted from their own coordinates with no basemap behind them.
+A tile layer would send the location of every regulated facility in the state to
+whoever serves the tiles, on every page view, and that is a residency and
+disclosure decision belonging to the institution rather than a rendering choice.
+Relative position answers what the screen actually raises — whether the overdue
+cluster sits in one LGA, whether a facility is nowhere near the others — without
+telling anyone outside the building anything.
+
+Status is carried by size and a ring as well as by tint, so the map survives a
+colour-blind reader and a monochrome print, and each point names its facility
+and status in a `<title>`. If a tile source is ever approved, it goes in
+`components/registry-map.tsx` and nothing else changes.
 
 ## Observability
 
