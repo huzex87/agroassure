@@ -247,8 +247,7 @@ async function main() {
     }
 
     // ---- 5. nothing durable depends on a projection -----------------------
-    console.log("
-no durable table holds a foreign key into a projection");
+    console.log("\nno durable table holds a foreign key into a projection");
     const PROJECTIONS = [
       "facility",
       "inspection",
