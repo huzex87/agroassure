@@ -6,13 +6,7 @@
     "moduleResolution": "bundler",
     "paths": {
       "@agroassure/domain": ["../../packages/domain/src/index.ts"],
-      "@agroassure/field-core": ["../../packages/field-core/src/index.ts"],
-      // The console is Next 15 on React 19 types and this app is Expo 52 on
-      // React 18 types; @react-navigation pulls the 19 copy into this graph and
-      // the two disagree about ReactNode. Pinning "react" here settles it for
-      // the whole program without forcing one version on the workspace.
-      "react": ["./node_modules/@types/react"],
-      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"]
+      "@agroassure/field-core": ["../../packages/field-core/src/index.ts"]
     }
   },
   "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "expo-env.d.ts"]

@@ -30,22 +30,6 @@ jobs:
           --health-timeout 5s
           --health-retries 20
 
-      # Real S3 with real object-lock. The claim that an exhibit cannot be
-      # destroyed is a property of the storage, so it is tested against storage
-      # that implements it rather than against a mock that agrees with us.
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: agroassure
-          MINIO_ROOT_PASSWORD: agroassure-local-verification
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "mc ready local || curl -f http://localhost:9000/minio/health/live"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 30
-
     env:
       DATABASE_URL: postgres://agroassure:agroassure@localhost:5432/agroassure
       AUTH_JWT_SECRET: ci-secret-not-used-in-production
@@ -92,6 +76,22 @@ jobs:
 
       # A separate, disposable database: the lifecycle suite appends events that
       # cannot be deleted afterwards and rebuilds every projection.
+      # Real S3 with real object-lock: the claim that an exhibit cannot be
+      # destroyed is a property of the storage, so it is tested against storage
+      # that implements it rather than a mock that agrees with us.
+      #
+      # A step rather than a service container, because MinIO needs a command
+      # ("server /data") and service containers run the image's entrypoint with
+      # no arguments — as a service it starts, prints its usage, and exits.
+      - name: Start MinIO for the evidence object-lock suite
+        run: |
+          docker run -d --name minio -p 9000:9000             -e MINIO_ROOT_USER=agroassure             -e MINIO_ROOT_PASSWORD=agroassure-local-verification             minio/minio:latest server /data
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:9000/minio/health/live && break
+            sleep 2
+          done
+          curl -fsS http://localhost:9000/minio/health/live
+
       - name: Prepare a disposable database for the lifecycle suite
         run: |
           psql -h localhost -U agroassure -d agroassure -c 'CREATE DATABASE agroassure_it'

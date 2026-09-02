@@ -278,6 +278,33 @@ export class ProjectorService {
         discrepancy,
       ],
     );
+
+    // Link the assignment this visit fulfils, if there is one.
+    //
+    // Nothing set assignment.inspection_id before this, so the completion
+    // update at sign-off — which keys on that column — could never match and an
+    // assignment stayed 'planned' for ever. An inspector can also visit a
+    // facility unprompted, so a visit with no matching assignment is normal and
+    // simply links nothing.
+    //
+    // The assignment is durable planning data and this is the projector writing
+    // to it, which is only safe because the write is idempotent: it claims a
+    // still-unclaimed assignment, so replaying the event after a rebuild finds
+    // the link already made and changes nothing.
+    await client.query(
+      `UPDATE assignment SET inspection_id = $1
+        WHERE id = (
+          SELECT a.id FROM assignment a
+           WHERE a.facility_id = $2
+             AND a.inspection_id IS NULL
+             AND a.status = 'planned'
+             AND ($3::uuid IS NULL OR a.assigned_to_user_id IS NULL
+                  OR a.assigned_to_user_id = $3)
+           ORDER BY a.due_by NULLS LAST, a.created_at
+           LIMIT 1
+        )`,
+      [e.aggregate_id, p.facilityId, e.actor_user_id],
+    );
   }
 
   private async responseRecorded(client: PoolClient, e: StoredEvent): Promise<void> {

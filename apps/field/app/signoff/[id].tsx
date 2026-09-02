@@ -35,15 +35,22 @@ export default function Signoff() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const load = useCallback((session: FieldInspection) => {
-    setRating({
-      percent: session.rating(String(id)).ratingPercent,
-      band: session.rating(String(id)).band,
-    });
-    setFindings(session.provisionalFindings(String(id)));
-    setMissing(session.unanswered(String(id)));
-  }, [id]);
+  const load = useCallback(
+    (session: FieldInspection) => {
+      // One call, not two: rating() rescores the whole inspection each time.
+      const scored = session.rating(String(id));
+      setRating({ percent: scored.ratingPercent, band: scored.band });
+      setFindings(session.provisionalFindings(String(id)));
+      setMissing(session.unanswered(String(id)));
+    },
+    [id],
+  );
 
+  // Deliberately keyed on the inspection alone. router came from useRouter()
+  // and is not guaranteed to be the same object between renders; with it in the
+  // dependencies this effect re-ran on every render, and because it sets fresh
+  // state objects each time, that was an infinite loop waiting for a router
+  // implementation that does not memoise.
   useEffect(() => {
     (async () => {
       const who = await inspectorId();
@@ -53,7 +60,8 @@ export default function Signoff() {
       setInspection(session.inspection);
       load(session.inspection);
     })().catch((e) => setError(String(e)));
-  }, [id, router, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, load]);
 
   async function submit() {
     if (!inspection || !userId || !inspectorSignedAt || !repSignedAt) return;

@@ -59,7 +59,11 @@ export default function Checklist() {
       if (!userId) return router.replace("/enrol");
       setSession(await inspectionSession(userId));
     })().catch((e) => setError(String(e)));
-  }, [id, router]);
+    // Keyed on the inspection alone: router comes from useRouter() and is not
+    // guaranteed to be the same object between renders, so depending on it makes
+    // this effect re-run on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const refresh = useCallback(
     (s: { inspection: FieldInspection; store: FieldStore }) => {

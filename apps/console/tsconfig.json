@@ -15,7 +15,16 @@
     "noEmit": true,
     "allowJs": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
+    "paths": {
+      "@/*": ["./*"],
+      // This app is Next 15 on React 19 types; the field app is Expo on React
+      // 18 types, and both copies are reachable in a pnpm workspace. Next's
+      // bundled styled-jsx types resolve "react" to whichever it finds first,
+      // and the two disagree about ReactNode. Pinning it here settles the
+      // question for this program without forcing one major on the workspace.
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"]
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
