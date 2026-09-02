@@ -1,0 +1,67 @@
+name: CI
+
+# Lint, type-check, unit tests, and — the part that matters most here — the
+# migrations and the schema invariants run against a real PostgreSQL. The
+# certificate invariant and the append-only event store are database
+# constraints, so a test suite that never touches a database would not be
+# testing them at all.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: agroassure
+          POSTGRES_PASSWORD: agroassure
+          POSTGRES_DB: agroassure
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agroassure"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://agroassure:agroassure@localhost:5432/agroassure
+      AUTH_JWT_SECRET: ci-secret-not-used-in-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the shared domain
+        run: pnpm --filter @agroassure/domain build
+
+      - name: Type-check every package
+        run: pnpm -r run typecheck
+
+      - name: Unit tests
+        run: pnpm -r run test
+
+      - name: Apply migrations (forward-only) and the pilot fixture
+        run: node db/migrate.mjs --seed
+
+      - name: Migrations are idempotent to re-run
+        run: node db/migrate.mjs
+
+      - name: Schema invariants hold against a real database
+        run: node db/verify-invariants.mjs

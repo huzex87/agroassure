@@ -1,0 +1,15 @@
+{
+  "name": "@agroassure/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AgroAssure PostgreSQL migrations and forward-only runner.",
+  "scripts": {
+    "migrate": "node migrate.mjs",
+    "migrate:seed": "node migrate.mjs --seed",
+    "verify": "node verify-invariants.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  }
+}

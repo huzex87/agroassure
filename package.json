@@ -1,0 +1,20 @@
+{
+  "name": "agroassure",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgroAssure starter monorepo: shared domain, database migrations, and sync gateway.",
+  "packageManager": "pnpm@9.7.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/** --filter ./services/** run build",
+    "test": "pnpm -r run test",
+    "typecheck": "pnpm -r run typecheck",
+    "db:migrate": "node db/migrate.mjs",
+    "gateway:dev": "pnpm --filter @agroassure/sync-gateway run start:dev",
+    "db:verify": "node db/verify-invariants.mjs",
+    "dev:stack": "docker compose up -d",
+    "gateway:build": "pnpm --filter @agroassure/sync-gateway run build"
+  }
+}

@@ -1,0 +1,46 @@
+# Local development stack. Production is Nigeria-resident hosting running these
+# same images (principle P1: containerised and portable, so custody can move
+# without a rewrite); nothing here is development-only except the passwords.
+
+services:
+  db:
+    # PostGIS bundles the geospatial extension the registry and check-in need.
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: agroassure
+      POSTGRES_PASSWORD: agroassure
+      POSTGRES_DB: agroassure
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agroassure"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Evidence storage. Object-lock in compliance mode is what makes "files cannot
+  # be replaced after submission" a storage guarantee rather than a UI rule, so
+  # the bucket must be created with versioning and object-lock enabled.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: agroassure
+      MINIO_ROOT_PASSWORD: agroassure-dev-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  # Escalation timers, render queue, hot dashboard cache.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:
+  minio-data:
