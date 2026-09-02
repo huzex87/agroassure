@@ -577,5 +577,15 @@ runIf("an inspection, from an offline device to the public page", () => {
       [inspectionId],
     );
     expect(responses).toHaveLength(41);
+
+    // Planning is not a projection and is not derived from an event, so a
+    // rebuild must leave it exactly as the supervisor left it — including the
+    // link to the inspection that completed it.
+    const [assignment] = await pg.query<{ status: string; reason: string }>(
+      `SELECT status, reason FROM assignment WHERE facility_id = $1`,
+      [facilityId],
+    );
+    expect(assignment?.status).toBe("completed");
+    expect(assignment?.reason).toBe("certificate expires in 21 days");
   }, 180_000);
 });

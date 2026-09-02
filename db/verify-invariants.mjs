@@ -7,7 +7,9 @@
 //   2. a certificate cannot exist without a decision and a named officer
 //   3. the public role can read one view and nothing else
 //   4. the public view shows currently valid certificates only
-//   5. one version of an instrument is in force at a time
+//   5. no durable table holds a foreign key into a projection, so every
+//      projection stays droppable and rebuild() can do its job
+//   6. one version of an instrument is in force at a time
 //
 // Everything runs inside a transaction that is rolled back, so the check leaves
 // no rows behind and is safe to run against a seeded development database.
@@ -244,7 +246,40 @@ async function main() {
       }
     }
 
-    // ---- 5. one version in force at a time --------------------------------
+    // ---- 5. nothing durable depends on a projection -----------------------
+    console.log("
+no durable table holds a foreign key into a projection");
+    const PROJECTIONS = [
+      "facility",
+      "inspection",
+      "checkpoint_response",
+      "evidence",
+      "finding",
+      "decision",
+      "certificate",
+    ];
+    const { rows: badRefs } = await client.query(
+      `SELECT tc.table_name AS from_table, ccu.table_name AS to_table, tc.constraint_name
+       FROM information_schema.table_constraints tc
+       JOIN information_schema.constraint_column_usage ccu
+         ON ccu.constraint_name = tc.constraint_name
+       WHERE tc.constraint_type = 'FOREIGN KEY'
+         AND ccu.table_name = ANY($1)
+         AND tc.table_name <> ALL($1)`,
+      [PROJECTIONS],
+    );
+    if (badRefs.length === 0) {
+      pass("projections are droppable: nothing durable references them");
+    } else {
+      fail(
+        "projections are droppable: nothing durable references them",
+        badRefs
+          .map((r) => `${r.from_table} -> ${r.to_table} (${r.constraint_name})`)
+          .join("; ") + " — a rebuild cannot drop a projection something else depends on",
+      );
+    }
+
+    // ---- 6. one version in force at a time --------------------------------
     console.log("\none version of an instrument is in force at a time");
     await refuses(
       "a second in-force version of the same instrument is refused",

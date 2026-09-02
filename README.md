@@ -13,6 +13,7 @@ Pilot jurisdiction: Katsina State.
 
 ```
 agroassure/
+  apps/console/           The regulator console (Next.js)
   packages/domain/        Pure, portable domain logic (the device and the server share it)
   packages/field-core/    The field app's offline core: local store, outbox, authoring, drain
   db/                     PostgreSQL migrations, a forward-only runner, and an invariant check
@@ -103,6 +104,33 @@ sprawl of services. The module boundaries are still real.
 | `public-verify/` | The public surface. Its own connection pool, its own database role, one view. |
 | `workers/` | The escalation sweep: overdue and escalation are time-driven and each one is an event. |
 
+### The regulator console (`apps/console`)
+
+Next.js App Router, server components reading projections through the API. It
+holds no state and reaches no database: every rule that matters is enforced on
+the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
+
+| Screen | What it is for |
+|---|---|
+| Dashboard | Compliance tiles, the "decisions within 30 days" clock, findings by section, and risk-targeted suggestions — each shown with the reason that produced it, because a score without a reason cannot be argued with |
+| Facilities | The registry, with certificate status derived at read time so a lapse shows the morning after it happens |
+| Facility | Registered point, certificate history, every visit |
+| Inspections | The queue, marked by what still awaits an officer decision |
+| Inspection review | The full case: check-in distance, every response with its remark and exhibits, findings, decisions, and the certificate gate |
+| Corrective actions | The findings worklist by severity and due date |
+| Certificate | The record, its authorising officer, and the verification token behind the QR |
+| Instruments | The version timeline, the in-force structure in both languages, and the explicit change list before a publish |
+| Users and devices | Roles, and device enrolment against a key the device generated and never exported |
+
+Styled to Huzex Light: `#409EF2` for action, `#072435` for text, white surfaces,
+12–16px radii, soft shadows, and light blurred overlays rather than dark tints.
+Every status carries a word as well as a colour, so the registry stays readable
+to a colour-blind reader and in a printed export.
+
+Sign-in is a development stand-in that stores a token in an httpOnly cookie. It
+authenticates nobody. Replacing it with the institution's OpenID Connect
+provider changes only that page, because nothing else asks for a token.
+
 ### The invariants, and where each one lives
 
 | Promise | Where it is enforced |
@@ -130,6 +158,9 @@ node db/verify-invariants.mjs # confirm the schema invariants hold
 
 cp services/sync-gateway/.env.example services/sync-gateway/.env
 pnpm gateway:dev
+
+cp apps/console/.env.example apps/console/.env.local
+pnpm console:dev              # http://localhost:3000
 ```
 
 The public verification surface should log in as its own role. Create it once:
@@ -199,9 +230,12 @@ The server-side spine is complete and tested; two client surfaces are not writte
   runtime. The logic underneath them is `field-core`, which is written and
   tested; what remains is presentation and the native bindings, and those can
   only be verified on a real handset.
-- **The regulator console (Next.js).** The registry and map, dashboard,
-  inspection review, findings worklist, certificate view, and template version
-  manager. Every screen's data is already served by the console API.
+- **A map on the registry screen.** Facilities carry coordinates and the screen
+  shows them numerically; plotting them needs a tile source the institution is
+  willing to send facility locations to, which is a residency decision rather
+  than a rendering one.
+- **Authentication.** The console and the API both use a development token
+  rather than the institution-controlled OIDC provider the guide specifies.
 
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.

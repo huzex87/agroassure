@@ -8,3 +8,7 @@ coverage/
 .DS_Store
 .turbo/
 evidence-store/
+
+# Next.js
+.next/
+next-env.d.ts

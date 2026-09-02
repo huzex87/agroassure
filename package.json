@@ -16,6 +16,8 @@
     "db:verify": "node db/verify-invariants.mjs",
     "dev:stack": "docker compose up -d",
     "gateway:build": "pnpm --filter @agroassure/sync-gateway run build",
-    "test:integration": "pnpm --filter @agroassure/sync-gateway run test:integration"
+    "test:integration": "pnpm --filter @agroassure/sync-gateway run test:integration",
+    "console:dev": "pnpm --filter @agroassure/console run dev",
+    "console:build": "pnpm --filter @agroassure/console run build"
   }
 }

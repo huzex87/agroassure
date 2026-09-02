@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* Huzex Light. Secondary tones are tints of the primary rather than new hues,
+   so the interface stays quiet and the one saturated colour means "act here". */
+@theme {
+  --color-primary: #409ef2;
+  --color-primary-50: #f2f8fe;
+  --color-primary-100: #e3f0fd;
+  --color-primary-200: #c2e0fb;
+  --color-primary-600: #2b86d8;
+  --color-primary-700: #1f6db4;
+
+  --color-ink: #072435;
+  --color-ink-muted: #4a6b7c;
+  --color-line: #e6eef4;
+  --color-surface: #ffffff;
+  --color-canvas: #f7fafc;
+
+  --radius-card: 16px;
+  --radius-control: 12px;
+
+  --font-sans: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Dialogs sit on a light, blurred overlay, never a dark tint. */
+.overlay {
+  background: color-mix(in srgb, white 70%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+/* Cards are elevated softly; nothing in this interface casts a hard shadow. */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgb(7 36 53 / 0.04), 0 6px 16px rgb(7 36 53 / 0.05);
+}
+
+/* Focus is always visible: this console is used with a keyboard all day. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

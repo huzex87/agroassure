@@ -62,6 +62,9 @@ jobs:
       - name: Unit tests
         run: pnpm -r run test
 
+      - name: Build the regulator console
+        run: pnpm --filter @agroassure/console run build
+
       - name: Apply migrations (forward-only) and the pilot fixture
         run: node db/migrate.mjs --seed
 

@@ -79,10 +79,10 @@ export class ProjectorService {
   /** Drop every projected row and replay the whole store. Safe by design. */
   async rebuild(): Promise<number> {
     await this.pg.transaction(async (client) => {
-      // Order respects foreign keys. Assignments are operational planning rows,
-      // not projections, so their link to an inspection is cleared rather than
-      // the rows deleted.
-      await client.query(`UPDATE assignment SET inspection_id = NULL`);
+      // Order respects foreign keys. Assignments are untouched: they are durable
+      // planning data rather than a projection, and they hold no constraint into
+      // one, so the link between an assignment and the inspection that completed
+      // it survives a rebuild instead of being cleared by it.
       for (const t of [
         "certificate",
         "decision",
