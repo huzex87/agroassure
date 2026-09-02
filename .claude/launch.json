@@ -3,9 +3,8 @@
   "configurations": [
     {
       "name": "console",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "-p", "3000"],
-      "cwd": "apps/console",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@agroassure/console", "run", "dev"],
       "port": 3000
     }
   ]

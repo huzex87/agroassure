@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { signOut } from "../lib/session-actions";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +19,11 @@ const NAV = [
   { href: "/admin", label: "Users and devices" },
 ];
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Only offered when there is a session to end, so the sign-in page does not
+  // invite someone to sign out of nothing.
+  const signedIn = Boolean((await cookies()).get("agroassure_session"));
+
   return (
     <html lang="en">
       <body className="min-h-screen">
@@ -55,6 +61,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </li>
               ))}
             </ul>
+
+            {signedIn && (
+              <form action={signOut} className="mt-8 px-3">
+                <button
+                  type="submit"
+                  className="rounded-[12px] px-3 py-2 text-sm text-ink-muted hover:bg-primary-50 hover:text-ink"
+                >
+                  Sign out
+                </button>
+              </form>
+            )}
 
             <p className="mt-10 px-3 text-xs leading-relaxed text-ink-muted">
               Records and renders compliance certificates on behalf of the mandated

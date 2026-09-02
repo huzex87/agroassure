@@ -265,11 +265,12 @@ The server-side spine is complete and tested. What remains:
   runtime — and it typechecks against `field-core`, but no screen and none of
   the native bindings have been run. There is no emulator on the machine it was
   built on.
-- **The console's sign-in flow.** The gateway now verifies real OIDC tokens,
-  but the console still asks for a pasted token rather than redirecting to the
-  provider. Finishing it needs a registered client id, secret and redirect URI
-  at an actual provider, so it is written when there is one to test against
-  rather than shipped unexercised.
+- **The token exchange against a real provider.** The console's OIDC redirect,
+  its state and PKCE handling, and every failure path are written and exercised
+  in a browser; the one step never run is the code-for-token call itself, which
+  needs a registered client at an actual provider. Nothing about it is a trust
+  boundary — the gateway verifies the token independently — so a mistake there
+  fails visibly at sign-in rather than letting anyone past.
 
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.
@@ -292,6 +293,13 @@ to start if it has neither.
 Authorization did not change and is still evaluated server-side from the
 verified principal (P5). A device's authority to author events is still its
 enrolled signing key; the token only says which device is talking.
+
+The console signs in through the same provider, with PKCE and a state cookie —
+without the state check, a link could complete a sign-in as somebody else in an
+officer's browser. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and
+`OIDC_REDIRECT_URI` (`.../signin/callback`); leave any of them unset and the
+console keeps the development token box, because half-configured has to mean not
+configured rather than a partly built redirect nobody can get back out of.
 
 **Evidence.** `EVIDENCE_STORE=s3` puts exhibits in a bucket under object-lock in
 COMPLIANCE mode with a per-object retention, which no one can shorten — not the
