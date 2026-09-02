@@ -30,6 +30,22 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@20.19.43)
 
+  packages/field-core:
+    dependencies:
+      '@agroassure/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(@types/node@20.19.43)
+
   services/sync-gateway:
     dependencies:
       '@agroassure/domain':
@@ -67,6 +83,9 @@ importers:
         specifier: ^1.47.0
         version: 1.62.1
     devDependencies:
+      '@agroassure/field-core':
+        specifier: workspace:*
+        version: link:../../packages/field-core
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.25

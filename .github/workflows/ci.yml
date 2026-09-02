@@ -1,10 +1,10 @@
 name: CI
 
-# Lint, type-check, unit tests, and — the part that matters most here — the
-# migrations and the schema invariants run against a real PostgreSQL. The
-# certificate invariant and the append-only event store are database
-# constraints, so a test suite that never touches a database would not be
-# testing them at all.
+# Lint, type-check, unit tests, and — the parts that matter most here — the
+# schema invariants and a full inspection lifecycle run against a real
+# PostgreSQL. The certificate invariant and the append-only event store are
+# database constraints, and the projector is SQL, so a suite that never touches
+# a database would not be testing any of them.
 
 on:
   push:
@@ -33,6 +33,7 @@ jobs:
     env:
       DATABASE_URL: postgres://agroassure:agroassure@localhost:5432/agroassure
       AUTH_JWT_SECRET: ci-secret-not-used-in-production
+      PGPASSWORD: agroassure
 
     steps:
       - uses: actions/checkout@v4
@@ -41,15 +42,19 @@ jobs:
         with:
           version: 9.7.0
 
+      # Node 24: the field-core suite drives the device store through
+      # node:sqlite, which is not available on Node 20.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build the shared domain
-        run: pnpm --filter @agroassure/domain build
+      - name: Build the shared packages
+        run: |
+          pnpm --filter @agroassure/domain build
+          pnpm --filter @agroassure/field-core build
 
       - name: Type-check every package
         run: pnpm -r run typecheck
@@ -65,3 +70,17 @@ jobs:
 
       - name: Schema invariants hold against a real database
         run: node db/verify-invariants.mjs
+
+      # A separate, disposable database: the lifecycle suite appends events that
+      # cannot be deleted afterwards and rebuilds every projection.
+      - name: Prepare a disposable database for the lifecycle suite
+        run: |
+          psql -h localhost -U agroassure -d agroassure -c 'CREATE DATABASE agroassure_it'
+          DATABASE_URL=postgres://agroassure:agroassure@localhost:5432/agroassure_it \
+            node db/migrate.mjs
+
+      - name: A full inspection lifecycle, device to public page
+        env:
+          DATABASE_URL: postgres://agroassure:agroassure@localhost:5432/agroassure_it
+          ALLOW_DESTRUCTIVE_TEST_DB: "1"
+        run: pnpm --filter @agroassure/sync-gateway run test:integration

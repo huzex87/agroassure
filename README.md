@@ -14,6 +14,7 @@ Pilot jurisdiction: Katsina State.
 ```
 agroassure/
   packages/domain/        Pure, portable domain logic (the device and the server share it)
+  packages/field-core/    The field app's offline core: local store, outbox, authoring, drain
   db/                     PostgreSQL migrations, a forward-only runner, and an invariant check
   services/sync-gateway/  The application tier (see below)
   docker-compose.yml      PostgreSQL + PostGIS, MinIO, Redis for local development
@@ -35,6 +36,37 @@ computes and the number a server verifies come from the same function.
 - `hashing.ts` — canonical serialization, SHA-256, ed25519 sign/verify
 - `hlc.ts` — hybrid logical clocks, so ordering never implies overwriting
 - `events.ts`, `ids.ts`, `types.ts` — event shapes, UUIDv7, the ubiquitous language
+
+### The field offline core (`packages/field-core`)
+
+Everything an inspection *is*, minus the screens. It imports no React Native API,
+so the rules governing an evidentiary record are testable without a handset, and
+the UI layer on top holds only presentation.
+
+- `sqlite.ts` — the on-device store behind a tiny driver seam, so the same code
+  runs on op-sqlite, expo-sqlite, and node:sqlite
+- `outbox.ts` — event authoring: per-aggregate sequence, HLC stamp, chain link,
+  hash, signature, queued in one append-only row
+- `inspection.ts` — the visit: check-in binding, Yes/No/N/A with a remark
+  required on an adverse answer, evidence bound to its hash at capture,
+  on-device scoring, dual sign-off
+- `geo.ts` — check-in geofencing; a distant check-in is flagged, never refused
+- `sync.ts` — the pre-departure bundle and drain-on-signal
+
+Two deliberate departures from the reference on-device DDL, both to remove a
+failure mode rather than to save effort. Hashes are stored as hex text, because
+blob binding is the one thing every React Native SQLite driver does differently.
+And there is no `chain_head` or `hlc_state` table: both are just "the last event
+this device authored", so they are read from the outbox instead of maintained
+beside it — a separate copy could fall out of step after a crash, and a chain
+head that disagrees with the log is exactly the corruption the chain exists to
+detect.
+
+Findings are derived from the adverse responses at sign-off rather than tracked
+as the inspector goes, so correcting a No back to a Yes simply removes the
+finding: nothing was observed, so nothing needs withdrawing. The observation
+itself — the remark and the exhibit, captured when it was seen — is in the event
+log either way.
 
 ### The database (`db`)
 
@@ -87,6 +119,7 @@ pnpm install
 docker compose up -d          # PostgreSQL + PostGIS, MinIO, Redis
 
 pnpm --filter @agroassure/domain build
+pnpm --filter @agroassure/field-core build
 
 export DATABASE_URL=postgres://agroassure:agroassure@localhost:5432/agroassure
 node db/migrate.mjs --seed    # --seed adds the Katsina fixture
@@ -114,13 +147,25 @@ If you use npm instead of pnpm, replace the `workspace:*` dependency on
 ## Tests
 
 ```bash
-pnpm -r run test              # 72 tests, no database needed
+pnpm -r run test              # 97 tests, no database needed
 node db/verify-invariants.mjs # the schema invariants, against a live database
+pnpm test:integration         # a full lifecycle, against a disposable database
 ```
 
-The unit suites are pure: the domain package has no I/O, and the gateway's
-verification logic is tested against in-memory fakes with real cryptography. The
-invariants that live in PostgreSQL are checked separately, and CI runs both.
+The integration suite walks one inspection from an offline device to the public
+verification page: it authors the day through `field-core`, pushes the real
+signed chain through the real ingest path, projects it, closes the findings,
+records the officer decision, authorises the certificate, and rebuilds every
+projection from the event store alone. It needs `DATABASE_URL` and
+`ALLOW_DESTRUCTIVE_TEST_DB=1`, and refuses to run without the second: it appends
+events that cannot be deleted afterwards and drops every projection row.
+
+The unit suites are pure: the domain package has no I/O, the gateway's
+verification logic runs against in-memory fakes with real cryptography, and
+`field-core` runs against real SQLite via `node:sqlite` — so the device schema
+and every statement in the store are executed as written. Node 22+ is required
+for that. The invariants that live in PostgreSQL are checked separately, and CI
+runs all three.
 
 Two suites are regression guards rather than ordinary tests, on the two properties
 most likely to be quietly broken by a future change: `certificate-invariant.spec.ts`
@@ -141,19 +186,17 @@ curl localhost:3001/health             # db reachability and projection lag
 
 The server-side spine is complete and tested; two client surfaces are not written:
 
-- **The field application (React Native / Expo).** The offline SQLite outbox, the
-  Yes/No/N/A checklist with the adverse-response interaction, checksum-at-capture,
-  on-device scoring, dual sign-off, and drain-on-signal. Every server endpoint it
-  needs exists, and the domain package it would import is already shared.
-- **The regulator console (Next.js).** The registry and map, dashboard, inspection
-  review, findings worklist, certificate view, and template version manager. Every
-  screen's data is already served by the console API.
+- **The field application's UI (React Native / Expo).** The screens, the camera
+  and geolocation bindings, the Keystore-held device key, and the bilingual
+  runtime. The logic underneath them is `field-core`, which is written and
+  tested; what remains is presentation and the native bindings, and those can
+  only be verified on a real handset.
+- **The regulator console (Next.js).** The registry and map, dashboard,
+  inspection review, findings worklist, certificate view, and template version
+  manager. Every screen's data is already served by the console API.
 
-Also outstanding: the projector and console SQL are exercised by CI against a real
-PostgreSQL, but have not yet been run against a database on a developer machine
-here — the first `node db/migrate.mjs && node db/verify-invariants.mjs` on a real
-instance is the check that matters. Certificate PDF rendering needs Playwright and
-its Chromium browser installed on the render host; the HTML route works without it.
+Also outstanding: certificate PDF rendering needs Playwright and its Chromium
+browser installed on the render host; the HTML route works without it.
 
 ## Reference
 
