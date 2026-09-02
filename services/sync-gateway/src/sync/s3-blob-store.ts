@@ -1,27 +1,40 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import {
-  HeadObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectVersionsCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { sha256Hex } from "@agroassure/domain";
 import { CONFIG, type AppConfig } from "../config/config";
 import type { BlobStore, PutResult } from "./blob-store.port";
+import { evidenceObjectKey } from "./object-key";
 
 // Evidence under object-lock.
 //
-// This is the store that makes "an exhibit cannot be replaced after submission"
-// a property of the storage rather than a rule this application politely
-// follows. The bucket must be created with versioning and object-lock enabled —
-// object-lock cannot be turned on afterwards — and the retention below is
-// applied per object in COMPLIANCE mode, which means no one can shorten or
-// remove it before it expires. Not the operator, not the account root user, not
-// the regulator, and not this code.
+// What object-lock actually gives you, tested against a real implementation
+// rather than assumed: COMPLIANCE mode makes a *version* undeletable and
+// unmodifiable until its retention expires — by anyone, including the account
+// root. What it does not do is make a *key* immutable. A second PutObject to the
+// same key succeeds and becomes the current version, and a plain GET then
+// returns those bytes while the locked original sits underneath, still there and
+// still unreachable to a caller who does not ask for it by version.
 //
-// The bucket policy should also deny s3:PutObject where the object already
-// exists is not expressible in S3, so write-once is enforced here by checking
-// first and by the content address itself: the same key can only ever hold the
-// same bytes, because the key is the SHA-256 of those bytes.
+// So two things are needed, and neither alone is enough:
+//
+//   1. Write conditionally. If-None-Match: * makes the store itself refuse a
+//      write where the key already exists, which also removes the
+//      check-then-write race that a head-then-put has.
+//   2. Never trust the current version. The key is the SHA-256 of the content,
+//      so a read can check itself for free: if the current version does not hash
+//      to its own key, someone has written over it, and the authentic version is
+//      the one that does hash correctly — still present, because object-lock
+//      would not let them remove it.
+//
+// The bucket must be created with versioning and object-lock enabled.
+// Object-lock cannot be turned on afterwards, so a bucket made without it can
+// never be repaired into one that has it.
 
 @Injectable()
 export class S3BlobStore implements BlobStore {
@@ -30,7 +43,7 @@ export class S3BlobStore implements BlobStore {
   private readonly bucket: string;
   private readonly retentionYears: number;
 
-  constructor(@Inject(CONFIG) private readonly config: AppConfig) {
+  constructor(@Inject(CONFIG) config: AppConfig) {
     const s3 = config.evidenceS3;
     if (!s3) throw new Error("EVIDENCE_S3_BUCKET is required when EVIDENCE_STORE=s3");
 
@@ -62,29 +75,79 @@ export class S3BlobStore implements BlobStore {
     const retainUntil = new Date();
     retainUntil.setFullYear(retainUntil.getFullYear() + this.retentionYears);
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: bytes,
-        ContentType: contentType,
-        // Sent to S3 so it verifies the transfer itself and rejects a corrupted
-        // upload. The value is the content address, so this is the same hash the
-        // device computed at the shutter and the gateway re-computed on arrival.
-        ChecksumSHA256: Buffer.from(key.split("/").pop() ?? "", "hex").toString("base64"),
-        ObjectLockMode: "COMPLIANCE",
-        ObjectLockRetainUntilDate: retainUntil,
-      }),
-    );
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: bytes,
+          ContentType: contentType,
+          // The store refuses this write if the key already holds anything, so
+          // an exhibit is never replaced by us even under a race.
+          IfNoneMatch: "*",
+          ObjectLockMode: "COMPLIANCE",
+          ObjectLockRetainUntilDate: retainUntil,
+        }),
+      );
+    } catch (err) {
+      // Another request stored the same content address between the head and
+      // the put. Content-addressed, so it holds the same bytes: not an error.
+      if (isPreconditionFailed(err)) return { deduplicated: true, locked: true };
+      throw err;
+    }
 
-    this.logger.log(`stored ${key} (${bytes.length} bytes), retained until ${retainUntil.toISOString().slice(0, 10)}`);
+    this.logger.log(
+      `stored ${key} (${bytes.length} bytes), retained until ${retainUntil.toISOString().slice(0, 10)}`,
+    );
     return { deduplicated: false, locked: true };
   }
 
+  /**
+   * Read an exhibit, checking it against its own content address.
+   *
+   * The fast path is one GET and one hash. The slow path only runs when the
+   * current version has been written over, which should never happen and is
+   * reported loudly when it does.
+   */
   async get(key: string): Promise<Uint8Array | null> {
+    const current = await this.getVersion(key);
+    if (!current) return null;
+    if (evidenceObjectKey(sha256Hex(current)) === key) return current;
+
+    this.logger.error(
+      `evidence ${key} has been written over: the current version does not match its ` +
+        `content address. Recovering the locked original.`,
+    );
+    return this.authenticVersion(key);
+  }
+
+  /**
+   * Every version of an object, newest first. Exposed because "who wrote over
+   * this, and when" is the question an auditor asks next, and the answer is in
+   * the version history that object-lock guarantees is still there.
+   */
+  async versions(key: string): Promise<Array<{ versionId: string; lastModified?: Date }>> {
+    const listed = await this.client.send(
+      new ListObjectVersionsCommand({ Bucket: this.bucket, Prefix: key }),
+    );
+    return (listed.Versions ?? [])
+      .filter((v) => v.Key === key && v.VersionId)
+      .map((v) => ({ versionId: v.VersionId!, lastModified: v.LastModified }));
+  }
+
+  /** The version whose bytes actually hash to the key, or null if none does. */
+  private async authenticVersion(key: string): Promise<Uint8Array | null> {
+    for (const { versionId } of await this.versions(key)) {
+      const bytes = await this.getVersion(key, versionId);
+      if (bytes && evidenceObjectKey(sha256Hex(bytes)) === key) return bytes;
+    }
+    return null;
+  }
+
+  private async getVersion(key: string, versionId?: string): Promise<Uint8Array | null> {
     try {
       const result = await this.client.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+        new GetObjectCommand({ Bucket: this.bucket, Key: key, VersionId: versionId }),
       );
       const body = await result.Body?.transformToByteArray();
       return body ? new Uint8Array(body) : null;
@@ -101,4 +164,10 @@ export class S3BlobStore implements BlobStore {
       return false;
     }
   }
+}
+
+function isPreconditionFailed(err: unknown): boolean {
+  const status = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode;
+  const name = (err as { name?: string })?.name;
+  return status === 412 || name === "PreconditionFailed";
 }
