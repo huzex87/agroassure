@@ -77,6 +77,11 @@ jest.mock("expo-crypto", () => {
     digest: async (_alg, bytes) =>
       new Uint8Array(createHash("sha256").update(Buffer.from(bytes)).digest()),
     getRandomBytes: (n) => new Uint8Array(randomBytes(n)),
+    getRandomValues: (arr) => {
+      const bytes = randomBytes(arr.length);
+      for (let i = 0; i < arr.length; i++) arr[i] = bytes[i];
+      return arr;
+    },
   };
 });
 

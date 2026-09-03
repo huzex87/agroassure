@@ -1,3 +1,7 @@
+// First, before anything that might mint an identifier: Hermes has no global
+// crypto, and @noble/hashes needs crypto.getRandomValues to seed randomBytes.
+import "../src/crypto-polyfill";
+
 import { useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
