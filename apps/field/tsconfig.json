@@ -5,9 +5,17 @@
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "paths": {
-      "@agroassure/domain": ["../../packages/domain/src/index.ts"],
-      "@agroassure/field-core": ["../../packages/field-core/src/index.ts"]
+      "@agroassure/domain": [
+        "../../packages/domain/src/index.ts"
+      ],
+      "@agroassure/field-core": [
+        "../../packages/field-core/src/index.ts"
+      ]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts"
+  ]
 }
