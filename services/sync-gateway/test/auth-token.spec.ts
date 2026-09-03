@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { generateKeyPairSync } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { UnauthorizedException } from "@nestjs/common";
 import { principalFromClaims, TokenVerifier } from "../src/common/token-verifier";
@@ -109,17 +110,71 @@ describe("shared-secret development tokens", () => {
   });
 });
 
+// The provider's signing key, generated here rather than fetched. An earlier
+// version of this suite let the verifier reach for the real JWKS endpoint over
+// the network, which made the most security-critical assertion in the file
+// depend on DNS: it passed when the lookup failed and was flaky when it did not.
+const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const PUBLIC_PEM = publicKey.export({ type: "spki", format: "pem" }).toString();
+
+vi.mock("jwks-rsa", () => ({
+  JwksClient: class {
+    getSigningKey(
+      _kid: string | undefined,
+      cb: (err: Error | null, key?: { getPublicKey(): string }) => void,
+    ) {
+      cb(null, { getPublicKey: () => PUBLIC_PEM });
+    }
+  },
+}));
+
 describe("with an identity provider configured", () => {
+  const verifier = new TokenVerifier(config({ oidc: OIDC }));
+
+  function providerToken(claims: Record<string, unknown>, options = {}) {
+    return jwt.sign(claims, privateKey.export({ type: "pkcs8", format: "pem" }).toString(), {
+      algorithm: "RS256",
+      issuer: OIDC.issuer,
+      audience: OIDC.audience,
+      ...options,
+    });
+  }
+
+  it("accepts a token the provider actually signed", async () => {
+    await expect(
+      verifier.verify(providerToken({ sub: USER, "agroassure/roles": ["desk_supervisor"] })),
+    ).resolves.toMatchObject({ userId: USER, roles: ["desk_supervisor"] });
+  });
+
   it("will not accept a shared-secret token", async () => {
     // Algorithm confusion: a symmetric token must not be accepted by a verifier
-    // that is supposed to be checking the provider's asymmetric signature.
-    const verifier = new TokenVerifier(config({ oidc: OIDC }));
-    const token = jwt.sign(
-      { sub: USER, "agroassure/roles": ["national_admin"] },
-      SECRET,
-      { issuer: OIDC.issuer, audience: OIDC.audience },
-    );
+    // that is supposed to be checking the provider's asymmetric signature. If
+    // HS256 were in the allowed list, anyone holding the public key — which is
+    // published — could mint their own tokens with it.
+    const token = jwt.sign({ sub: USER, "agroassure/roles": ["national_admin"] }, SECRET, {
+      issuer: OIDC.issuer,
+      audience: OIDC.audience,
+    });
     await expect(verifier.verify(token)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it("refuses a token minted for a different application", async () => {
+    // Same provider, same signing key, different audience: not ours to accept.
+    await expect(
+      verifier.verify(providerToken({ sub: USER }, { audience: "some-other-api" })),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it("refuses a token from a different issuer", async () => {
+    await expect(
+      verifier.verify(providerToken({ sub: USER }, { issuer: "https://id.example.invalid" })),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it("refuses an expired token", async () => {
+    await expect(
+      verifier.verify(providerToken({ sub: USER }, { expiresIn: -60 })),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
 
