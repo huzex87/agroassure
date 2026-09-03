@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import { File } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import * as Location from "expo-location";
 import type { GeoPoint } from "@agroassure/domain";
@@ -18,12 +18,9 @@ export interface CapturedExhibit {
 
 /** SHA-256 over the file's bytes, read back from disk exactly as written. */
 export async function hashFile(localUri: string): Promise<string> {
-  const base64 = await FileSystem.readAsStringAsync(localUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  // digestStringAsync over base64 would hash the encoding, not the bytes, so
-  // the bytes are decoded first and hashed as themselves.
-  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  // The bytes are hashed as themselves. Hashing a base64 string would hash the
+  // encoding rather than the file, and the server recomputes over raw bytes.
+  const bytes = await readFileBytes(localUri);
   const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -62,9 +59,9 @@ export async function describeCapture(
   };
 }
 
-export async function readFileBytes(localUri: string): Promise<Uint8Array> {
-  const base64 = await FileSystem.readAsStringAsync(localUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+// The ArrayBuffer type argument is not decoration: expo-crypto takes a
+// BufferSource, and a plain Uint8Array widens to ArrayBufferLike, which could be
+// a SharedArrayBuffer and is therefore refused.
+export async function readFileBytes(localUri: string): Promise<Uint8Array<ArrayBuffer>> {
+  return new Uint8Array(await new File(localUri).arrayBuffer());
 }

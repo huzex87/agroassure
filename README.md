@@ -260,11 +260,14 @@ a storage guarantee rather than a UI rule.
 
 The server-side spine is complete and tested. What remains:
 
-- **Verification of the field application on a handset.** The Expo app is
-  written — today's visits, the checklist, capture, sign-off, the bilingual
-  runtime — and it typechecks against `field-core`, but no screen and none of
-  the native bindings have been run. There is no emulator on the machine it was
-  built on.
+- **The field application's native bindings, on a handset.** The screens
+  themselves are exercised: `apps/field/test` renders them against the real
+  device core — real SQLite, real hash chain, real `FieldInspection` — with only
+  the camera, GPS, keystore and network replaced, and that is what found the
+  render loop both screens carried. What has still never run is the native side:
+  expo-camera, expo-location, expo-secure-store and expo-sqlite against actual
+  hardware. There is no emulator on the machine this was built on, so the
+  remaining check is Expo Go on a real Android phone.
 - **The token exchange against a real provider.** The console's OIDC redirect,
   its state and PKCE handling, and every failure path are written and exercised
   in a browser; the one step never run is the code-for-token call itself, which

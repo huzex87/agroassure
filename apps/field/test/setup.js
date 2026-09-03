@@ -1,4 +1,12 @@
-import "@testing-library/react-native/extend-expect";
+// @testing-library/react-native v13 builds its matchers in; the separate
+// extend-expect entry point is gone.
+
+// A cold render of a React Native tree, with a real SQLite engine underneath,
+// takes well over the 1s default when Jest is running suites in parallel on a
+// loaded machine. That was showing up as the first test of each file failing
+// and every later one passing — a scheduling artefact, not a defect.
+const { configure } = require("@testing-library/react-native");
+configure({ asyncUtilTimeout: 15000 });
 
 // The native edges, replaced. Everything below them — the SQLite store, the
 // hash chain, the scoring, the instrument rules — is the real thing, so what
@@ -48,8 +56,18 @@ jest.mock("expo-camera", () => {
 });
 
 jest.mock("expo-file-system", () => ({
-  EncodingType: { Base64: "base64" },
-  readAsStringAsync: async () => Buffer.from("exhibit-bytes").toString("base64"),
+  // SDK 57's File is Blob-like. The legacy readAsStringAsync still typechecks
+  // from the package root but throws at runtime, so a mock shaped like the old
+  // API would have hidden exactly the breakage the upgrade introduced.
+  File: class {
+    constructor(uri) {
+      this.uri = uri;
+    }
+    async arrayBuffer() {
+      const bytes = Buffer.from("exhibit-bytes");
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    }
+  },
 }));
 
 jest.mock("expo-crypto", () => {
