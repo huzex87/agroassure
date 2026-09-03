@@ -4,6 +4,12 @@
 // immediate crash rather than a test.
 module.exports = {
   preset: "jest-expo",
+  // Two suites, three seconds: parallelism buys nothing here and costs a flaky
+  // signal. Each one boots a real SQLite engine and renders a React Native tree,
+  // and under CPU contention a cold first render still outran the raised
+  // asyncUtilTimeout often enough to fail the first test of a file and pass
+  // every later one — which reads like a defect and is not one.
+  maxWorkers: 1,
   setupFilesAfterEnv: ["<rootDir>/test/setup.js"],
   testMatch: ["<rootDir>/test/**/*.test.tsx"],
   // The stock pattern assumes a flat node_modules. pnpm stores every package

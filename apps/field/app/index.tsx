@@ -82,6 +82,19 @@ export default function Today() {
     }
   }
 
+  function loadSampleDay() {
+    setNote(null);
+    try {
+      // Required inside the handler rather than imported at the top so the
+      // fixture is not part of the module graph a release build starts from.
+      const { sampleBundle } = require("../src/dev-seed") as typeof import("../src/dev-seed");
+      applyBootstrap(getStore(), sampleBundle());
+      load();
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function open(row: Row) {
     if (row.submitted) return;
     if (row.open) return router.push(`/inspection/${row.open.id}`);
@@ -161,6 +174,22 @@ export default function Today() {
       {rows.length === 0 ? (
         <View style={styles.card}>
           <Text style={styles.body}>{t("noVisits")}</Text>
+
+          {/* Development only. A day's work normally arrives by sync; this puts
+              a bundle straight into the device store so the field path can be
+              walked on a handset with no server. __DEV__ is false in a release
+              build, so this control cannot ship. */}
+          {__DEV__ ? (
+            <Pressable
+              style={[styles.button, styles.buttonQuiet]}
+              onPress={loadSampleDay}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.buttonText, styles.buttonQuietText]}>
+                Load a sample day (development only)
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
