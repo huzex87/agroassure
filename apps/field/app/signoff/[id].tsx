@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FindingSeverity } from "@agroassure/domain";
 import type { FieldInspection } from "@agroassure/field-core";
 import { inspectionSession, inspectorId } from "../../src/session";
@@ -18,6 +19,7 @@ import { colors, styles } from "../../src/theme";
 export default function Signoff() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [inspection, setInspection] = useState<FieldInspection | null>(null);
@@ -95,8 +97,20 @@ export default function Signoff() {
   const complete = missing.length === 0;
   const ready = complete && inspectorSignedAt && repSignedAt && repName.trim() && repRole.trim();
 
+  // A dimmed button that will not say why is a dead end. Name the one thing
+  // standing in the way, in the order the inspector would deal with it.
+  const blocker = !complete
+    ? t("blockedUnanswered")
+    : !inspectorSignedAt
+      ? t("blockedInspector")
+      : !repName.trim() || !repRole.trim()
+        ? t("blockedRepName")
+        : !repSignedAt
+          ? t("blockedRepSign")
+          : null;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
       <View style={styles.banner}>
         <Text style={styles.h1}>{rating ? `${rating.percent.toFixed(1)}%` : "…"}</Text>
         {/* Colour is never the only carrier: the band is written out. */}
@@ -179,9 +193,20 @@ export default function Signoff() {
         </View>
       ) : null}
 
-      <Pressable style={[styles.button, !ready ? { opacity: 0.5 } : null]} disabled={!ready} onPress={submit}>
-        <Text style={styles.buttonText}>{t("submit")}</Text>
-      </Pressable>
+      <View style={{ gap: 6 }}>
+        <Pressable
+          style={[styles.button, !ready ? styles.buttonDisabled : null]}
+          disabled={!ready}
+          onPress={submit}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !ready }}
+        >
+          <Text style={styles.buttonText}>{t("submit")}</Text>
+        </Pressable>
+        {blocker ? (
+          <Text style={[styles.muted, { textAlign: "center" }]}>{blocker}</Text>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }

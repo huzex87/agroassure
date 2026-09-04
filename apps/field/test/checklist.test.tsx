@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
-import { harness, FACILITY_ID, AT_THE_WAREHOUSE, type Harness } from "./harness";
+import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { press, renderScreen, harness, FACILITY_ID, AT_THE_WAREHOUSE, type Harness } from "./harness";
 
 // jest.mock factories are hoisted above the imports, so anything they close
 // over has to be named mock* and assigned in beforeEach.
@@ -43,7 +43,7 @@ beforeEach(async () => {
 
 function renderChecklist() {
   const Checklist = require("../app/inspection/[id]").default;
-  return render(<Checklist />);
+  return renderScreen(<Checklist />);
 }
 
 describe("the checklist screen", () => {
@@ -63,12 +63,13 @@ describe("the checklist screen", () => {
     expect(screen.getAllByText("N/A")).toHaveLength(1);
   });
 
-  it("records a Yes and reflects it in the running figure", async () => {
+  it("records a Yes on the tap, with nothing to confirm", async () => {
     renderChecklist();
     await screen.findByText(/pallets/i);
 
-    fireEvent.press(screen.getAllByText("Yes")[0]);
-    fireEvent.press(screen.getByText("Save"));
+    // One tap, not two. On a forty-checkpoint instrument the separate Save step
+    // doubled every interaction for no decision the inspector had to make.
+    await press(screen.getAllByText("Yes")[0]);
 
     await waitFor(() => {
       expect(mockBench.store.responses(mockInspectionId)).toHaveLength(1);
@@ -77,18 +78,36 @@ describe("the checklist screen", () => {
       checkpointRef: "1.1",
       response: "yes",
     });
+    expect(screen.queryByText("Save")).toBeNull();
   });
 
-  it("refuses an adverse response with no remark, and says why", async () => {
+  it("records N/A on the tap too, where the instrument allows it", async () => {
     renderChecklist();
     await screen.findByText(/pallets/i);
 
-    fireEvent.press(screen.getAllByText("No")[0]);
-    fireEvent.press(screen.getByText("Save"));
+    await press(screen.getByText("N/A"));
 
-    // The refusal comes from FieldInspection, and the screen surfaces it rather
-    // than dropping the response silently.
-    expect(await screen.findByText(/needs a remark/i)).toBeTruthy();
+    await waitFor(() => {
+      expect(mockBench.store.responses(mockInspectionId)).toHaveLength(1);
+    });
+    expect(mockBench.store.responses(mockInspectionId)[0]).toMatchObject({
+      checkpointRef: "1.2",
+      response: "na",
+    });
+  });
+
+  it("will not commit an adverse response until a remark is written", async () => {
+    renderChecklist();
+    await screen.findByText(/pallets/i);
+
+    await press(screen.getAllByText("No")[0]);
+
+    // The control refuses in advance rather than accepting the tap and
+    // answering it with an error. Nothing is recorded, so the stored answer
+    // stays whatever it was — the observation is not in the record until the
+    // inspector has said what they saw.
+    const save = screen.getByText("Save");
+    await press(save);
     expect(mockBench.store.responses(mockInspectionId)).toHaveLength(0);
   });
 
@@ -96,12 +115,12 @@ describe("the checklist screen", () => {
     renderChecklist();
     await screen.findByText(/pallets/i);
 
-    fireEvent.press(screen.getAllByText("No")[0]);
+    await press(screen.getAllByText("No")[0]);
     fireEvent.changeText(
       screen.getByPlaceholderText("Remark"),
       "Bags stacked directly on a damp floor.",
     );
-    fireEvent.press(screen.getByText("Save"));
+    await press(screen.getByText("Save"));
 
     await waitFor(() => {
       expect(mockBench.store.responses(mockInspectionId)).toHaveLength(1);
@@ -117,10 +136,10 @@ describe("the checklist screen", () => {
     renderChecklist();
     await screen.findByText(/pallets/i);
 
-    fireEvent.press(screen.getAllByText("Yes")[0]);
+    await press(screen.getAllByText("Yes")[0]);
     expect(screen.queryByPlaceholderText("Remark")).toBeNull();
 
-    fireEvent.press(screen.getAllByText("No")[0]);
+    await press(screen.getAllByText("No")[0]);
     expect(screen.getByPlaceholderText("Remark")).toBeTruthy();
   });
 
@@ -128,8 +147,7 @@ describe("the checklist screen", () => {
     renderChecklist();
     await screen.findByText(/pallets/i);
 
-    fireEvent.press(screen.getAllByText("Yes")[0]);
-    fireEvent.press(screen.getByText("Save"));
+    await press(screen.getAllByText("Yes")[0]);
     await waitFor(() => expect(mockBench.store.responses(mockInspectionId)).toHaveLength(1));
 
     // One InspectionStarted plus one ResponseRecorded, both queued.

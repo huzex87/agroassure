@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import type { CheckpointResponse, InstrumentStructure } from "@agroassure/domain";
 import type { FieldInspection, FieldStore } from "@agroassure/field-core";
@@ -36,6 +37,7 @@ interface Draft {
 export default function Checklist() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t, pick } = useLanguage();
 
   const [session, setSession] = useState<{
@@ -114,10 +116,28 @@ export default function Checklist() {
     setDrafts((d) => ({ ...d, [ref]: { ...d[ref], ...patch, saved: false } }));
   }
 
-  async function save(ref: string) {
+  /**
+   * Choosing a response.
+   *
+   * Yes and N/A commit on the tap. There is nothing to confirm about them, and
+   * a separate Save step doubled every interaction on an instrument that can
+   * run to forty checkpoints — eighty taps where forty would do, each one made
+   * standing up, one-handed, sometimes in gloves.
+   *
+   * No is different, and deliberately so: it needs a remark, so it stays
+   * uncommitted until one is written. Until then the stored answer is whatever
+   * it was before, which is the honest state — the adverse observation is not
+   * in the record until the inspector has said what they saw.
+   */
+  async function choose(ref: string, option: CheckpointResponse) {
+    const next: Draft = { ...drafts[ref], response: option, saved: false };
+    setDrafts((d) => ({ ...d, [ref]: next }));
+    if (option !== "no") await commit(ref, next);
+  }
+
+  async function commit(ref: string, draft: Draft) {
     if (!session) return;
     setError(null);
-    const draft = drafts[ref];
     try {
       await session.inspection.recordResponse(String(id), {
         checkpointRef: ref,
@@ -165,28 +185,56 @@ export default function Checklist() {
     );
   }
 
+  const done = rating.total === 0 ? 0 : rating.answered / rating.total;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {/* The running figure, computed on device by the same function the server
-          verifies with, so it does not move when the inspection lands. */}
-      <View style={styles.banner}>
-        <Text style={styles.h1}>{rating.percent.toFixed(1)}%</Text>
-        <Text style={styles.muted}>
-          {t("running")} · {rating.answered}/{rating.total} {t("answered")}
-        </Text>
+    <View style={styles.screen}>
+      {/* Outside the ScrollView on purpose. The running figure is the only
+          thing telling an inspector where they are in a long instrument, and it
+          used to scroll away the moment they started answering. It is computed
+          on device by the same function the server verifies with, so it does
+          not move when the inspection lands. */}
+      <View style={styles.stickyHeader}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.h1}>{rating.percent.toFixed(1)}%</Text>
+          <Text style={styles.muted}>
+            {rating.answered}/{rating.total} {t("answered")}
+          </Text>
+        </View>
+        <View
+          style={styles.progressTrack}
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 0, max: rating.total, now: rating.answered }}
+        >
+          <View style={[styles.progressFill, { width: `${done * 100}%` }]} />
+        </View>
+        <Text style={styles.muted}>{t("running")}</Text>
       </View>
 
+    <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
       {error ? (
         <View style={[styles.card, { borderColor: colors.warn }]}>
           <Text style={[styles.body, { color: colors.warn }]}>{error}</Text>
         </View>
       ) : null}
 
-      {structure.sections.map((section) => (
+      {structure.sections.map((section) => {
+        const answeredHere = section.checkpoints.filter(
+          (c) => drafts[`${section.ordinal}.${c.ordinal}`]?.saved,
+        ).length;
+
+        return (
         <View key={section.ordinal} style={{ gap: 12 }}>
-          <Text style={styles.h1}>
-            {section.ordinal}. {pick(section.titleEn, section.titleHa)}
-          </Text>
+          {/* A section says how much of itself is left, so a long instrument
+              can be worked in passes rather than read end to end. */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.h1, { flexShrink: 1 }]}>
+              {section.ordinal}. {pick(section.titleEn, section.titleHa)}
+            </Text>
+            <Text style={styles.muted}>
+              {answeredHere}/{section.checkpoints.length}
+            </Text>
+          </View>
 
           {section.checkpoints.map((checkpoint) => {
             const ref = `${section.ordinal}.${checkpoint.ordinal}`;
@@ -196,8 +244,11 @@ export default function Checklist() {
             const dirty = draft.response !== null && !draft.saved;
 
             return (
-              <View key={ref} style={styles.card}>
-                <Text style={styles.muted}>{ref}</Text>
+              <View key={ref} style={[styles.card, draft.saved ? styles.cardAnswered : null]}>
+                <Text style={styles.muted}>
+                  {ref}
+                  {draft.saved ? "  ·  recorded" : ""}
+                </Text>
                 <Text style={styles.body}>
                   {pick(checkpoint.promptEn, checkpoint.promptHa)}
                 </Text>
@@ -216,7 +267,7 @@ export default function Checklist() {
                             styles.responseButton,
                             selected ? styles.responseSelected : null,
                           ]}
-                          onPress={() => set(ref, { response: option })}
+                          onPress={() => choose(ref, option)}
                         >
                           <Text
                             style={[
@@ -267,8 +318,17 @@ export default function Checklist() {
                   </View>
                 ) : null}
 
+                {/* Only an adverse response reaches here: Yes and N/A commit on
+                    the tap. Disabled until the remark exists, rather than
+                    accepting the tap and answering it with an error — a control
+                    that refuses in advance beats a good error message. */}
                 {dirty ? (
-                  <Pressable style={styles.button} onPress={() => save(ref)}>
+                  <Pressable
+                    style={[styles.button, draft.remark.trim() ? null : styles.buttonDisabled]}
+                    disabled={!draft.remark.trim()}
+                    onPress={() => commit(ref, draft)}
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.buttonText}>Save</Text>
                   </Pressable>
                 ) : null}
@@ -276,7 +336,8 @@ export default function Checklist() {
             );
           })}
         </View>
-      ))}
+        );
+      })}
 
       <Pressable
         style={styles.button}
@@ -290,6 +351,7 @@ export default function Checklist() {
         <CameraShot onCapture={(uri) => shoot(camera as string, uri)} onCancel={() => setCamera(null)} />
       </Modal>
     </ScrollView>
+    </View>
   );
 }
 

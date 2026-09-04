@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
-import { harness, FACILITY_ID, AT_THE_WAREHOUSE, type Harness } from "./harness";
+import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { renderScreen, harness, FACILITY_ID, AT_THE_WAREHOUSE, type Harness } from "./harness";
 
 // Sign-off, standing in the facility with the manager beside you.
 //
@@ -50,7 +50,7 @@ async function answerEverything() {
 
 function renderSignoff() {
   const Signoff = require("../app/signoff/[id]").default;
-  return render(<Signoff />);
+  return renderScreen(<Signoff />);
 }
 
 /**
@@ -120,6 +120,32 @@ describe("the sign-off screen", () => {
     fireEvent.press(screen.getByText("Submit inspection"));
 
     expect(mockBench.store.inspection(mockInspectionId)!.status).toBe("in_progress");
+  });
+
+  it("names the one thing standing in the way, in the order it is dealt with", async () => {
+    renderSignoff();
+    // Unanswered checkpoints come first: nothing else matters until the record
+    // is complete.
+    expect(await screen.findByText("Answer every checkpoint first.")).toBeTruthy();
+  });
+
+  it("moves the guidance on as each blocker is cleared", async () => {
+    await answerEverything();
+    renderSignoff();
+    await screen.findByText("60.0%");
+
+    expect(screen.getByText("You have not signed yet.")).toBeTruthy();
+
+    fireEvent.press(screen.getAllByText("Sign")[0]);
+    expect(screen.getByText("Name the facility representative.")).toBeTruthy();
+
+    fireEvent.changeText(screen.getByPlaceholderText("Full name"), "Musa Danjuma");
+    fireEvent.changeText(screen.getByPlaceholderText("Role"), "Store manager");
+    expect(screen.getByText("The representative has not signed yet.")).toBeTruthy();
+
+    fireEvent.press(screen.getByText("Sign"));
+    // Nothing left in the way, so the button stops explaining itself.
+    expect(screen.queryByText("The representative has not signed yet.")).toBeNull();
   });
 
   it("submits once the record is complete and both have signed", async () => {

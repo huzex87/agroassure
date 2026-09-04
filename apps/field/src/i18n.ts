@@ -57,6 +57,24 @@ const STRINGS = {
     ha: "Ba wa shugabanka wannan lambar. Makullin da ke sa hannu kan aikinka yana nan a wannan na'urar, ba a taɓa aika shi ba.",
   },
   language: { en: "Hausa", ha: "English" },
+  // Why sign-off is not available yet. Short and imperative: these sit under a
+  // disabled button, and a dimmed control that will not say why is a dead end.
+  blockedUnanswered: {
+    en: "Answer every checkpoint first.",
+    ha: "Ka amsa dukkan tambayoyi tukuna.",
+  },
+  blockedInspector: {
+    en: "You have not signed yet.",
+    ha: "Ba ka sanya hannu ba tukuna.",
+  },
+  blockedRepName: {
+    en: "Name the facility representative.",
+    ha: "Rubuta sunan wakilin ma'aikata.",
+  },
+  blockedRepSign: {
+    en: "The representative has not signed yet.",
+    ha: "Wakilin bai sanya hannu ba tukuna.",
+  },
   priorFindings: { en: "Open findings here", ha: "Abubuwan da ba a gyara ba" },
 } as const;
 

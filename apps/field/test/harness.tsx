@@ -1,3 +1,6 @@
+import type { ReactElement } from "react";
+import { act, fireEvent, render } from "@testing-library/react-native";
+import { SafeAreaProvider, type Metrics } from "react-native-safe-area-context";
 import { createRequire } from "node:module";
 import {
   EventAuthor,
@@ -135,4 +138,31 @@ export function harness(): Harness {
     { actorUserId: INSPECTOR_ID },
   );
   return { store, inspection: new FieldInspection(store, author), inspectorId: INSPECTOR_ID };
+}
+
+// Real metrics for a notched iPhone rather than a mocked-away provider. The
+// screens pad themselves clear of the home indicator, so a test that stubbed
+// the insets to zero would not be rendering what an inspector sees.
+const IPHONE: Metrics = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 47, left: 0, right: 0, bottom: 34 },
+};
+
+/** Render a screen inside the providers the real app mounts around it. */
+export function renderScreen(ui: ReactElement) {
+  return render(<SafeAreaProvider initialMetrics={IPHONE}>{ui}</SafeAreaProvider>);
+}
+
+/**
+ * Press something whose handler is async.
+ *
+ * Choosing Yes or N/A now commits straight to the store, so the state update
+ * lands after fireEvent returns and React complains the update was not wrapped
+ * in act(). The work is correct either way, but a warning printed on every run
+ * is how a suite stops being read.
+ */
+export async function press(element: Parameters<typeof fireEvent.press>[0]) {
+  await act(async () => {
+    fireEvent.press(element);
+  });
 }

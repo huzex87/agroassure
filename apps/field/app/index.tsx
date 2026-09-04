@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { applyBootstrap, drain, type AssignedFacility } from "@agroassure/field-core";
 import { getStore } from "../src/db";
 import { identity } from "../src/signer";
@@ -24,6 +25,7 @@ type Row = AssignedFacility & {
 
 export default function Today() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t, language, setLanguage } = useLanguage();
   const [rows, setRows] = useState<Row[]>([]);
   const [queued, setQueued] = useState(0);
@@ -127,7 +129,7 @@ export default function Today() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
       <View style={styles.banner}>
         <Text style={styles.h2}>
           {queued > 0 ? `${queued} ${t("queued")}` : t("online")}

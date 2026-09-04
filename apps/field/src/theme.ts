@@ -93,5 +93,38 @@ export const styles = StyleSheet.create({
   },
   pillText: { fontSize: 12, fontWeight: "600", color: colors.primaryDark },
 
+  // A header that does not scroll away. On a forty-checkpoint instrument the
+  // running figure is the only thing telling an inspector where they are, and
+  // it was disappearing the moment they started answering.
+  stickyHeader: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: colors.line,
+    overflow: "hidden",
+  },
+  progressFill: { height: 6, borderRadius: 999, backgroundColor: colors.primary },
+
+  // An answered checkpoint recedes: the eye should land on what is still
+  // outstanding, not re-read what is already settled.
+  cardAnswered: { backgroundColor: colors.canvas, borderColor: colors.line },
+
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  buttonDisabled: { opacity: 0.4 },
+
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 4 },
 });
