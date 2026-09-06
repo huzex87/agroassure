@@ -18,8 +18,8 @@ import { QueryService } from "./query.service";
 import { StorageService } from "./storage.service";
 import { MetricsService } from "../health/metrics.service";
 import { ProjectorService } from "../projections/projector.service";
-import type { PushEventsDto, UploadEvidenceDto } from "./dto/push-events.dto";
-import type { PullQueryDto } from "./dto/pull-query.dto";
+import { parsePushEvents, parseUploadEvidence } from "./dto/push-events.dto";
+import { parsePullQuery } from "./dto/pull-query.dto";
 
 // The field-app sync surface. Every route requires a valid device/human token.
 
@@ -37,7 +37,8 @@ export class SyncController {
   // Push a batch of device-signed events. Idempotent on event_id.
   @Post("events")
   @HttpCode(200)
-  async pushEvents(@Req() req: Request, @Body() body: PushEventsDto) {
+  async pushEvents(@Req() req: Request, @Body() rawBody: unknown) {
+    const body = parsePushEvents(rawBody);
     const principal = getPrincipal(req);
     // A device token may only push for its own device.
     if (principal.deviceId && principal.deviceId !== body.deviceId) {
@@ -58,7 +59,8 @@ export class SyncController {
   // mismatch, then stores the bytes write-once (object-locked in production).
   @Post("evidence")
   @HttpCode(200)
-  async uploadEvidence(@Body() body: UploadEvidenceDto) {
+  async uploadEvidence(@Body() rawBody: unknown) {
+    const body = parseUploadEvidence(rawBody);
     let bytes: Uint8Array;
     try {
       bytes = base64ToBytes(body.contentBase64);
@@ -90,12 +92,10 @@ export class SyncController {
 
   // Pull server-authored events (decisions, escalations, registry updates).
   @Get("pull")
-  async pull(@Req() req: Request, @Query() query: PullQueryDto) {
+  async pull(@Req() req: Request, @Query() rawQuery: unknown) {
+    const { since } = parsePullQuery(rawQuery);
     const principal = getPrincipal(req);
-    const result = await this.queries.pull(
-      principal.jurisdictionId,
-      query.since ?? "",
-    );
+    const result = await this.queries.pull(principal.jurisdictionId, since ?? "");
     return { events: result.events, next_cursor: result.nextCursor };
   }
 

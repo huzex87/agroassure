@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { Logger, ValidationPipe } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/http-exception.filter";
 import { loadConfig } from "./config/config";
@@ -20,7 +20,11 @@ async function bootstrap(): Promise<void> {
   const express = app.getHttpAdapter().getInstance();
   express.use((await import("express")).json({ limit: "25mb" }));
 
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  // No global ValidationPipe. It was here, and it was doing nothing: it
+  // validates against decorated classes, every request shape in this service is
+  // a TypeScript interface, and interfaces are erased before the code runs. A
+  // guard that cannot fail is worse than no guard, because it is read as one.
+  // Every controller parses its own body through src/common/validate.ts.
   app.useGlobalFilters(new HttpExceptionFilter());
 
   await app.listen(config.port);

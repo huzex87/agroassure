@@ -26,7 +26,7 @@ import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService, type CertificateFields } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
 import { AuditService } from "./audit.service";
-import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "./validate";
+import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "../common/validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
 // the role checks are evaluated here on the server from the verified principal;

@@ -134,11 +134,26 @@ jobs:
       # that the migration runner is actually present in the image. It is
       # expected to fail on the database, and the message it fails with is the
       # evidence that everything before that worked.
+      #
+      # The signal has to be the connection refusal specifically. This grep used
+      # to accept "connect" or "database" anywhere in the log, which almost any
+      # error satisfies — an image whose module graph was broken would have
+      # passed this step, which is the one failure it exists to catch. So the
+      # refusal is required and a module resolution failure is rejected outright.
       - name: The image starts and reaches its database check
         run: |
           set -o pipefail
           docker run --rm             -e DATABASE_URL=postgres://nobody@127.0.0.1:1/nothing             -e AUTH_JWT_SECRET=ci-secret-not-used-in-production             agroassure-gateway:ci 2>&1 | tee boot.log || true
-          grep -qiE "ECONNREFUSED|connect|database" boot.log
+          if grep -qiE "MODULE_NOT_FOUND|Cannot find module|ERR_MODULE_NOT_FOUND" boot.log; then
+            echo "::error::the image booted into a missing module, not into its database check"
+            cat boot.log
+            exit 1
+          fi
+          if ! grep -qi "ECONNREFUSED" boot.log; then
+            echo "::error::expected the gateway to reach its database and be refused; it never got that far"
+            cat boot.log
+            exit 1
+          fi
 
       - name: The migration runner is in the image and refuses to run blind
         run: |
