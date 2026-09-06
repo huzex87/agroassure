@@ -21,6 +21,7 @@ import { InspectionsService } from "./inspections.service";
 import { FindingsService } from "./findings.service";
 import { PlanningService } from "./planning.service";
 import { DashboardService } from "./dashboard.service";
+import { ExecutiveService } from "./executive.service";
 import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService, type CertificateFields } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
@@ -267,6 +268,7 @@ export class PlanningController {
   constructor(
     private readonly planning: PlanningService,
     private readonly dashboard: DashboardService,
+    private readonly executiveView: ExecutiveService,
   ) {}
 
   @Get("assignments")
@@ -307,6 +309,17 @@ export class PlanningController {
   @Roles("desk_supervisor", "authorising_officer", "state_admin", "national_admin")
   suggestions(@Req() req: Request, @Query("limit") limit?: string) {
     return this.planning.riskSuggestions(getPrincipal(req), Number(limit ?? 20));
+  }
+
+  /**
+   * The executive view. Same jurisdiction scoping as everything else, and
+   * readable by an auditor: a figure a director is shown ought to be one an
+   * auditor can check.
+   */
+  @Get("executive")
+  @Roles("state_admin", "national_admin", "auditor", "authorising_officer")
+  executive(@Req() req: Request) {
+    return this.executiveView.summary(getPrincipal(req));
   }
 
   @Get("dashboard")

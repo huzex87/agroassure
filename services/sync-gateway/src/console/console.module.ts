@@ -17,6 +17,7 @@ import { InspectionsService } from "./inspections.service";
 import { FindingsService } from "./findings.service";
 import { PlanningService } from "./planning.service";
 import { DashboardService } from "./dashboard.service";
+import { ExecutiveService } from "./executive.service";
 import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
@@ -42,6 +43,7 @@ import { AuditService } from "./audit.service";
     FindingsService,
     PlanningService,
     DashboardService,
+    ExecutiveService,
     CertificatesService,
     CertificateRenderService,
     AdminService,
