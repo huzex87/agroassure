@@ -245,36 +245,52 @@ export default function Checklist() {
 
             return (
               <View key={ref} style={[styles.card, draft.saved ? styles.cardAnswered : null]}>
-                <Text style={styles.muted}>
-                  {ref}
-                  {draft.saved ? "  ·  recorded" : ""}
-                </Text>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.overline}>{ref}</Text>
+                  {draft.saved ? (
+                    <View style={[styles.chip, { backgroundColor: colors.goodTint }]}>
+                      <View style={[styles.chipDot, { backgroundColor: colors.good }]} />
+                      <Text style={[styles.chipText, { color: colors.good }]}>
+                        {t("recorded")}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={styles.body}>
                   {pick(checkpoint.promptEn, checkpoint.promptHa)}
                 </Text>
 
+                {/* Each answer settles into the colour of what it means. All
+                    three used to turn the same brand blue, which made a page of
+                    answered checkpoints unreadable at a glance: an inspector
+                    reviewing before sign-off had to read every label to find the
+                    failures they had recorded. */}
                 <View style={styles.responseRow}>
                   {(["yes", "no", "na"] as const)
                     .filter((option) => option !== "na" || checkpoint.allowsNa)
                     .map((option) => {
                       const selected = draft.response === option;
+                      const fill =
+                        option === "yes"
+                          ? styles.responseYes
+                          : option === "no"
+                            ? styles.responseNo
+                            : styles.responseNa;
+                      const ink =
+                        option === "yes"
+                          ? styles.responseYesText
+                          : option === "no"
+                            ? styles.responseNoText
+                            : styles.responseNaText;
                       return (
                         <Pressable
                           key={option}
                           accessibilityRole="radio"
                           accessibilityState={{ selected }}
-                          style={[
-                            styles.responseButton,
-                            selected ? styles.responseSelected : null,
-                          ]}
+                          style={[styles.responseButton, selected ? fill : null]}
                           onPress={() => choose(ref, option)}
                         >
-                          <Text
-                            style={[
-                              styles.responseText,
-                              selected ? styles.responseTextSelected : null,
-                            ]}
-                          >
+                          <Text style={[styles.responseText, selected ? ink : null]}>
                             {t(option)}
                           </Text>
                         </Pressable>

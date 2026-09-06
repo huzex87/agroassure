@@ -1,5 +1,5 @@
 import { get } from "../../lib/api";
-import { Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Card, Cell, Empty, PageHeader, Row, Stat, Table } from "../../components/ui";
 import { Meter, PairedBars, Sparkline } from "../../components/charts";
 import { formatDate } from "../../lib/format";
 
@@ -49,37 +49,22 @@ interface Executive {
   };
 }
 
-function Figure({
-  value,
-  label,
-  hint,
-}: {
-  value: string;
-  label: string;
-  hint?: string;
-}) {
-  return (
-    <div>
-      <p className="text-sm text-ink-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums text-ink">{value}</p>
-      {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
-    </div>
-  );
-}
-
 export default async function ExecutivePage() {
   const data = await get<Executive>("/v1/executive");
   const { coverage, promises, closure } = data;
 
+  // Coverage is the figure a director is answerable for, so it gets a tone
+  // rather than sitting neutral: below half the register in a year is not a
+  // number to read calmly.
+  const coverageTone =
+    coverage.percent === null ? "neutral" : coverage.percent >= 75 ? "good" : coverage.percent >= 50 ? "caution" : "critical";
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Programme overview</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Whether the programme is working, and whether the regulator is keeping its own
-          commitments. Every figure derives from the inspection record.
-        </p>
-      </header>
+    <>
+      <PageHeader
+        title="Programme overview"
+        summary="Whether the programme is working, and whether the regulator is keeping its own commitments. Every figure derives from the inspection record."
+      />
 
       {/* Coverage first, deliberately. It is the figure most easily flattered by
           a busy operational dashboard, and the one a director is answerable for. */}
@@ -87,32 +72,57 @@ export default async function ExecutivePage() {
         title="Coverage"
         subtitle="What proportion of the register has actually been visited in the last twelve months"
       >
-        <div className="grid gap-6 sm:grid-cols-3">
-          <Figure
-            value={coverage.percent === null ? "—" : `${coverage.percent}%`}
-            label="Register inspected, 12 months"
-            hint={`${coverage.inspected12m} of ${coverage.total} facilities`}
-          />
-          <Figure
-            value={String(coverage.neverInspected)}
-            label="Never inspected"
-            hint="No submitted inspection on record"
-          />
-          <Figure
-            value={String(coverage.lapsedOverAYear)}
-            label="Not seen in over a year"
-            hint="Inspected once, then not since"
-          />
+        <div className="grid gap-5 sm:grid-cols-3">
+          <div>
+            <p className="text-[0.8125rem] font-medium text-ink-muted">
+              Register inspected, 12 months
+            </p>
+            <p
+              className={`stat-value mt-1.5 text-[2.5rem] font-semibold leading-none ${
+                coverageTone === "good"
+                  ? "text-good"
+                  : coverageTone === "caution"
+                    ? "text-caution"
+                    : coverageTone === "critical"
+                      ? "text-critical"
+                      : "text-ink"
+              }`}
+            >
+              {coverage.percent === null ? "—" : `${coverage.percent}%`}
+            </p>
+            <p className="mt-2 text-xs text-ink-muted">
+              {coverage.inspected12m} of {coverage.total} facilities
+            </p>
+          </div>
+          <div className="sm:col-span-2 sm:self-end">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-[0.8125rem] font-medium text-ink-muted">Never inspected</p>
+                <p className="stat-value mt-1 text-2xl font-semibold text-ink">
+                  {coverage.neverInspected}
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">No submitted inspection on record</p>
+              </div>
+              <div>
+                <p className="text-[0.8125rem] font-medium text-ink-muted">Not seen in over a year</p>
+                <p className="stat-value mt-1 text-2xl font-semibold text-ink">
+                  {coverage.lapsedOverAYear}
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">Inspected once, then not since</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mt-5">
+        <div className="mt-6">
           <Meter
             percent={coverage.percent}
+            tone={coverageTone === "critical" ? "caution" : coverageTone === "neutral" ? "primary" : coverageTone}
             caption="A regulator that inspects the same few sites repeatedly has a busy dashboard and an unwatched market."
           />
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <Card title="Compliance trend" subtitle="Average rating by month, on a full 0–100 scale">
           <Sparkline
             label="Average compliance rating by month"
@@ -123,72 +133,101 @@ export default async function ExecutivePage() {
         <Card
           title="Findings raised and closed"
           subtitle="Enforcement is the closing, not the raising"
+          footer={
+            closure.medianDays === null
+              ? "No finding has been closed yet, so there is no time-to-close to report."
+              : `Median time to close: ${closure.medianDays} days across ${closure.closedCount} closed findings.`
+          }
         >
           <PairedBars
             rows={data.findingsFlow.map((f) => ({ month: f.month, a: f.raised, b: f.closed }))}
             aLabel="Raised"
             bLabel="Closed"
           />
-          <p className="mt-3 text-sm text-ink-muted">
-            {closure.medianDays === null
-              ? "No finding has been closed yet, so there is no time-to-close to report."
-              : `Median time to close: ${closure.medianDays} days across ${closure.closedCount} closed findings.`}
-          </p>
         </Card>
       </div>
 
       {/* The regulator measured the way it measures everyone else. */}
-      <Card
-        title="What we owe"
-        subtitle="The commitments the institution has made, held to the same standard it applies"
-      >
-        <div className="grid gap-6 sm:grid-cols-4">
-          <Figure
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-[0.9375rem] font-semibold text-ink">What we owe</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            The commitments the institution has made, held to the same standard it applies.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat
+            label="Decisions within 30 days"
             value={
               promises.decisionsWithin30Days.percent === null
                 ? "—"
                 : `${promises.decisionsWithin30Days.percent}%`
             }
-            label="Decisions within 30 days"
             hint={
               promises.decisionsWithin30Days.total === 0
                 ? "No inspections submitted in the last 90 days"
                 : `${promises.decisionsWithin30Days.decided} of ${promises.decisionsWithin30Days.total}`
             }
+            tone={
+              promises.decisionsWithin30Days.percent !== null &&
+              promises.decisionsWithin30Days.percent < 80
+                ? "caution"
+                : "neutral"
+            }
           />
-          <Figure
-            value={String(promises.overdueFindings)}
+          <Stat
             label="Findings past their due date"
+            value={promises.overdueFindings}
             hint="Owed by the facilities, chased by us"
+            tone={promises.overdueFindings > 0 ? "critical" : "good"}
+            href="/findings?overdueOnly=true"
           />
-          <Figure
-            value={String(promises.certificatesDueSoon)}
+          <Stat
             label="Certificates expiring in 30 days"
+            value={promises.certificatesDueSoon}
             hint="Re-inspection needed before they lapse"
+            tone={promises.certificatesDueSoon > 0 ? "caution" : "neutral"}
           />
-          <Figure
-            value={String(promises.devicesAwaitingApproval)}
+          <Stat
             label="Devices awaiting approval"
+            value={promises.devicesAwaitingApproval}
             hint="An inspector cannot sync until one is approved"
+            tone={promises.devicesAwaitingApproval > 0 ? "caution" : "neutral"}
+            href="/admin"
           />
         </div>
-      </Card>
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="By local government area" subtitle="Where to post the next inspector">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card
+          title="By local government area"
+          subtitle="Where to post the next inspector"
+          flush={data.byLga.length > 0}
+        >
           <Table
             head={["LGA", "Facilities", "Inspected", "Avg rating", "Open findings"]}
+            align={["left", "right", "right", "right", "right"]}
             empty={data.byLga.length === 0 ? <Empty>No facility is registered yet.</Empty> : undefined}
           >
             {data.byLga.map((r) => (
               <Row key={r.lga}>
-                <Cell className="font-medium">{r.lga}</Cell>
-                <Cell className="tabular-nums text-ink-muted">{r.facilities}</Cell>
-                <Cell className="tabular-nums text-ink-muted">{r.inspected}</Cell>
-                <Cell className="tabular-nums text-ink-muted">
+                <Cell className="font-medium text-ink">{r.lga}</Cell>
+                <Cell align="right" className="tabular-nums text-ink-muted">
+                  {r.facilities}
+                </Cell>
+                <Cell align="right" className="tabular-nums text-ink-muted">
+                  {r.inspected}
+                </Cell>
+                <Cell align="right" className="tabular-nums text-ink-muted">
                   {r.avg_rating === null ? "—" : `${r.avg_rating}%`}
                 </Cell>
-                <Cell className="tabular-nums">{r.open_findings}</Cell>
+                <Cell align="right" className="font-medium tabular-nums">
+                  {r.open_findings > 0 ? (
+                    <span className="text-critical">{r.open_findings}</span>
+                  ) : (
+                    <span className="text-ink-faint">0</span>
+                  )}
+                </Cell>
               </Row>
             ))}
           </Table>
@@ -197,9 +236,12 @@ export default async function ExecutivePage() {
         <Card
           title="Repeat failures"
           subtitle="The same site failing the same checkpoint more than once"
+          flush={data.repeatFailures.length > 0}
+          footer="A repeat means the last enforcement did not work, or the finding was closed without anything changing on site. Both are worth asking about."
         >
           <Table
             head={["Facility", "Checkpoint", "Times", "Last raised"]}
+            align={["left", "left", "right", "right"]}
             empty={
               data.repeatFailures.length === 0 ? (
                 <Empty>No facility has failed the same checkpoint twice.</Empty>
@@ -209,21 +251,21 @@ export default async function ExecutivePage() {
             {data.repeatFailures.map((r) => (
               <Row key={`${r.facility}-${r.checkpoint_ref}`}>
                 <Cell>
-                  <span className="font-medium">{r.facility}</span>
-                  {r.lga && <p className="text-xs text-ink-muted">{r.lga}</p>}
+                  <span className="font-medium text-ink">{r.facility}</span>
+                  {r.lga && <p className="text-xs text-ink-faint">{r.lga}</p>}
                 </Cell>
-                <Cell className="text-ink-muted">{r.checkpoint_ref}</Cell>
-                <Cell className="tabular-nums">{r.times}</Cell>
-                <Cell className="text-ink-muted">{formatDate(r.last_raised)}</Cell>
+                <Cell className="font-mono text-[0.8125rem] text-ink-muted">{r.checkpoint_ref}</Cell>
+                <Cell align="right" className="font-semibold tabular-nums text-critical">
+                  {r.times}
+                </Cell>
+                <Cell align="right" className="tabular-nums text-ink-muted">
+                  {formatDate(r.last_raised)}
+                </Cell>
               </Row>
             ))}
           </Table>
-          <p className="mt-4 text-xs text-ink-muted">
-            A repeat means the last enforcement did not work, or the finding was closed without
-            anything changing on site. Both are worth asking about.
-          </p>
         </Card>
       </div>
-    </div>
+    </>
   );
 }

@@ -49,9 +49,11 @@ export default async function CertificatePage({
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-ink">Certificate {c.serial}</h1>
           {c.status === "valid" ? (
-            <Badge tone="primary">Valid</Badge>
+            <Badge tone="good" dot>Valid</Badge>
           ) : (
-            <Badge tone="quiet">{c.status === "revoked" ? "Revoked" : "Superseded"}</Badge>
+            <Badge tone={c.status === "revoked" ? "critical" : "neutral"} dot>
+              {c.status === "revoked" ? "Revoked" : "Superseded"}
+            </Badge>
           )}
         </div>
       </header>

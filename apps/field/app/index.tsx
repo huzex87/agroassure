@@ -10,7 +10,7 @@ import { currentPosition } from "../src/capture";
 import { readFileBytes } from "../src/capture";
 import { fetchBootstrap, httpTransport } from "../src/transport";
 import { useLanguage } from "../src/i18n";
-import { colors, styles } from "../src/theme";
+import { chipTone, colors, styles } from "../src/theme";
 
 // The day. Everything on this screen is read from the device's own database, so
 // it renders identically with a full signal and with none. Sync is a button the
@@ -130,19 +130,29 @@ export default function Today() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
-      <View style={styles.banner}>
-        <Text style={styles.h2}>
-          {queued > 0 ? `${queued} ${t("queued")}` : t("online")}
-        </Text>
-        <Text style={styles.muted}>{t("nothingLost")}</Text>
+      {/* Work waiting to be sent is the one thing on this screen an inspector
+          must be able to trust, so it says the count and says it is safe. */}
+      <View style={[styles.banner, queued === 0 ? styles.bannerQuiet : null]}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.h2}>{queued > 0 ? t("workWaiting") : t("allSent")}</Text>
+          {queued > 0 ? (
+            <View style={[styles.chip, { backgroundColor: colors.surface }]}>
+              <View style={[styles.chipDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.chipText, { color: colors.primaryDark }]}>
+                {queued} {t("queued")}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.muted}>{queued > 0 ? t("nothingLost") : t("upToDate")}</Text>
         <Pressable
-          style={[styles.button, { marginTop: 8 }]}
+          style={[styles.button, busy ? styles.buttonDisabled : null, { marginTop: 10 }]}
           onPress={sync}
           disabled={busy}
           accessibilityRole="button"
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>{t("syncNow")}</Text>
           )}
@@ -225,15 +235,19 @@ export default function Today() {
           {/* Why this facility, in words. An inspector is never handed a list
               they cannot account for. */}
           {row.assignmentReason ? (
-            <View style={styles.banner}>
+            <View style={[styles.banner, styles.bannerQuiet]}>
+              <Text style={styles.overline}>{t("whyThisVisit")}</Text>
               <Text style={styles.muted}>{row.assignmentReason}</Text>
             </View>
           ) : null}
 
           {row.priorOpen > 0 ? (
-            <Text style={[styles.muted, { color: colors.warn }]}>
-              {row.priorOpen} {t(row.priorOpen === 1 ? "priorFinding" : "priorFindings")}
-            </Text>
+            <View style={[styles.chip, { backgroundColor: colors.cautionTint }]}>
+              <View style={[styles.chipDot, { backgroundColor: colors.caution }]} />
+              <Text style={[styles.chipText, { color: colors.caution }]}>
+                {row.priorOpen} {t(row.priorOpen === 1 ? "priorFinding" : "priorFindings")}
+              </Text>
+            </View>
           ) : null}
 
           <View style={styles.divider} />
@@ -242,10 +256,21 @@ export default function Today() {
               rather than as the thing to tap. A chevron and a settled state
               that stops pretending to be tappable are the whole difference. */}
           {row.submitted ? (
-            <Text style={styles.muted}>
-              {t("submitted")}
-              {row.submitted.ratingBand ? ` · ${ratingBand(row.submitted.ratingBand)}` : ""}
-            </Text>
+            (() => {
+              const band = row.submitted.ratingBand;
+              const tone = chipTone(
+                band === "satisfactory" ? "good" : band === "critical_issues" ? "critical" : band ? "caution" : "neutral",
+              );
+              return (
+                <View style={[styles.chip, { backgroundColor: tone.bg }]}>
+                  <View style={[styles.chipDot, { backgroundColor: tone.fg }]} />
+                  <Text style={[styles.chipText, { color: tone.fg }]}>
+                    {t("submitted")}
+                    {band ? ` · ${ratingBand(band)}` : ""}
+                  </Text>
+                </View>
+              );
+            })()
           ) : (
             <View style={styles.actionRow}>
               <Text style={styles.actionText}>

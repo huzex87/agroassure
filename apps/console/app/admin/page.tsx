@@ -1,5 +1,5 @@
 import { get, type DeviceRow, type UserRow } from "../../lib/api";
-import { Badge, Button, Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Badge, Button, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { approveDevice, enrollDevice, revokeDevice } from "./actions";
 
@@ -27,13 +27,15 @@ export default async function AdminPage() {
   const inspectors = users.filter((u) => u.roles.includes("inspector"));
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Users and devices</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+    <>
+      <PageHeader
+        title="Users and devices"
+        summary={
+          <>
           Roles are scoped to this jurisdiction and evaluated on the server for every request.
-        </p>
-      </header>
+          </>
+        }
+      />
 
       <Card title="Users" subtitle={`${users.length} in this jurisdiction`}>
         <Table
@@ -50,7 +52,7 @@ export default async function AdminPage() {
                     <span className="text-ink-muted">No role</span>
                   ) : (
                     u.roles.map((r) => (
-                      <Badge key={r} tone="quiet">
+                      <Badge key={r} tone="neutral">
                         {ROLE_LABEL[r] ?? r}
                       </Badge>
                     ))
@@ -59,9 +61,9 @@ export default async function AdminPage() {
               </Cell>
               <Cell>
                 {u.status === "active" ? (
-                  <Badge tone="primary">Active</Badge>
+                  <Badge tone="good" dot>Active</Badge>
                 ) : (
-                  <Badge tone="quiet">Suspended</Badge>
+                  <Badge tone="caution" dot>Suspended</Badge>
                 )}
               </Cell>
               <Cell className="text-ink-muted">{formatDate(u.created_at)}</Cell>
@@ -83,7 +85,7 @@ export default async function AdminPage() {
               <select
                 name="assignedUserId"
                 required
-                className="mt-1 w-full rounded-[12px] border border-line px-3 py-2 text-sm"
+                className="field"
               >
                 {inspectors.length === 0 && <option value="">No inspector available</option>}
                 {inspectors.map((u) => (
@@ -98,7 +100,7 @@ export default async function AdminPage() {
               <input
                 name="label"
                 placeholder="Field tablet 04"
-                className="mt-1 w-full rounded-[12px] border border-line px-3 py-2 text-sm"
+                className="field"
               />
             </label>
             <label className="block text-sm">
@@ -135,12 +137,12 @@ export default async function AdminPage() {
                 <Cell className="tabular-nums">{d.events_authored}</Cell>
                 <Cell>
                   {d.status === "active" ? (
-                    <Badge tone="primary">Active</Badge>
+                    <Badge tone="good" dot>Active</Badge>
                   ) : d.status === "pending" ? (
-                    <Badge tone="warn">Awaiting approval</Badge>
+                    <Badge tone="caution" dot>Awaiting approval</Badge>
                   ) : (
                     <div>
-                      <Badge tone="quiet">Revoked</Badge>
+                      <Badge tone="critical" dot>Revoked</Badge>
                       <p className="mt-1 text-xs text-ink-muted">
                         {formatDateTime(d.revoked_at)}
                       </p>
@@ -180,6 +182,6 @@ export default async function AdminPage() {
           </p>
         </Card>
       </div>
-    </div>
+    </>
   );
 }

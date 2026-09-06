@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type FacilityRow } from "../../lib/api";
-import { Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
 import { RegistryMap } from "../../components/registry-map";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
@@ -31,15 +31,17 @@ export default async function FacilitiesPage({
   }, {});
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Facilities</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+    <>
+      <PageHeader
+        title="Facilities"
+        summary={
+          <>
           {facilities.length} in this jurisdiction · {counts.valid ?? 0} valid ·{" "}
           {counts.due_soon ?? 0} due soon · {counts.overdue ?? 0} overdue ·{" "}
           {counts.never_inspected ?? 0} not yet inspected
-        </p>
-      </header>
+          </>
+        }
+      />
 
       <Card>
         <RegistryMap facilities={facilities} />
@@ -52,13 +54,13 @@ export default async function FacilitiesPage({
             defaultValue={params.q ?? ""}
             placeholder="Business name or licence number"
             aria-label="Search by business name or licence number"
-            className="min-w-56 flex-1 rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           />
           <select
             name="type"
             defaultValue={params.type ?? ""}
             aria-label="Facility type"
-            className="rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           >
             <option value="">All types</option>
             {TYPES.map(([value, text]) => (
@@ -72,11 +74,11 @@ export default async function FacilitiesPage({
             defaultValue={params.lga ?? ""}
             placeholder="LGA"
             aria-label="Local government area"
-            className="w-32 rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           />
           <button
             type="submit"
-            className="rounded-[12px] bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
           >
             Filter
           </button>
@@ -119,6 +121,6 @@ export default async function FacilitiesPage({
           ))}
         </Table>
       </Card>
-    </div>
+    </>
   );
 }

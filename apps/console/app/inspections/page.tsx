@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InspectionRow } from "../../lib/api";
-import { Badge, Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Badge, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
 import { Rating } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -28,13 +28,15 @@ export default async function InspectionsPage({
   const awaiting = inspections.filter((i) => i.status === "submitted" && !i.reviewed).length;
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Inspections</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+    <>
+      <PageHeader
+        title="Inspections"
+        summary={
+          <>
           {inspections.length} shown · {awaiting} awaiting a decision
-        </p>
-      </header>
+          </>
+        }
+      />
 
       <Card>
         <form className="mb-4 flex flex-wrap gap-3" action="/inspections">
@@ -42,7 +44,7 @@ export default async function InspectionsPage({
             name="ratingBand"
             defaultValue={params.ratingBand ?? ""}
             aria-label="Rating"
-            className="rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           >
             <option value="">All ratings</option>
             {BANDS.map(([value, text]) => (
@@ -57,7 +59,7 @@ export default async function InspectionsPage({
               type="date"
               name="from"
               defaultValue={params.from ?? ""}
-              className="rounded-[12px] border border-line px-3 py-2 text-sm"
+              className="field"
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-muted">
@@ -66,12 +68,12 @@ export default async function InspectionsPage({
               type="date"
               name="to"
               defaultValue={params.to ?? ""}
-              className="rounded-[12px] border border-line px-3 py-2 text-sm"
+              className="field"
             />
           </label>
           <button
             type="submit"
-            className="rounded-[12px] bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
           >
             Filter
           </button>
@@ -97,8 +99,8 @@ export default async function InspectionsPage({
                 <div className="mt-1 flex flex-wrap gap-1">
                   {/* Both of these are recorded facts, flagged for a human to
                       judge rather than reasons to have refused the record. */}
-                  {i.checkin_flagged && <Badge tone="warn">Check-in flagged</Badge>}
-                  {i.version_discrepancy && <Badge tone="quiet">Version superseded mid-visit</Badge>}
+                  {i.checkin_flagged && <Badge tone="caution">Check-in flagged</Badge>}
+                  {i.version_discrepancy && <Badge tone="neutral">Version superseded mid-visit</Badge>}
                 </div>
               </Cell>
               <Cell>
@@ -116,15 +118,15 @@ export default async function InspectionsPage({
               <Cell className="tabular-nums">{i.findings_count}</Cell>
               <Cell>
                 {i.reviewed ? (
-                  <Badge tone="quiet">Decided</Badge>
+                  <Badge tone="good" dot>Decided</Badge>
                 ) : (
-                  <Badge tone="primary">Awaiting decision</Badge>
+                  <Badge tone="caution" dot>Awaiting decision</Badge>
                 )}
               </Cell>
             </Row>
           ))}
         </Table>
       </Card>
-    </div>
+    </>
   );
 }

@@ -61,7 +61,7 @@ export default async function InstrumentVersionPage({
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-ink">{version.versionLabel}</h1>
-          <Badge tone={version.status === "in_force" ? "primary" : "quiet"}>
+          <Badge tone={version.status === "in_force" ? "good" : "neutral"}>
             {version.status === "in_force"
               ? "In force"
               : version.status === "draft"
@@ -91,7 +91,7 @@ export default async function InstrumentVersionPage({
               {changes.changes.map((c, i) => (
                 <li key={`${c.ref}-${i}`} className="flex items-start gap-3 py-2.5">
                   <span className="w-12 shrink-0 font-mono text-xs text-ink-muted">{c.ref}</span>
-                  <Badge tone={c.kind === "removed" ? "warn" : "quiet"}>
+                  <Badge tone={c.kind === "removed" ? "caution" : "neutral"}>
                     {label(CHANGE_LABEL, c.kind)}
                   </Badge>
                   <span className="min-w-0 flex-1 text-sm text-ink-muted">{c.detail}</span>

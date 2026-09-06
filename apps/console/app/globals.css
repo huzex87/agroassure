@@ -1,51 +1,181 @@
 @import "tailwindcss";
 
-/* Huzex Light. Secondary tones are tints of the primary rather than new hues,
-   so the interface stays quiet and the one saturated colour means "act here". */
+/* Huzex Light.
+   ---------------------------------------------------------------------------
+   One saturated blue means "act here", and everything structural is a cool
+   slate derived from the ink rather than a neutral grey — a true grey next to
+   #072435 reads as dirty, and the whole interface looks unconsidered for a
+   reason nobody can name.
+
+   The important change is that status now has its own hues. Every tone in this
+   console used to be a tint of the primary, which meant a valid certificate and
+   a critical finding were the same colour with different words. That is not a
+   style problem: colour is the channel a supervisor scans a table with, and it
+   was carrying no information at all. Words still lead — a colour-blind reader
+   and a printed export lose nothing — but the second channel now says
+   something. */
+
 @theme {
-  --color-primary: #409ef2;
-  --color-primary-50: #f2f8fe;
-  --color-primary-100: #e3f0fd;
-  --color-primary-200: #c2e0fb;
-  --color-primary-600: #2b86d8;
-  --color-primary-700: #1f6db4;
+  /* -- brand ------------------------------------------------------------- */
+  --color-primary:     #2f93ec;
+  --color-primary-50:  #f1f8fe;
+  --color-primary-100: #dfeffd;
+  --color-primary-200: #bcdefb;
+  --color-primary-300: #8ac6f8;
+  --color-primary-500: #409ef2;
+  --color-primary-600: #1f7fd4;
+  --color-primary-700: #1665ad;
+  --color-primary-800: #145488;
 
-  --color-ink: #072435;
-  --color-ink-muted: #4a6b7c;
-  --color-line: #e6eef4;
-  --color-surface: #ffffff;
-  --color-canvas: #f7fafc;
+  /* -- ink and structure ------------------------------------------------- */
+  --color-ink:        #072435;
+  --color-ink-strong: #041823;
+  --color-ink-muted:  #4a6b7c;
+  --color-ink-faint:  #7c96a4;
 
-  --radius-card: 16px;
-  --radius-control: 12px;
+  --color-line:       #e4edf3;
+  --color-line-firm:  #cbdae5;
+  --color-surface:    #ffffff;
+  --color-surface-sunk:#f4f8fb;
+  --color-canvas:     #f6fafc;
 
-  --font-sans: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+  /* -- status -----------------------------------------------------------
+     Chosen against the blue rather than off a colour wheel: the green is
+     desaturated so it sits beside the primary without competing, and the red
+     is warmed so it reads as serious rather than as an error dialog. */
+  --color-good:       #0f7a5f;
+  --color-good-bg:    #e6f4ef;
+  --color-good-line:  #b7e0d2;
+
+  --color-caution:    #a45e07;
+  --color-caution-bg: #fdf3e5;
+  --color-caution-line:#f2d9b0;
+
+  --color-critical:   #b93a2e;
+  --color-critical-bg:#fdf0ee;
+  --color-critical-line:#f4cbc5;
+
+  /* -- type -------------------------------------------------------------
+     next/font puts the loaded families on its own variables so they cannot
+     collide with the ones Tailwind generates utilities from; these map one to
+     the other and keep a real fallback stack behind each. */
+  --font-sans: var(--font-jakarta), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "Cascadia Mono", Menlo, monospace;
+
+  /* -- shape ------------------------------------------------------------- */
+  --radius-card:    14px;
+  --radius-control: 10px;
+  --radius-pill:    999px;
+
+  /* -- elevation --------------------------------------------------------
+     Three levels, deliberately. Everything used to carry the same border and
+     the same shadow, which flattens hierarchy: when every block is lifted,
+     nothing is. Sunk holds lists and tables, raised holds the things worth
+     lifting, and overlay is for dialogs. */
+  --shadow-sunk:    inset 0 1px 0 0 rgb(255 255 255 / 0.6);
+  --shadow-raised:  0 1px 2px rgb(7 36 53 / 0.05), 0 4px 12px -2px rgb(7 36 53 / 0.06);
+  --shadow-lifted:  0 2px 4px rgb(7 36 53 / 0.05), 0 12px 28px -6px rgb(7 36 53 / 0.10);
+  --shadow-overlay: 0 24px 60px -12px rgb(7 36 53 / 0.22);
 }
 
-html,
+html {
+  background: var(--color-canvas);
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "cv05" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dialogs sit on a light, blurred overlay, never a dark tint. */
-.overlay {
-  background: color-mix(in srgb, white 70%, transparent);
-  backdrop-filter: blur(6px);
+/* Numbers in a regulator's console are compared down a column far more often
+   than they are read in a sentence, so they line up everywhere by default. */
+.tabular, table, .stat-value {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Cards are elevated softly; nothing in this interface casts a hard shadow. */
+/* Headings carry the weight; tracking tightens as size grows so a large number
+   does not look loose beside its label. */
+h1, h2, h3, h4 {
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--color-primary-200);
+  color: var(--color-ink-strong);
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces */
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
-  box-shadow: 0 1px 2px rgb(7 36 53 / 0.04), 0 6px 16px rgb(7 36 53 / 0.05);
+  box-shadow: var(--shadow-raised);
 }
 
-/* Focus is always visible: this console is used with a keyboard all day. */
-:where(a, button, input, select, textarea):focus-visible {
+/* A container that holds other things rather than being a thing: no lift, so
+   the cards inside it can have some. */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+.overlay {
+  background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* ---------------------------------------------------------------------------
+   Controls */
+
+/* No width here: these sit in inline filter bars as often as in stacked forms,
+   and a hard 100% turned every filter row into a column. Callers size them. */
+.field {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-firm);
+  border-radius: var(--radius-control);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.field::placeholder { color: var(--color-ink-faint); }
+.field:hover { border-color: var(--color-ink-faint); }
+.field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* A select needs its own arrow once the border is custom, or it renders the
+   platform's chrome inside our shape. */
+select.field {
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%234a6b7c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+}
+
+/* Focus is always visible: this console is used with a keyboard all day. The
+   ring sits outside the element so it never shifts layout. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

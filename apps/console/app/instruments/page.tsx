@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InstrumentRow } from "../../lib/api";
-import { Badge, Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Badge, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 
 // The template version manager. A published version is frozen and an inspection
@@ -10,9 +10,9 @@ import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 export const dynamic = "force-dynamic";
 
 const STATUS_TONE = {
-  in_force: "primary",
-  draft: "warn",
-  superseded: "quiet",
+  in_force: "good",
+  draft: "caution",
+  superseded: "neutral",
 } as const;
 
 const STATUS_LABEL = {
@@ -25,14 +25,16 @@ export default async function InstrumentsPage() {
   const instruments = await get<InstrumentRow[]>("/v1/instruments");
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Instruments</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+    <>
+      <PageHeader
+        title="Instruments"
+        summary={
+          <>
           One instrument per regulated operator class, each versioned. The four classes are the
           Act&rsquo;s own taxonomy, not this platform&rsquo;s.
-        </p>
-      </header>
+          </>
+        }
+      />
 
       {instruments.length === 0 && (
         <Card>
@@ -86,6 +88,6 @@ export default async function InstrumentsPage() {
           </Card>
         );
       })}
-    </div>
+    </>
   );
 }

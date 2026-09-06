@@ -23,20 +23,24 @@ type Plotted = FacilityRow & { lat: number; lng: number };
 /**
  * Size and a ring carry the status as well as the tint does, so the map stays
  * readable to a colour-blind reader and in a printed export — the same rule the
- * badges follow. The palette stays monochromatic on purpose: one saturated
- * colour in this interface means "act here", and a map is not the place to
- * introduce a second hue.
+ * badges follow, and the reason the legend spells each state out in words.
+ *
+ * The tints are the status hues the rest of the console uses. They were four
+ * shades of the brand blue, which meant an overdue certificate and a valid one
+ * were the same colour at a glance and only the marker size separated them —
+ * on a map, where markers sit at different distances, that is not a difference
+ * anyone can see.
  */
 function marker(status: string): { fill: string; radius: number; ring: boolean } {
   switch (status) {
     case "valid":
-      return { fill: "var(--color-primary)", radius: 5, ring: false };
+      return { fill: "var(--color-good)", radius: 5, ring: false };
     case "due_soon":
-      return { fill: "var(--color-primary-700)", radius: 6, ring: true };
+      return { fill: "var(--color-caution)", radius: 6, ring: true };
     case "overdue":
-      return { fill: "var(--color-primary-700)", radius: 7, ring: true };
+      return { fill: "var(--color-critical)", radius: 7, ring: true };
     default:
-      return { fill: "var(--color-ink-muted)", radius: 4, ring: false };
+      return { fill: "var(--color-ink-faint)", radius: 4, ring: false };
   }
 }
 

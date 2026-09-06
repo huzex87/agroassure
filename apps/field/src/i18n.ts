@@ -101,6 +101,14 @@ const STRINGS = {
   priorFindings: { en: "open findings here", ha: "abubuwan da ba a gyara ba" },
   device: { en: "Device", ha: "Na'ura" },
   submitted: { en: "Submitted", ha: "An mika" },
+  recorded: { en: "Recorded", ha: "An rubuta" },
+  workWaiting: { en: "Work waiting to send", ha: "Aikin da ke jiran aikawa" },
+  allSent: { en: "Everything is sent", ha: "An aika komai" },
+  upToDate: {
+    en: "This device has nothing waiting. Sync to collect any new visits.",
+    ha: "Babu abin da ke jira a wannan na'urar. Yi sync don karɓar sabbin ziyarce-ziyarce.",
+  },
+  whyThisVisit: { en: "Why this visit", ha: "Dalilin wannan ziyarar" },
 } as const;
 
 // The two enumerations an inspector actually sees. They were reaching the

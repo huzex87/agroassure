@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type FindingRow } from "../../lib/api";
-import { Card, Cell, Empty, Row, Table } from "../../components/ui";
+import { Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
 import { FindingStatus, Severity } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -40,13 +40,15 @@ export default async function FindingsPage({
   const escalated = findings.filter((f) => f.status === "escalated").length;
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-ink">Corrective actions</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+    <>
+      <PageHeader
+        title="Corrective actions"
+        summary={
+          <>
           {findings.length} shown · {overdue} past due · {escalated} escalated
-        </p>
-      </header>
+          </>
+        }
+      />
 
       <Card>
         <form className="mb-4 flex flex-wrap items-center gap-3" action="/findings">
@@ -54,7 +56,7 @@ export default async function FindingsPage({
             name="status"
             defaultValue={params.status ?? ""}
             aria-label="Status"
-            className="rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           >
             <option value="">All states</option>
             {STATUSES.map(([value, text]) => (
@@ -67,7 +69,7 @@ export default async function FindingsPage({
             name="severity"
             defaultValue={params.severity ?? ""}
             aria-label="Severity"
-            className="rounded-[12px] border border-line px-3 py-2 text-sm"
+            className="field"
           >
             <option value="">All severities</option>
             {SEVERITIES.map(([value, text]) => (
@@ -88,7 +90,7 @@ export default async function FindingsPage({
           </label>
           <button
             type="submit"
-            className="rounded-[12px] bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
           >
             Filter
           </button>
@@ -143,6 +145,6 @@ export default async function FindingsPage({
           ))}
         </Table>
       </Card>
-    </div>
+    </>
   );
 }

@@ -84,9 +84,9 @@ export default async function InspectionPage({
               <dt className="text-ink-muted">Status</dt>
               <dd>
                 {i.checkin_flagged ? (
-                  <Badge tone="warn">Flagged for review</Badge>
+                  <Badge tone="caution">Flagged for review</Badge>
                 ) : (
-                  <Badge tone="quiet">Within range</Badge>
+                  <Badge tone="good">Within range</Badge>
                 )}
               </dd>
             </div>
