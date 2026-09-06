@@ -51,6 +51,28 @@ const STRINGS = {
     en: "You are further from the registered location than expected. This is recorded for your supervisor; carry on.",
     ha: "Kana nesa da wurin da aka yi rijista fiye da yadda ake tsammani. An rubuta wannan don shugabanka; ci gaba.",
   },
+  whoAreYou: { en: "Who are you?", ha: "Wane ne kai?" },
+  signInBody: {
+    en: "Choose your name. This device will then ask your administrator to approve it.",
+    ha: "Zaɓi sunanka. Sannan wannan na'urar za ta nemi shugabanka ya amince da ita.",
+  },
+  noSignInAvailable: {
+    en: "This server does not offer sign-in. Ask your administrator to enrol this device.",
+    ha: "Wannan sabar ba ta bayar da shiga ba. Ka nemi shugabanka ya yi rijistar na'urar.",
+  },
+  awaitingApproval: { en: "Waiting for approval", ha: "Ana jiran amincewa" },
+  awaitingApprovalBody: {
+    en: "Your administrator can see this device now. Your work is saved here in the meantime and will sync once it is approved.",
+    ha: "Shugabanka na iya ganin wannan na'urar yanzu. Aikinka na nan a adane, zai yi sync bayan an amince.",
+  },
+  thisDevice: { en: "This device's key", ha: "Makullin wannan na'urar" },
+  checkAgain: { en: "Check again", ha: "Sake dubawa" },
+  deviceReady: { en: "This device is ready", ha: "Wannan na'urar a shirye take" },
+  deviceReadyBody: {
+    en: "Approved. Everything queued on this device can sync now.",
+    ha: "An amince. Duk abin da ke jira zai iya yin sync yanzu.",
+  },
+  signOutDevice: { en: "Sign out of this device", ha: "Fita daga wannan na'urar" },
   enrolTitle: { en: "Enrol this device", ha: "Yi rijistar wannan na'urar" },
   enrolBody: {
     en: "Give this code to your administrator. The key that signs your work stays on this device and is never sent.",

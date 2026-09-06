@@ -481,6 +481,41 @@ export class DevicesController {
     return { id };
   }
 
+  /**
+   * A handset asking to be enrolled, for itself.
+   *
+   * Deliberately open to any signed-in user rather than to administrators: the
+   * inspector is the one holding the device, and the key they submit grants
+   * nothing until someone approves it. Ingest refuses any device that is not
+   * active, so a pending row can author exactly nothing.
+   */
+  @Post("enrolment-request")
+  @HttpCode(200)
+  async requestEnrolment(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    return this.admin.requestEnrolment(getPrincipal(req), {
+      publicKeyBase64: requiredString("publicKeyBase64", body.publicKeyBase64, 200),
+      label: optionalString("label", body.label, 120),
+    });
+  }
+
+  /** Where a handset's own request has got to. */
+  @Post("status")
+  @HttpCode(200)
+  async status(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    return this.admin.deviceStatus(
+      getPrincipal(req),
+      requiredString("publicKeyBase64", body.publicKeyBase64, 200),
+    );
+  }
+
+  @Post(":id/approve")
+  @Roles("state_admin", "national_admin")
+  @HttpCode(200)
+  async approve(@Req() req: Request, @Param("id") id: string) {
+    await this.admin.approveDevice(getPrincipal(req), uuid("id", id));
+    return { approved: true };
+  }
+
   @Post(":id/revoke")
   @Roles("state_admin", "national_admin")
   @HttpCode(200)

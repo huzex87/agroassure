@@ -44,6 +44,55 @@ async function startOidc() {
   redirect(authorizeUrl(settings, state, challengeFor(verifier)));
 }
 
+interface DevUser {
+  id: string;
+  full_name: string;
+  email: string;
+  roles: string[];
+}
+
+/**
+ * Who this deployment will sign you in as, if it offers that at all.
+ *
+ * Only present when the gateway was started with development sign-in enabled,
+ * which it refuses to do alongside a real identity provider. Anywhere else this
+ * comes back empty and the token box stands in.
+ */
+async function devUsers(): Promise<DevUser[]> {
+  const base = process.env.AGROASSURE_API_URL ?? "http://localhost:3001";
+  try {
+    const res = await fetch(`${base}/v1/auth/dev-users`, { cache: "no-store" });
+    return res.ok ? ((await res.json()) as DevUser[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function signInAs(formData: FormData) {
+  "use server";
+  const base = process.env.AGROASSURE_API_URL ?? "http://localhost:3001";
+  const res = await fetch(`${base}/v1/auth/dev-signin`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: String(formData.get("email") ?? "") }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    redirect("/signin?error=" + encodeURIComponent("That sign-in was refused."));
+  }
+  const { token } = (await res.json()) as { token: string };
+
+  const jar = await cookies();
+  jar.set(SESSION, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
+  redirect("/");
+}
+
 async function signInWithToken(formData: FormData) {
   "use server";
   // Copying a token off a screen picks things up: a trailing newline, a
@@ -75,6 +124,7 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const settings = oidcSettings();
+  const users = settings ? [] : await devUsers();
   const { error } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-[12px] border border-line bg-primary-50 p-3 text-sm text-ink">
@@ -102,9 +152,44 @@ export default async function SignInPage({
 
   return (
     <div className="mx-auto max-w-lg py-16">
-      <Card title="Sign in" subtitle="Development sign-in. Paste an API token to continue.">
+      <Card
+        title="Sign in"
+        subtitle={
+          users.length > 0
+            ? "Development sign-in. Choose who to continue as."
+            : "Development sign-in. Paste an API token to continue."
+        }
+      >
         {notice}
-        <form action={signInWithToken} className="space-y-3">
+
+        {/* Names, not tokens. Copying a 296-character string between a terminal
+            and two applications is a step people get wrong, and it taught this
+            project nothing. The gateway still verifies every token it is given;
+            this only changes how one is obtained. */}
+        {users.length > 0 ? (
+          <div className="space-y-2">
+            {users.map((u) => (
+              <form key={u.id} action={signInAs}>
+                <input type="hidden" name="email" value={u.email} />
+                <button
+                  type="submit"
+                  className="w-full rounded-[12px] border border-line px-4 py-3 text-left hover:bg-primary-50"
+                >
+                  <span className="block font-medium text-ink">{u.full_name}</span>
+                  <span className="block text-sm text-ink-muted">
+                    {u.roles.map((r) => r.replace(/_/g, " ")).join(", ") || "No role"}
+                  </span>
+                </button>
+              </form>
+            ))}
+          </div>
+        ) : null}
+
+        <details className={users.length > 0 ? "mt-6" : ""}>
+          <summary className="cursor-pointer text-sm text-ink-muted">
+            {users.length > 0 ? "Or paste an API token" : "API token"}
+          </summary>
+          <form action={signInWithToken} className="mt-3 space-y-3">
           <label className="block text-sm">
             <span className="text-ink-muted">API token</span>
             <textarea
@@ -114,8 +199,9 @@ export default async function SignInPage({
               className="mt-1 w-full rounded-[12px] border border-line px-3 py-2 font-mono text-xs"
             />
           </label>
-          <Button>Continue</Button>
-        </form>
+            <Button>Continue</Button>
+          </form>
+        </details>
 
         <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
           No identity provider is configured, so this page stands in for one. It verifies

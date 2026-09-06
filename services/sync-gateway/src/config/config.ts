@@ -52,6 +52,15 @@ export interface AppConfig {
   evidenceStore: "local" | "s3";
   evidenceS3: S3Config | null;
   oidc: OidcConfig | null;
+  /**
+   * Whether anyone may mint a token for a seeded user by naming them.
+   *
+   * Off unless asked for, and refused outright when an identity provider is
+   * configured. The shared-secret fallback at least requires the secret; this
+   * requires nothing, so it must never be something a deployment acquires by
+   * forgetting to set a variable.
+   */
+  devSignIn: boolean;
   /** Base URL a certificate QR code points at. */
   publicVerifyBaseUrl: string;
   /** Lookups allowed per source address per minute on the public surface. */
@@ -82,6 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     publicVerifyUsesOwnRole: Boolean(publicVerifyDatabaseUrl),
     authJwtSecret: authJwtSecret ?? "",
     oidc,
+    devSignIn: loadDevSignIn(env, oidc !== null),
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
     evidenceStoreDir: env.EVIDENCE_STORE_DIR ?? "./evidence-store",
@@ -106,6 +116,16 @@ function loadOidc(env: NodeJS.ProcessEnv): OidcConfig | null {
     rolesClaim: env.OIDC_ROLES_CLAIM ?? "agroassure/roles",
     jurisdictionClaim: env.OIDC_JURISDICTION_CLAIM ?? "agroassure/jurisdiction_id",
   };
+}
+
+function loadDevSignIn(env: NodeJS.ProcessEnv, hasProvider: boolean): boolean {
+  const asked = env.DEV_SIGNIN === "true";
+  if (asked && hasProvider) {
+    throw new Error(
+      "DEV_SIGNIN cannot be enabled alongside OIDC_ISSUER: it would be a way past the identity provider",
+    );
+  }
+  return asked;
 }
 
 function loadS3(env: NodeJS.ProcessEnv): S3Config {

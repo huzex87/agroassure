@@ -13,6 +13,11 @@ export async function enrollDevice(formData: FormData) {
   revalidatePath("/admin");
 }
 
+export async function approveDevice(deviceId: string) {
+  await post(`/v1/devices/${deviceId}/approve`, {});
+  revalidatePath("/admin");
+}
+
 export async function revokeDevice(deviceId: string, formData: FormData) {
   await post(`/v1/devices/${deviceId}/revoke`, {
     reason: String(formData.get("reason") ?? ""),

@@ -167,6 +167,77 @@ export class AdminService {
   }
 
   /**
+   * A device asking to be enrolled, for itself.
+   *
+   * The inspector signs in, the handset submits the public half of the key it
+   * generated, and an administrator approves it from the console. That is the
+   * same gate as enrollDevice — nothing can author an event until a person
+   * approves it, because ingest refuses any device that is not active — but it
+   * removes the step where someone carries a public key between two machines by
+   * hand, which is the step that was actually going wrong.
+   *
+   * Requesting is idempotent by key. A handset that asks twice, or reinstalls
+   * and asks again with the key still in its keystore, gets the same device
+   * back rather than a second row or a conflict.
+   */
+  async requestEnrolment(
+    principal: Principal,
+    input: { publicKeyBase64: string; label?: string },
+  ): Promise<{ deviceId: string; status: string }> {
+    const publicKey = this.parsePublicKey(input.publicKeyBase64);
+
+    const existing = await this.pg.query<{ id: string; status: string; assigned_user_id: string }>(
+      `SELECT id, status, assigned_user_id FROM device WHERE public_key = $1`,
+      [Buffer.from(publicKey)],
+    );
+    if (existing.length > 0) {
+      const device = existing[0]!;
+      // Someone else's key. Handing it back would tell this caller a device id
+      // they have no claim to, and re-pointing it at them would let anyone
+      // capture an enrolled handset by guessing its key.
+      if (device.assigned_user_id !== principal.userId) {
+        throw new ConflictException("this key is already enrolled to another user");
+      }
+      return { deviceId: device.id, status: device.status };
+    }
+
+    const [user] = await this.pg.query<{ jurisdiction_id: string | null }>(
+      `SELECT jurisdiction_id FROM app_user WHERE id = $1 AND status = 'active'`,
+      [principal.userId],
+    );
+    if (!user) throw new ForbiddenException("your account is not active");
+
+    const rows = await this.pg.query<{ id: string }>(
+      `INSERT INTO device (jurisdiction_id, assigned_user_id, public_key, label, status)
+       VALUES ($1,$2,$3,$4,'pending') RETURNING id`,
+      [user.jurisdiction_id, principal.userId, Buffer.from(publicKey), input.label ?? null],
+    );
+    return { deviceId: rows[0]!.id, status: "pending" };
+  }
+
+  /** Approve a device that asked to be enrolled. */
+  async approveDevice(principal: Principal, deviceId: string): Promise<void> {
+    const rows = await this.pg.query<{ id: string }>(
+      `UPDATE device SET status = 'active', enrolled_at = now()
+        WHERE id = $1 AND status = 'pending'
+          AND ($2::uuid IS NULL OR jurisdiction_id = $2)
+       RETURNING id`,
+      [deviceId, jurisdictionFilter(principal)],
+    );
+    if (rows.length === 0) throw new NotFoundException("device awaiting approval");
+  }
+
+  /** What this device is allowed to do, as the device itself sees it. */
+  async deviceStatus(principal: Principal, publicKeyBase64: string) {
+    const publicKey = this.parsePublicKey(publicKeyBase64);
+    const [device] = await this.pg.query<{ id: string; status: string }>(
+      `SELECT id, status FROM device WHERE public_key = $1 AND assigned_user_id = $2`,
+      [Buffer.from(publicKey), principal.userId],
+    );
+    return device ? { deviceId: device.id, status: device.status } : { deviceId: null, status: "none" };
+  }
+
+  /**
    * Revoke a lost or stolen device. Events it already authored stay valid and
    * stay attributed — they were signed by a key the regulator trusted at the
    * time, and rewriting that would be exactly the tampering the chain prevents.

@@ -37,6 +37,74 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/** A request that carries no session yet, because it is how you get one. */
+async function callAnonymous<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as T;
+}
+
+export interface SignInUser {
+  id: string;
+  full_name: string;
+  email: string;
+  roles: string[];
+}
+
+/**
+ * Who this deployment will sign you in as.
+ *
+ * A stand-in for the institution's provider, and only available when the
+ * gateway was started with development sign-in enabled. Where it is not, this
+ * throws and the screen falls back to asking for a token.
+ */
+export async function fetchSignInUsers(): Promise<SignInUser[]> {
+  return callAnonymous<SignInUser[]>("/v1/auth/dev-users");
+}
+
+export async function signInAs(email: string): Promise<{ token: string; userId: string }> {
+  const body = await callAnonymous<{ token: string; userId: string }>("/v1/auth/dev-signin", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  await setToken(body.token);
+  return body;
+}
+
+export interface DeviceState {
+  deviceId: string | null;
+  status: "none" | "pending" | "active" | "revoked" | string;
+}
+
+/**
+ * Ask to be enrolled, submitting the public half of the key this device
+ * generated. Grants nothing on its own: the gateway refuses events from any
+ * device that is not active, so this only puts the handset in front of an
+ * administrator.
+ */
+export async function requestEnrolment(
+  publicKeyBase64: string,
+  label?: string,
+): Promise<DeviceState> {
+  return call<DeviceState>("/v1/devices/enrolment-request", {
+    method: "POST",
+    body: JSON.stringify({ publicKeyBase64, label }),
+  });
+}
+
+export async function fetchDeviceState(publicKeyBase64: string): Promise<DeviceState> {
+  return call<DeviceState>("/v1/devices/status", {
+    method: "POST",
+    body: JSON.stringify({ publicKeyBase64 }),
+  });
+}
+
 export async function fetchBootstrap(): Promise<BootstrapBundle> {
   return call<BootstrapBundle>("/v1/sync/bootstrap", { method: "POST" });
 }

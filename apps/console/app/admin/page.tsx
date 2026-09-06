@@ -1,7 +1,7 @@
 import { get, type DeviceRow, type UserRow } from "../../lib/api";
 import { Badge, Button, Card, Cell, Empty, Row, Table } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
-import { enrollDevice, revokeDevice } from "./actions";
+import { approveDevice, enrollDevice, revokeDevice } from "./actions";
 
 // Users, roles, and devices. Enrolling a device is what makes field attribution
 // cryptographic rather than clerical: from that point the server can prove which
@@ -136,6 +136,8 @@ export default async function AdminPage() {
                 <Cell>
                   {d.status === "active" ? (
                     <Badge tone="primary">Active</Badge>
+                  ) : d.status === "pending" ? (
+                    <Badge tone="warn">Awaiting approval</Badge>
                   ) : (
                     <div>
                       <Badge tone="quiet">Revoked</Badge>
@@ -146,6 +148,14 @@ export default async function AdminPage() {
                   )}
                 </Cell>
                 <Cell>
+                  {/* A device that asked to be enrolled. Approving it is the
+                      moment its events become admissible, so it is a deliberate
+                      act by a named administrator and not a default. */}
+                  {d.status === "pending" && (
+                    <form action={approveDevice.bind(null, d.id)}>
+                      <Button>Approve</Button>
+                    </form>
+                  )}
                   {d.status === "active" && (
                     <form action={revokeDevice.bind(null, d.id)} className="space-y-2">
                       <input

@@ -201,6 +201,34 @@ describe("configuration", () => {
     expect(loaded.authJwtSecret).toBe("");
   });
 
+  it("leaves development sign-in off unless it is asked for", () => {
+    // An endpoint that mints a token for anyone who names a user must never be
+    // something a deployment acquires by forgetting to set a variable.
+    expect(
+      loadConfig({ DATABASE_URL: "postgres://x", AUTH_JWT_SECRET: "s" }).devSignIn,
+    ).toBe(false);
+    expect(
+      loadConfig({ DATABASE_URL: "postgres://x", AUTH_JWT_SECRET: "s", DEV_SIGNIN: "1" }).devSignIn,
+    ).toBe(false);
+    expect(
+      loadConfig({ DATABASE_URL: "postgres://x", AUTH_JWT_SECRET: "s", DEV_SIGNIN: "true" })
+        .devSignIn,
+    ).toBe(true);
+  });
+
+  it("refuses to start with development sign-in alongside a real provider", () => {
+    // The two together are a way straight past the identity provider, so this
+    // fails at boot rather than serving one request in that state.
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: "postgres://x",
+        OIDC_ISSUER: "https://id.example",
+        OIDC_AUDIENCE: "agroassure-api",
+        DEV_SIGNIN: "true",
+      }),
+    ).toThrow(/DEV_SIGNIN cannot be enabled alongside OIDC_ISSUER/);
+  });
+
   it("requires a bucket before it will claim to store evidence in one", () => {
     expect(() =>
       loadConfig({ DATABASE_URL: "postgres://x", AUTH_JWT_SECRET: "s", EVIDENCE_STORE: "s3" }),

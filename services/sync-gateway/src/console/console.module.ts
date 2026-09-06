@@ -1,3 +1,4 @@
+import { DevAuthController } from "./dev-auth.controller";
 import { Module } from "@nestjs/common";
 import {
   CertificatesController,
@@ -23,6 +24,7 @@ import { AuditService } from "./audit.service";
 
 @Module({
   controllers: [
+    DevAuthController,
     FacilitiesController,
     InstrumentsController,
     InspectionsController,
