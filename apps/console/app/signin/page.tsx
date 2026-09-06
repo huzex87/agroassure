@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Button, Card } from "../../components/ui";
 import { authorizeUrl, challengeFor, newState, newVerifier, oidcSettings } from "../../lib/oidc";
+import { isWellFormedToken } from "../../lib/api";
 
 // Sign-in, in whichever of the two modes the deployment is configured for.
 //
@@ -45,8 +46,17 @@ async function startOidc() {
 
 async function signInWithToken(formData: FormData) {
   "use server";
-  const token = String(formData.get("token") ?? "").trim();
+  // Copying a token off a screen picks things up: a trailing newline, a
+  // zero-width space, a bullet where a wrap used to be. Strip what is safe to
+  // strip, then refuse what is left if it is not a token, rather than storing it
+  // and failing on the next request with a message about ByteStrings.
+  const token = String(formData.get("token") ?? "").replace(/\s+/g, "");
   if (!token) return;
+  if (!isWellFormedToken(token)) {
+    redirect("/signin?error=" + encodeURIComponent(
+      "That does not look like a token. It should be three dot-separated parts and nothing else — check for a stray character picked up while copying.",
+    ));
+  }
 
   const jar = await cookies();
   jar.set(SESSION, token, {

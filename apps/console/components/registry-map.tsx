@@ -103,22 +103,27 @@ export function RegistryMap({ facilities }: { facilities: FacilityRow[] }) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full rounded-[12px] border border-line bg-canvas"
         role="img"
-        aria-label={`Relative positions of ${plotted.length} facilities. The table below carries the same information.`}
+        aria-label={`Relative positions of ${plotted.length} ${
+          plotted.length === 1 ? "facility" : "facilities"
+        }. The table below carries the same information.`}
       >
         {markers.map((f) => {
           const { x, y } = f;
           const { fill, radius, ring } = marker(f.certificate_status);
           return (
-            <g key={f.id}>
+            // The name goes on the group as an accessible label rather than in
+            // an SVG <title>: React 19 treats <title> as document metadata and
+            // hoists it to the head, which left the element empty on the server,
+            // filled on the client, and hydration broken in between.
+            <g
+              key={f.id}
+              role="img"
+              aria-label={`${f.name} — ${label(CERTIFICATE_STATUS_LABEL, f.certificate_status)}${f.lga ? ` — ${f.lga}` : ""}`}
+            >
               {ring && (
                 <circle cx={x} cy={y} r={radius + 4} fill="none" stroke={fill} strokeWidth={1.5} />
               )}
-              <circle cx={x} cy={y} r={radius} fill={fill}>
-                <title>
-                  {f.name} — {label(CERTIFICATE_STATUS_LABEL, f.certificate_status)}
-                  {f.lga ? ` — ${f.lga}` : ""}
-                </title>
-              </circle>
+              <circle cx={x} cy={y} r={radius} fill={fill} />
             </g>
           );
         })}

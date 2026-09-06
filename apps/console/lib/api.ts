@@ -18,7 +18,25 @@ const API_BASE = process.env.AGROASSURE_API_URL ?? "http://localhost:3001";
  */
 export async function sessionToken(): Promise<string | null> {
   const jar = await cookies();
-  return jar.get("agroassure_session")?.value ?? null;
+  const raw = jar.get("agroassure_session")?.value;
+  return raw && isWellFormedToken(raw) ? raw : null;
+}
+
+/**
+ * Three base64url segments and nothing else.
+ *
+ * A token is about to become an HTTP header value, and headers are Latin-1: a
+ * single smart quote or bullet picked up while copying one throws
+ * "Cannot convert argument to a ByteString" from inside fetch, several layers
+ * below anything that could explain it. Checking the shape here turns that into
+ * a sign-in the console can talk about.
+ *
+ * This is not authentication. The gateway verifies the signature, the issuer and
+ * the audience on every request and is the only thing that decides whether a
+ * token is real.
+ */
+export function isWellFormedToken(token: string): boolean {
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token);
 }
 
 export class ApiError extends Error {
