@@ -75,7 +75,9 @@ const STRINGS = {
     en: "The representative has not signed yet.",
     ha: "Wakilin bai sanya hannu ba tukuna.",
   },
-  priorFindings: { en: "Open findings here", ha: "Abubuwan da ba a gyara ba" },
+  priorFinding: { en: "open finding here", ha: "abin da ba a gyara ba" },
+  priorFindings: { en: "open findings here", ha: "abubuwan da ba a gyara ba" },
+  device: { en: "Device", ha: "Na'ura" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

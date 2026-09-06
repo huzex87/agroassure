@@ -10,6 +10,12 @@ module.exports = {
   // asyncUtilTimeout often enough to fail the first test of a file and pass
   // every later one — which reads like a defect and is not one.
   maxWorkers: 1,
+  // Jest's own per-test deadline, which is the one that was actually firing:
+  // "Exceeded timeout of 5000 ms for a test". A cold React Native render over a
+  // real SQLite engine can pass five seconds on a machine that is also running
+  // Metro, a gateway and a database — which is precisely the machine these are
+  // run on. Raising the testing library's asyncUtilTimeout did not touch this.
+  testTimeout: 30_000,
   setupFilesAfterEnv: ["<rootDir>/test/setup.js"],
   testMatch: ["<rootDir>/test/**/*.test.tsx"],
   // The stock pattern assumes a flat node_modules. pnpm stores every package

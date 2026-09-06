@@ -163,14 +163,27 @@ export default function Today() {
       ) : null}
 
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={styles.h1}>{t("todaysVisits")}</Text>
-        <Pressable
-          onPress={() => setLanguage(language === "en" ? "ha" : "en")}
-          style={styles.pill}
-          accessibilityRole="button"
-        >
-          <Text style={styles.pillText}>{t("language")}</Text>
-        </Pressable>
+        <Text style={[styles.h1, { flexShrink: 1 }]}>{t("todaysVisits")}</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {/* Always reachable. Enrolment is not a one-time wizard: a device gets
+              reassigned, a key gets revoked, an id gets typed wrong, and every
+              one of those needs this screen from a device that already has an
+              id stored. */}
+          <Pressable
+            onPress={() => router.push("/enrol")}
+            style={styles.pill}
+            accessibilityRole="button"
+          >
+            <Text style={styles.pillText}>{t("device")}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setLanguage(language === "en" ? "ha" : "en")}
+            style={styles.pill}
+            accessibilityRole="button"
+          >
+            <Text style={styles.pillText}>{t("language")}</Text>
+          </Pressable>
+        </View>
       </View>
 
       {rows.length === 0 ? (
@@ -213,7 +226,7 @@ export default function Today() {
 
           {row.priorOpen > 0 ? (
             <Text style={[styles.muted, { color: colors.warn }]}>
-              {row.priorOpen} {t("priorFindings")}
+              {row.priorOpen} {t(row.priorOpen === 1 ? "priorFinding" : "priorFindings")}
             </Text>
           ) : null}
 
