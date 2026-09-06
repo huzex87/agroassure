@@ -26,7 +26,7 @@ type Row = AssignedFacility & {
 export default function Today() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, setLanguage, facilityType, ratingBand } = useLanguage();
   const [rows, setRows] = useState<Row[]>([]);
   const [queued, setQueued] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -209,10 +209,16 @@ export default function Today() {
       ) : null}
 
       {rows.map((row) => (
-        <Pressable key={row.id} style={styles.card} onPress={() => open(row)}>
+        <Pressable
+          key={row.id}
+          style={[styles.card, row.submitted ? styles.cardAnswered : null]}
+          onPress={() => open(row)}
+          disabled={Boolean(row.submitted)}
+          accessibilityRole="button"
+        >
           <Text style={styles.h2}>{row.name}</Text>
           <Text style={styles.muted}>
-            {row.licenceNumber} · {row.facilityType.replace(/_/g, " ")}
+            {row.licenceNumber} · {facilityType(row.facilityType)}
             {row.lga ? ` · ${row.lga}` : ""}
           </Text>
 
@@ -231,13 +237,23 @@ export default function Today() {
           ) : null}
 
           <View style={styles.divider} />
-          <Text style={[styles.body, { color: colors.primaryDark, fontWeight: "600" }]}>
-            {row.submitted
-              ? `${t("signOff")} · ${row.submitted.ratingBand ?? ""}`
-              : row.open
-                ? `${t("continueInspection")} · ${row.open.reference}`
-                : t("startInspection")}
-          </Text>
+
+          {/* The action was a line of blue text, which reads as a caption
+              rather than as the thing to tap. A chevron and a settled state
+              that stops pretending to be tappable are the whole difference. */}
+          {row.submitted ? (
+            <Text style={styles.muted}>
+              {t("submitted")}
+              {row.submitted.ratingBand ? ` · ${ratingBand(row.submitted.ratingBand)}` : ""}
+            </Text>
+          ) : (
+            <View style={styles.actionRow}>
+              <Text style={styles.actionText}>
+                {row.open ? `${t("continueInspection")} · ${row.open.reference}` : t("startInspection")}
+              </Text>
+              <Text style={styles.actionChevron}>›</Text>
+            </View>
+          )}
         </Pressable>
       ))}
     </ScrollView>

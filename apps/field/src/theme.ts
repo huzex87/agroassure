@@ -127,4 +127,10 @@ export const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.4 },
 
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 4 },
+
+  // The card's action. Left-aligned words with a chevron on the right, which
+  // is what a phone user reads as "this row goes somewhere".
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  actionText: { fontSize: 15, fontWeight: "600", color: colors.primaryDark, flexShrink: 1 },
+  actionChevron: { fontSize: 22, lineHeight: 24, color: colors.primaryDark },
 });
