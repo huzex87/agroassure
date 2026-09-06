@@ -28,7 +28,7 @@ import { colors, styles } from "../src/theme";
 // any device that is not active — so nothing was traded away for the
 // convenience. What went away is a person carrying a key between two machines.
 
-type Step = "loading" | "signIn" | "pending" | "active" | "error";
+type Step = "loading" | "signIn" | "pending" | "active";
 
 export default function Enrol() {
   const router = useRouter();
@@ -58,10 +58,16 @@ export default function Enrol() {
       return;
     }
 
+    // "none" means the server has never seen this key. Treating that as
+    // "pending" put the screen into a wait for an approval nobody had been
+    // asked for — a handset that had signed in once could sit on "waiting for
+    // approval" forever, which is the failure this rework existed to remove.
+    // If there is no request, make one.
     const state = await fetchDeviceState(key);
-    setDevice(state);
-    if (state.status === "active") {
-      await setDeviceId(state.deviceId!);
+    const settled = state.status === "none" ? await requestEnrolment(key) : state;
+    setDevice(settled);
+    if (settled.status === "active") {
+      await setDeviceId(settled.deviceId!);
       resetSession();
       setStep("active");
     } else {
@@ -70,9 +76,16 @@ export default function Enrol() {
   }, []);
 
   useEffect(() => {
-    refresh().catch((e) => {
+    refresh().catch(async (e) => {
+      // A stored identity the server will not honour is not an error to stare
+      // at, it is a sign-in that has run out. Offer the names again rather than
+      // leaving the inspector on a message with no control on it.
       setError(e instanceof Error ? e.message : String(e));
-      setStep("error");
+      await setInspectorId("");
+      resetSession();
+      setMe(null);
+      setUsers(await fetchSignInUsers().catch(() => [] as SignInUser[]));
+      setStep("signIn");
     });
   }, [refresh]);
 
