@@ -17,7 +17,15 @@ module.exports = {
   // run on. Raising the testing library's asyncUtilTimeout did not touch this.
   testTimeout: 30_000,
   setupFilesAfterEnv: ["<rootDir>/test/setup.js"],
-  testMatch: ["<rootDir>/test/**/*.test.tsx"],
+  // Deliberately relative, not "<rootDir>/test/...". Jest already scans rootDir
+  // and nothing else, so anchoring buys nothing — but it interpolates an
+  // absolute path into a glob, and micromatch reads a backslash as an escape.
+  // Checked out anywhere with a dot directory in its path — a git worktree
+  // under .claude/ is how this showed up — "agroassure\.claude" collapsed to
+  // "agroassure.claude", which matches nothing, and the suite reported zero
+  // tests found rather than failing. A green run over no tests is the worst
+  // way to be wrong.
+  testMatch: ["**/test/**/*.test.tsx"],
   // The stock pattern assumes a flat node_modules. pnpm stores every package
   // under .pnpm/<name>@<version>/, so the preset's allowlist never matches and
   // React Native's own Flow-typed sources go untransformed. This transforms
