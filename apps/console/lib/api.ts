@@ -48,6 +48,42 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * A sentence, out of an error body.
+ *
+ * The gateway's envelope nests its message inside another message object, so
+ * putting the raw body on an Error meant every refused request reached the
+ * screen as {"error":true,"status":403,"message":{"message":"requires one of:
+ * ..."}}. An inspector who opened the dashboard — which their role genuinely
+ * does not permit — was shown that, which explains nothing and looks like a
+ * fault rather than a rule.
+ *
+ * A 403 is the common case and is not a failure at all: it is the platform
+ * working. It gets said as such.
+ */
+export function readableError(body: string, response: Response): string {
+  let detail = "";
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown };
+    const inner =
+      typeof parsed.message === "object" && parsed.message !== null
+        ? (parsed.message as { message?: unknown }).message
+        : parsed.message;
+    detail = Array.isArray(inner) ? inner.join("; ") : typeof inner === "string" ? inner : "";
+  } catch {
+    // Not JSON. Whatever came back is better than nothing, within reason.
+    detail = body.slice(0, 300);
+  }
+
+  if (response.status === 403) {
+    const roles = detail.replace(/^requires one of:\s*/, "").replace(/_/g, " ");
+    return roles && roles !== detail
+      ? `Your role does not have access to this page. It is available to: ${roles}.`
+      : "Your role does not have access to this page.";
+  }
+  return detail || response.statusText || `Request failed with status ${response.status}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await sessionToken();
   if (!token) redirect("/signin");
@@ -66,8 +102,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (response.status === 401) redirect("/signin");
   if (!response.ok) {
-    const body = await response.text();
-    throw new ApiError(response.status, body || response.statusText);
+    throw new ApiError(response.status, readableError(await response.text(), response));
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
