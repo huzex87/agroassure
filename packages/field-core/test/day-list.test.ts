@@ -47,4 +47,24 @@ describe("today's list", () => {
     // A fresh FieldStore over the same database is what a relaunch looks like.
     expect(store.openInspectionFor(FACILITY_ID)).toEqual({ id: inspectionId, reference });
   });
+
+  // A routine visit and a risk-targeted one can be scheduled against the same
+  // site, which reaches the device as two assignments and one facility. That
+  // used to crash sync on a UNIQUE constraint — the inspector's whole day
+  // failing to load because a supervisor scheduled two visits.
+  it("survives the same facility arriving on two assignments", () => {
+    const bundle = bootstrapBundle();
+    const [only] = bundle.facilities;
+    bundle.facilities = [
+      { ...only!, assignmentKind: "routine", assignmentReason: "Routine cycle." },
+      { ...only!, assignmentKind: "risk_targeted", assignmentReason: "Certificate expires soon." },
+    ];
+
+    expect(() => applyBootstrap(store, bundle)).not.toThrow();
+
+    const facilities = store.facilities();
+    expect(facilities).toHaveLength(1);
+    // The later assignment wins, and brings its reason with it.
+    expect(facilities[0]!.assignmentReason).toBe("Certificate expires soon.");
+  });
 });

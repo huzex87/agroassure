@@ -28,6 +28,17 @@ export interface AppendRequest {
   eventType: string;
   payload: unknown;
   actorUserId: string | null;
+  /**
+   * When the server recorded this, if not now.
+   *
+   * Only the demo seeder passes it, to write a programme with a year behind it
+   * rather than one that all happened this afternoon. It is set at insert, not
+   * corrected afterwards — event_store carries a trigger that refuses UPDATE
+   * and DELETE, and that trigger is the point of the table. Nothing here weakens
+   * it: an event still cannot be changed once written, and this only decides
+   * what the row says on the way in.
+   */
+  recordedAt?: string;
 }
 
 @Injectable()
@@ -92,8 +103,10 @@ export class EventAppender {
     await client.query(
       `INSERT INTO event_store
          (event_id, aggregate_type, aggregate_id, seq, event_type, payload,
-          actor_user_id, device_id, hlc, prev_hash, event_hash, device_sig)
-       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,NULL,$8,NULL,$9,NULL)`,
+          actor_user_id, device_id, hlc, prev_hash, event_hash, device_sig,
+          recorded_at)
+       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,NULL,$8,NULL,$9,NULL,
+               coalesce($10::timestamptz, now()))`,
       [
         eventId,
         req.aggregateType,
@@ -104,6 +117,7 @@ export class EventAppender {
         req.actorUserId,
         sent.stamp,
         Buffer.from(hexToBytes(eventHash)),
+        req.recordedAt ?? null,
       ],
     );
 

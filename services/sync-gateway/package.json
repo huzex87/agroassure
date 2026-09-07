@@ -13,6 +13,7 @@
     "worker:escalate": "node dist/cli/escalate.js",
     "token:mint": "node dist/cli/mint-token.js",
     "projections:rebuild": "node dist/cli/rebuild-projections.js",
+    "seed:demo": "node dist/cli/seed-demo.js",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {

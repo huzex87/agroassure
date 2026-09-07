@@ -383,8 +383,36 @@ export class ProjectorService {
         p.inspector.signedAt,
         p.facilityRep.signedAt,
         p.facilityRep.name,
-        e.recorded_at,
+        // When the inspection was submitted, which is when it was signed on
+        // site — not when the handset next found a signal. An inspection
+        // carried out on Monday in a warehouse with no coverage and synced on
+        // Friday is a Monday inspection, and dating it Friday would push it out
+        // of the coverage window and start the decision clock four days late.
+        // The device signed this time; recorded_at is only when it arrived.
+        p.inspector.signedAt ?? e.recorded_at,
       ],
+    );
+
+    // A finding is raised while the inspector is standing in the warehouse, not
+    // when the handset next finds a signal. It defaults to now() on insert
+    // because FindingRaised is projected before this event, and the visit's own
+    // time is only known here. An inspection carried out in March and synced in
+    // May otherwise reports its findings as raised in May, which moves them in
+    // every month-by-month figure and starts the corrective-action clock weeks
+    // late. The due date is re-derived from the same moment.
+    await client.query(
+      // The SLA gap the severity earned is preserved rather than recomputed:
+      // the right-hand side sees the pre-update row, so the difference between
+      // the old due date and the old creation date is the interval the finding
+      // was actually given.
+      `UPDATE finding
+          SET created_at = i.submitted_at,
+              due_date = i.submitted_at::date + (finding.due_date - finding.created_at::date)
+         FROM inspection i
+        WHERE i.id = finding.inspection_id
+          AND i.id = $1
+          AND finding.created_at > i.submitted_at`,
+      [e.aggregate_id],
     );
 
     await client.query(

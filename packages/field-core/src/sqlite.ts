@@ -179,8 +179,13 @@ export class FieldStore {
   replaceAssignedFacilities(facilities: AssignedFacility[]): void {
     this.db.run("DELETE FROM assigned_facility");
     for (const f of facilities) {
+      // Upsert, because a facility can legitimately reach a device twice: a
+      // routine visit and a risk-targeted one scheduled against the same site
+      // arrive as two assignments and one facility. A plain insert made that
+      // crash the handset on sync with a constraint error, which is a rough way
+      // to find out. The later row wins, and the reason it carries with it.
       this.db.run(
-        `INSERT INTO assigned_facility
+        `INSERT OR REPLACE INTO assigned_facility
            (id, licence_number, facility_type, name, lga, reg_lat, reg_lng, reg_accuracy_m,
             assignment_reason, assignment_kind, due_by)
          VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
