@@ -23,7 +23,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const message =
       exception instanceof HttpException
-        ? exception.getResponse()
+        ? flatten(exception.getResponse())
         : "internal error";
 
     if (status >= 500) {
@@ -36,4 +36,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message,
     });
   }
+}
+
+// Nest's exception response is either a string or an object whose `message` is
+// a string or an array of them. A client should get one sentence either way,
+// not our framework's envelope nested inside our own.
+function flatten(response: string | object): string {
+  if (typeof response === "string") return response;
+  const message = (response as { message?: unknown }).message;
+  if (typeof message === "string") return message;
+  if (Array.isArray(message)) return message.join(", ");
+  return "request failed";
 }

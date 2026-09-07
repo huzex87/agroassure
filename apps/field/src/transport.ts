@@ -17,37 +17,44 @@ export async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN);
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getToken();
-  if (!token) throw new Error("This device is not signed in.");
-
+async function request<T>(
+  path: string,
+  headers: Record<string, string>,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-      ...(init?.headers ?? {}),
-    },
+    headers: { "content-type": "application/json", ...headers, ...(init?.headers ?? {}) },
   });
 
   if (!response.ok) {
+    // The gateway sends a sentence in `message`; anything else reaching an
+    // inspector's error card would be a wall of JSON.
     const detail = await response.text();
-    throw new Error(detail || `${response.status} ${response.statusText}`);
+    let message: unknown;
+    try {
+      message = JSON.parse(detail)?.message;
+    } catch {
+      message = undefined;
+    }
+    throw new Error(
+      typeof message === "string" && message
+        ? message
+        : `${response.status} ${response.statusText}`.trim(),
+    );
   }
   return (await response.json()) as T;
 }
 
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getToken();
+  if (!token) throw new Error("This device is not signed in.");
+  return request<T>(path, { authorization: `Bearer ${token}` }, init);
+}
+
 /** A request that carries no session yet, because it is how you get one. */
 async function callAnonymous<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-  });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `${response.status} ${response.statusText}`);
-  }
-  return (await response.json()) as T;
+  return request<T>(path, {}, init);
 }
 
 export interface SignInUser {
