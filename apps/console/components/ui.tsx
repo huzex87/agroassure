@@ -132,28 +132,69 @@ export function Stat({
 }) {
   const body = (
     <>
-      <p className="text-[0.8125rem] font-medium text-ink-muted">{label}</p>
-      <p className={`stat-value mt-2 text-[1.75rem] font-semibold leading-none ${TONE_TEXT[tone]}`}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[0.8125rem] font-medium text-ink-muted">{label}</p>
+        {href && (
+          // A quiet mark that this tile goes somewhere, which sharpens on hover
+          // rather than shouting for attention while you are reading the number.
+          <span
+            aria-hidden
+            className="mt-0.5 shrink-0 text-line-firm transition-colors group-hover:text-primary"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5.5 10.5 10.5 5.5M6.5 5.5h4v4" />
+            </svg>
+          </span>
+        )}
+      </div>
+      <p className={`stat-value mt-2.5 text-[2rem] font-semibold leading-none tracking-tight ${TONE_TEXT[tone]}`}>
         {value}
       </p>
-      {hint && <p className="mt-2 text-xs leading-relaxed text-ink-muted">{hint}</p>}
+      {hint && <p className="mt-2.5 text-xs leading-relaxed text-ink-muted">{hint}</p>}
     </>
   );
 
+  // A hairline of the tone along the top edge. It is the cheapest way to make a
+  // row of tiles scannable without turning the whole card into a colour: the
+  // eye finds the one that needs attention before it has read a single label.
+  const rule =
+    tone === "neutral"
+      ? null
+      : (
+          <span
+            aria-hidden
+            className={`absolute inset-x-0 top-0 h-[3px] rounded-t-card ${
+              tone === "good"
+                ? "bg-good"
+                : tone === "caution"
+                  ? "bg-caution"
+                  : tone === "critical"
+                    ? "bg-critical"
+                    : "bg-primary"
+            }`}
+          />
+        );
+
   const shell =
-    "card flex flex-col px-4 py-4 transition-shadow" +
-    (href ? " hover:shadow-lifted focus-visible:shadow-lifted" : "");
+    "card group relative flex flex-col overflow-hidden px-4 py-4 transition-shadow" +
+    (href ? " hover:shadow-lifted" : "");
 
   if (href) {
     // Not an <a> wrapping a block for style's sake: these tiles genuinely lead
     // somewhere, and a supervisor should not have to hunt for the small link.
     return (
       <a href={href} className={shell}>
+        {rule}
         {body}
       </a>
     );
   }
-  return <div className={shell}>{body}</div>;
+  return (
+    <div className={shell}>
+      {rule}
+      {body}
+    </div>
+  );
 }
 
 /* -------------------------------------------------------------------------

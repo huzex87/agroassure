@@ -44,6 +44,15 @@ async function startOidc() {
   redirect(authorizeUrl(settings, state, challengeFor(verifier)));
 }
 
+/** Two letters for the avatar. A single-word name still gets one. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0]![0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1]![0] ?? "") : "";
+  return (first + last).toUpperCase();
+}
+
 interface DevUser {
   id: string;
   full_name: string;
@@ -127,14 +136,14 @@ export default async function SignInPage({
   const users = settings ? [] : await devUsers();
   const { error } = await searchParams;
   const notice = error ? (
-    <p className="mb-4 rounded-[12px] border border-line bg-primary-50 p-3 text-sm text-ink">
+    <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
       {error}
     </p>
   ) : null;
 
   if (settings) {
     return (
-      <div className="mx-auto max-w-lg py-16">
+      <div className="w-full">
         <Card title="Sign in" subtitle="Continue with your institutional account.">
           {notice}
           <form action={startOidc}>
@@ -151,7 +160,7 @@ export default async function SignInPage({
   }
 
   return (
-    <div className="mx-auto max-w-lg py-16">
+    <div className="w-full">
       <Card
         title="Sign in"
         subtitle={
@@ -167,17 +176,35 @@ export default async function SignInPage({
             project nothing. The gateway still verifies every token it is given;
             this only changes how one is obtained. */}
         {users.length > 0 ? (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-1.5">
             {users.map((u) => (
               <form key={u.id} action={signInAs}>
                 <input type="hidden" name="email" value={u.email} />
                 <button
                   type="submit"
-                  className="w-full rounded-[12px] border border-line px-4 py-3 text-left hover:bg-primary-50"
+                  className="group flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-left ring-1 ring-inset ring-line transition-colors hover:bg-primary-50 hover:ring-primary-200"
                 >
-                  <span className="block font-medium text-ink">{u.full_name}</span>
-                  <span className="block text-sm text-ink-muted">
-                    {u.roles.map((r) => r.replace(/_/g, " ")).join(", ") || "No role"}
+                  <span
+                    aria-hidden
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-sunk text-sm font-semibold text-ink-muted ring-1 ring-inset ring-line transition-colors group-hover:bg-primary-100 group-hover:text-primary-700 group-hover:ring-primary-200"
+                  >
+                    {initials(u.full_name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink">
+                      {u.full_name}
+                    </span>
+                    <span className="block truncate text-xs text-ink-muted">
+                      {u.roles.map((r) => r.replace(/_/g, " ")).join(", ") || "No role"}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-ink-faint transition-colors group-hover:text-primary"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m6 3.5 4.5 4.5L6 12.5" />
+                    </svg>
                   </span>
                 </button>
               </form>
@@ -196,7 +223,7 @@ export default async function SignInPage({
               name="token"
               required
               rows={4}
-              className="mt-1 w-full rounded-[12px] border border-line px-3 py-2 font-mono text-xs"
+              className="field mt-1 w-full font-mono text-xs"
             />
           </label>
             <Button>Continue</Button>
