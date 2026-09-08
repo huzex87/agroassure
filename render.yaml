@@ -19,7 +19,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter
-    region: frankfurt          # nearest to a eu-west-1 database; move both together
+    region: ohio            # co-located with the Supabase project and the evidence bucket
     healthCheckPath: /health
     autoDeployTrigger: commit
 
