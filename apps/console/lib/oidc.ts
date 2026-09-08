@@ -55,11 +55,59 @@ export function newState(): string {
   return base64url(randomBytes(16));
 }
 
-export function authorizeUrl(
+/**
+ * Where this provider actually keeps its endpoints.
+ *
+ * These were built by hand as `${issuer}/authorize` and `${issuer}/oauth/token`,
+ * which is Auth0's shape and only Auth0's. Keycloak serves
+ * /protocol/openid-connect/auth, Azure AD serves /oauth2/v2.0/authorize, Okta
+ * serves /v1/authorize — against any of them, sign-in would have failed with a
+ * 404 that reads like a misconfigured issuer rather than a wrong assumption in
+ * this file. Discovery is what the spec provides for exactly this, every
+ * conformant provider serves it, and it means the issuer is the only thing
+ * anyone has to be told.
+ */
+export interface Discovered {
+  authorization_endpoint: string;
+  token_endpoint: string;
+  jwks_uri: string;
+}
+
+// One document per issuer per process. It changes about as often as the
+// provider is replaced, and a fetch on every sign-in would be a second thing
+// that can fail during one.
+const discoveries = new Map<string, Promise<Discovered>>();
+
+export async function discover(issuer: string): Promise<Discovered> {
+  const cached = discoveries.get(issuer);
+  if (cached) return cached;
+
+  const pending = (async () => {
+    const url = `${issuer}/.well-known/openid-configuration`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(
+        `The identity provider did not answer discovery at ${url} (${response.status}). Check OIDC_ISSUER.`,
+      );
+    }
+    const doc = (await response.json()) as Partial<Discovered>;
+    if (!doc.authorization_endpoint || !doc.token_endpoint) {
+      throw new Error(`${url} is missing an authorization or token endpoint.`);
+    }
+    return doc as Discovered;
+  })();
+
+  // A failed lookup must not be cached, or one bad boot poisons the process.
+  pending.catch(() => discoveries.delete(issuer));
+  discoveries.set(issuer, pending);
+  return pending;
+}
+
+export async function authorizeUrl(
   settings: OidcSettings,
   state: string,
   challenge: string,
-): string {
+): Promise<string> {
   const query = new URLSearchParams({
     response_type: "code",
     client_id: settings.clientId,
@@ -75,7 +123,9 @@ export function authorizeUrl(
   const audience = process.env.OIDC_AUDIENCE;
   if (audience) query.set("audience", audience);
 
-  return `${settings.issuer}/authorize?${query}`;
+  const { authorization_endpoint } = await discover(settings.issuer);
+  const separator = authorization_endpoint.includes("?") ? "&" : "?";
+  return `${authorization_endpoint}${separator}${query}`;
 }
 
 export interface TokenResponse {
@@ -93,7 +143,8 @@ export async function exchangeCode(
   code: string,
   verifier: string,
 ): Promise<TokenResponse> {
-  const response = await fetch(`${settings.issuer}/oauth/token`, {
+  const { token_endpoint } = await discover(settings.issuer);
+  const response = await fetch(token_endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({

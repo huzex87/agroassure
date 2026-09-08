@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import jwt, { type JwtHeader, type SigningKeyCallback } from "jsonwebtoken";
 import { JwksClient } from "jwks-rsa";
 import type { Role } from "@agroassure/domain";
@@ -75,21 +81,24 @@ export function principalFromClaims(
 @Injectable()
 export class TokenVerifier {
   private readonly logger = new Logger("Auth");
-  private readonly jwks: JwksClient | null;
+  /**
+   * Resolved from the provider's discovery document, not guessed.
+   *
+   * The key set used to be assumed at `${issuer}/.well-known/jwks.json`, which
+   * is Auth0's shape. Keycloak publishes it under /protocol/openid-connect/certs
+   * and Azure AD under /discovery/v2.0/keys, so against either of those every
+   * token would have been rejected as unverifiable — an authentication failure
+   * that looks like a bad token rather than a wrong URL. The one document the
+   * spec guarantees names it, so that is what is read.
+   *
+   * Built once, lazily, because discovery is a network call and a constructor
+   * is the wrong place to make one: the service should start and be ready to
+   * report itself unhealthy, not fail to boot because the provider was briefly
+   * slow.
+   */
+  private jwks: Promise<JwksClient> | null = null;
 
   constructor(@Inject(CONFIG) private readonly config: AppConfig) {
-    this.jwks = config.oidc
-      ? new JwksClient({
-          jwksUri: `${config.oidc.issuer}/.well-known/jwks.json`,
-          cache: true,
-          cacheMaxAge: 10 * 60 * 1000,
-          // A burst of requests after a key rotation must not become a burst of
-          // requests at the identity provider.
-          rateLimit: true,
-          jwksRequestsPerMinute: 10,
-        })
-      : null;
-
     if (config.oidc) {
       this.logger.log(`verifying tokens against ${config.oidc.issuer} (aud ${config.oidc.audience})`);
     } else {
@@ -117,10 +126,57 @@ export class TokenVerifier {
     }
   }
 
+  /** The provider's own answer to where its keys are. */
+  private keys(): Promise<JwksClient> {
+    if (this.jwks) return this.jwks;
+
+    const oidc = this.config.oidc!;
+    const pending = (async () => {
+      const url = `${oidc.issuer}/.well-known/openid-configuration`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`identity provider did not answer discovery at ${url} (${response.status})`);
+      }
+      const doc = (await response.json()) as { jwks_uri?: string };
+      if (!doc.jwks_uri) throw new Error(`${url} names no jwks_uri`);
+
+      this.logger.log(`key set: ${doc.jwks_uri}`);
+      return new JwksClient({
+        jwksUri: doc.jwks_uri,
+        cache: true,
+        cacheMaxAge: 10 * 60 * 1000,
+        // A burst of requests after a key rotation must not become a burst of
+        // requests at the identity provider.
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+      });
+    })();
+
+    // A failed lookup is not cached: a provider that was briefly unreachable
+    // must not leave this process unable to verify anything until it restarts.
+    pending.catch(() => {
+      this.jwks = null;
+    });
+    this.jwks = pending;
+    return pending;
+  }
+
   private async verifyOidc(token: string): Promise<TokenClaims> {
     const oidc = this.config.oidc!;
+
+    // Reaching the provider is a different failure from being handed a bad
+    // token, and conflating them would report an outage as everyone's
+    // credentials suddenly being wrong. fetch throws a bare TypeError when DNS
+    // or the network fails, so it is caught here rather than escaping as a 500.
+    let client: JwksClient;
+    try {
+      client = await this.keys();
+    } catch (err) {
+      this.logger.error(`cannot reach the identity provider: ${String(err)}`);
+      throw new ServiceUnavailableException("the identity provider could not be reached");
+    }
     const getKey = (header: JwtHeader, callback: SigningKeyCallback): void => {
-      this.jwks!.getSigningKey(header.kid, (err, key) =>
+      client.getSigningKey(header.kid, (err, key) =>
         err ? callback(err) : callback(null, key?.getPublicKey()),
       );
     };

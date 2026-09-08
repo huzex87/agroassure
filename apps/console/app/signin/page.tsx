@@ -41,7 +41,7 @@ async function startOidc() {
   jar.set(VERIFIER, verifier, options);
   jar.set(STATE, state, options);
 
-  redirect(authorizeUrl(settings, state, challengeFor(verifier)));
+  redirect(await authorizeUrl(settings, state, challengeFor(verifier)));
 }
 
 /** Two letters for the avatar. A single-word name still gets one. */

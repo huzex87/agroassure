@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { UnauthorizedException } from "@nestjs/common";
@@ -130,6 +130,21 @@ vi.mock("jwks-rsa", () => ({
 
 describe("with an identity provider configured", () => {
   const verifier = new TokenVerifier(config({ oidc: OIDC }));
+
+  // The key set is found through the provider's discovery document rather than
+  // assumed at a well-known path, so the document is what gets stubbed. The
+  // signing key itself is stubbed below as it always was.
+  beforeEach(() => {
+    vi.stubGlobal("fetch", async (url: string) => {
+      expect(String(url)).toBe(`${OIDC.issuer}/.well-known/openid-configuration`);
+      return {
+        ok: true,
+        json: async () => ({ jwks_uri: `${OIDC.issuer}/protocol/openid-connect/certs` }),
+      } as Response;
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   function providerToken(claims: Record<string, unknown>, options = {}) {
     return jwt.sign(claims, privateKey.export({ type: "pkcs8", format: "pem" }).toString(), {

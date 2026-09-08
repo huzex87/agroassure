@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createHash } from "node:crypto";
 import {
   authorizeUrl,
@@ -61,18 +61,45 @@ describe("PKCE", () => {
 });
 
 describe("the authorize URL", () => {
-  it("asks for a code with S256, never a plain challenge", () => {
-    const url = new URL(authorizeUrl(SETTINGS, "state-1", "challenge-1"));
-    expect(url.origin + url.pathname).toBe("https://id.katsina.gov.ng/authorize");
+  // The endpoints used to be built by hand as `${issuer}/authorize` and
+  // `${issuer}/oauth/token`, which is Auth0's shape and only Auth0's. Against a
+  // Keycloak or an Azure AD, sign-in would have 404'd in a way that reads like a
+  // wrong issuer rather than a wrong assumption. Discovery is stubbed here so
+  // that assumption cannot come back.
+  const DISCOVERY = {
+    authorization_endpoint: "https://id.katsina.gov.ng/protocol/openid-connect/auth",
+    token_endpoint: "https://id.katsina.gov.ng/protocol/openid-connect/token",
+    jwks_uri: "https://id.katsina.gov.ng/protocol/openid-connect/certs",
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", async (url: string) => {
+      expect(String(url)).toBe("https://id.katsina.gov.ng/.well-known/openid-configuration");
+      return { ok: true, json: async () => DISCOVERY } as Response;
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("goes wherever the provider says, not where Auth0 would put it", async () => {
+    const url = new URL(await authorizeUrl(SETTINGS, "state-1", "challenge-1"));
+    expect(url.origin + url.pathname).toBe(DISCOVERY.authorization_endpoint);
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("code_challenge")).toBe("challenge-1");
     expect(url.searchParams.get("state")).toBe("state-1");
   });
 
-  it("never puts the client secret in a URL the browser will follow", () => {
-    const url = authorizeUrl(SETTINGS, "state-1", "challenge-1");
+  it("never puts the client secret in a URL the browser will follow", async () => {
+    const url = await authorizeUrl(SETTINGS, "state-1", "challenge-1");
     expect(url).not.toContain(SETTINGS.clientSecret);
+  });
+
+  it("says which URL it asked when a provider does not answer discovery", async () => {
+    vi.stubGlobal("fetch", async () => ({ ok: false, status: 404 }) as Response);
+    await expect(
+      authorizeUrl({ ...SETTINGS, issuer: "https://wrong.example" }, "s", "c"),
+    ).rejects.toThrow(/wrong\.example\/\.well-known\/openid-configuration/);
   });
 });
 
