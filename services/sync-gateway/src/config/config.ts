@@ -84,7 +84,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const publicVerifyDatabaseUrl = env.PUBLIC_VERIFY_DATABASE_URL;
   const evidenceStore = env.EVIDENCE_STORE === "s3" ? "s3" : "local";
 
-  return {
+  const config: AppConfig = {
     port: Number(env.PORT ?? 3001),
     databaseUrl,
     publicVerifyDatabaseUrl: publicVerifyDatabaseUrl ?? databaseUrl,
@@ -98,6 +98,60 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     publicVerifyBaseUrl: env.PUBLIC_VERIFY_BASE_URL ?? "https://verify.agroassure.ng",
     publicVerifyRatePerMinute: Number(env.PUBLIC_VERIFY_RATE_PER_MINUTE ?? 60),
   };
+
+  assertFitForPilot(env, config);
+  return config;
+}
+
+/**
+ * Refuse to start a pilot in a shape that cannot hold a compliance record.
+ *
+ * Every one of these was a warning at boot, and a warning is what a deployment
+ * scrolls past. Each describes a promise the platform makes on its own screens:
+ * that an exhibit cannot be destroyed, that the public surface can read one view
+ * and nothing else, that a person's role came from the institution's provider.
+ * A pilot that quietly runs without them is making those promises falsely, and
+ * the inspection records it collects are not worth what they claim to be.
+ *
+ * Off by default, because a laptop, a test and a demo all legitimately run
+ * without any of it. APP_ENV=pilot is the deployment saying it is the real
+ * thing, and this is what that costs.
+ */
+function assertFitForPilot(env: NodeJS.ProcessEnv, config: AppConfig): void {
+  if (env.APP_ENV !== "pilot") return;
+
+  const refusals: string[] = [];
+
+  if (config.devSignIn) {
+    refusals.push(
+      "DEV_SIGNIN is on. It verifies no password and asks for no proof, so naming a user is enough to become them.",
+    );
+  }
+  if (!config.oidc) {
+    refusals.push(
+      "no OIDC_ISSUER. Tokens would be signed and verified with a shared secret, which is a development stand-in for an identity provider.",
+    );
+  }
+  if (config.evidenceStore !== "s3") {
+    refusals.push(
+      "EVIDENCE_STORE is not s3. The local store emulates write-once and enforces nothing, so the claim that an exhibit cannot be destroyed would not be true.",
+    );
+  }
+  if (!config.publicVerifyUsesOwnRole) {
+    refusals.push(
+      "no PUBLIC_VERIFY_DATABASE_URL. The public surface would share the application's connection instead of a role granted one view, so a fault there could reach the whole database.",
+    );
+  }
+
+  if (refusals.length > 0) {
+    throw new Error(
+      [
+        "refusing to start with APP_ENV=pilot:",
+        ...refusals.map((r) => `  - ${r}`),
+        "Set APP_ENV to something else to run without these; they are what a pilot's records rest on.",
+      ].join("\n"),
+    );
+  }
 }
 
 function loadOidc(env: NodeJS.ProcessEnv): OidcConfig | null {
