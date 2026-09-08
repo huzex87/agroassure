@@ -1,52 +1,81 @@
-# Render blueprint for the shared preview deployment.
+# The gateway, defined here rather than clicked together in a dashboard.
 #
-# The gateway is a long-running process, not a set of functions: it sweeps the
-# event store into the read models on a timer and escalates overdue findings on
-# another. A serverless host would build this happily and then never run either
-# sweep, so the console would keep rendering stale projections without
-# complaining — which is why this is a container service.
+# Render reads this from the repository root, so the service can be recreated
+# from scratch and a change to how it runs arrives as a reviewed diff instead of
+# a setting somebody remembers changing.
 #
-# Residency: this is a demo. It holds seeded, fictional data and runs in
-# whichever region Render is given below. Real inspector and facility
-# representative data is NDPA-resident in Nigeria, and the platform's own
-# processing record says so, so this deployment must not be pointed at live
-# data without moving it first.
+# Deliberately not a free plan. The gateway keeps two timers running — the
+# projector sweep and the escalation worker — and a free instance is stopped
+# when nobody is using it. Projections would then only advance when somebody
+# happened to open a page, and a finding would never pass its due date into
+# escalation, which is the one thing the corrective-action clock exists to do.
+#
+# Every secret below is sync:false: Render prompts for it once and keeps it, so
+# no credential is ever written into this file.
 
 services:
   - type: web
     name: agroassure-gateway
     runtime: docker
     dockerfilePath: ./Dockerfile
-    dockerContext: .
     plan: starter
+    region: frankfurt          # nearest to a eu-west-1 database; move both together
     healthCheckPath: /health
+    autoDeployTrigger: commit
+
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: agroassure-db
-          property: connectionString
-      # No identity provider on the preview, so the gateway signs and verifies
-      # its own tokens. Render generates the secret; nobody, including this
-      # file, ever sees it. Set OIDC_ISSUER and OIDC_AUDIENCE instead for a
-      # pilot — with those present the shared secret is not consulted at all.
-      - key: AUTH_JWT_SECRET
-        generateValue: true
-      # Evidence on the container filesystem: write-once as far as this
-      # application is concerned, and lost on redeploy. Set EVIDENCE_STORE=s3
-      # with EVIDENCE_S3_BUCKET for object-lock in compliance mode, which is the
-      # only version of this that survives an operator with credentials.
-      - key: EVIDENCE_STORE
-        value: local
+      # Turns on the refusals in config.ts: no development sign-in, a real
+      # identity provider, object-locked evidence, the separate verify role, and
+      # a database connection that is authenticated and not merely encrypted.
+      - key: APP_ENV
+        value: pilot
+
       - key: PORT
-        value: 3001
+        value: "3001"
+
+      # -- database ------------------------------------------------------------
+      # Supabase's session pooler, not the direct host: that one is IPv6-only and
+      # will not resolve from here.
+      - key: DATABASE_URL
+        sync: false
+      # The same database as public_verify.<project-ref>, a role that holds
+      # SELECT on one view and is refused on every table.
+      - key: PUBLIC_VERIFY_DATABASE_URL
+        sync: false
+      # The provider's CA, pasted whole. Without it the connection is encrypted
+      # but unauthenticated, and the service refuses to start.
+      - key: PGSSLROOTCERT_PEM
+        sync: false
+
+      # -- who anyone is -------------------------------------------------------
+      # The issuer is all that is needed: the endpoints and the key set come from
+      # its discovery document.
+      - key: OIDC_ISSUER
+        sync: false
+      - key: OIDC_AUDIENCE
+        sync: false
+
+      # -- evidence ------------------------------------------------------------
+      - key: EVIDENCE_STORE
+        value: s3
+      - key: EVIDENCE_S3_BUCKET
+        sync: false
+      - key: EVIDENCE_S3_REGION
+        sync: false
+      - key: EVIDENCE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: EVIDENCE_S3_SECRET_ACCESS_KEY
+        sync: false
+      # A records-retention decision belonging to the regulator, not a default:
+      # once an object is written it cannot be shortened.
+      - key: EVIDENCE_RETENTION_YEARS
+        value: "7"
+
+      # -- the public surface --------------------------------------------------
       - key: PUBLIC_VERIFY_BASE_URL
         sync: false
-      # Seeded, fictional staff and one Katsina instrument, so a reviewer has
-      # something to sign in to. Unset this on any deployment holding real data.
-      - key: SEED_DEMO_DATA
-        value: "true"
-
-databases:
-  - name: agroassure-db
-    plan: basic-256mb
-    postgresMajorVersion: "16"
+      # ponytail: the limiter counts in this process's memory, which is correct
+      # for one instance and wrong for two. Move it to Redis or the edge before
+      # scaling out, not before.
+      - key: PUBLIC_VERIFY_RATE_PER_MINUTE
+        value: "60"
