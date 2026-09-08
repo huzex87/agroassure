@@ -1,4 +1,4 @@
-import { SkeletonChart, SkeletonHeader, SkeletonStats, SkeletonTable } from "../../components/skeleton";
+import { SkeletonChart, SkeletonHeader, SkeletonStats, SkeletonTable } from "../../components/skeleton-blocks";
 
 export default function Loading() {
   return (

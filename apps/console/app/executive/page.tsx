@@ -1,6 +1,7 @@
+import { AlertTriangle, CalendarClock, FileWarning } from "lucide-react";
 import { get } from "../../lib/api";
-import { Card, Cell, Empty, PageHeader, Row, Stat, Table } from "../../components/ui";
-import { Meter, PairedBars, Sparkline } from "../../components/charts";
+import { Cell, DataTable, Empty, PageHeader, Panel, Progress, Row, Stat } from "../../components/ui";
+import { ComplianceTrend, CoverageDial, FindingsFlow } from "../../components/charts";
 import { formatDate } from "../../lib/format";
 
 // The executive view.
@@ -57,7 +58,13 @@ export default async function ExecutivePage() {
   // rather than sitting neutral: below half the register in a year is not a
   // number to read calmly.
   const coverageTone =
-    coverage.percent === null ? "neutral" : coverage.percent >= 75 ? "good" : coverage.percent >= 50 ? "caution" : "critical";
+    coverage.percent === null
+      ? "primary"
+      : coverage.percent >= 75
+        ? "success"
+        : coverage.percent >= 50
+          ? "warning"
+          : "destructive";
 
   return (
     <>
@@ -68,69 +75,64 @@ export default async function ExecutivePage() {
 
       {/* Coverage first, deliberately. It is the figure most easily flattered by
           a busy operational dashboard, and the one a director is answerable for. */}
-      <Card
+      <Panel
         title="Coverage"
         subtitle="What proportion of the register has actually been visited in the last twelve months"
       >
-        <div className="grid gap-5 sm:grid-cols-3">
-          <div>
-            <p className="text-[0.8125rem] font-medium text-ink-muted">
-              Register inspected, 12 months
-            </p>
-            <p
-              className={`stat-value mt-1.5 text-[2.5rem] font-semibold leading-none ${
-                coverageTone === "good"
-                  ? "text-good"
-                  : coverageTone === "caution"
-                    ? "text-caution"
-                    : coverageTone === "critical"
-                      ? "text-critical"
-                      : "text-ink"
-              }`}
-            >
-              {coverage.percent === null ? "—" : `${coverage.percent}%`}
-            </p>
-            <p className="mt-2 text-xs text-ink-muted">
-              {coverage.inspected12m} of {coverage.total} facilities
-            </p>
-          </div>
-          <div className="sm:col-span-2 sm:self-end">
-            <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-center gap-6 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+          <CoverageDial
+            percent={coverage.percent}
+            inspected={coverage.inspected12m}
+            total={coverage.total}
+          />
+
+          <div className="flex flex-col gap-5">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <p className="text-[0.8125rem] font-medium text-ink-muted">Never inspected</p>
-                <p className="stat-value mt-1 text-2xl font-semibold text-ink">
+                <p className="text-muted-foreground text-[0.8125rem] font-medium">Never inspected</p>
+                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">
                   {coverage.neverInspected}
                 </p>
-                <p className="mt-1 text-xs text-ink-faint">No submitted inspection on record</p>
+                <p className="text-muted-foreground mt-1.5 text-xs">
+                  No submitted inspection on record
+                </p>
               </div>
               <div>
-                <p className="text-[0.8125rem] font-medium text-ink-muted">Not seen in over a year</p>
-                <p className="stat-value mt-1 text-2xl font-semibold text-ink">
+                <p className="text-muted-foreground text-[0.8125rem] font-medium">
+                  Not seen in over a year
+                </p>
+                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">
                   {coverage.lapsedOverAYear}
                 </p>
-                <p className="mt-1 text-xs text-ink-faint">Inspected once, then not since</p>
+                <p className="text-muted-foreground mt-1.5 text-xs">
+                  Inspected once, then not since
+                </p>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Progress value={coverage.percent} tone={coverageTone} />
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                A regulator that inspects the same few sites repeatedly has a busy dashboard and an
+                unwatched market.
+              </p>
             </div>
           </div>
         </div>
-        <div className="mt-6">
-          <Meter
-            percent={coverage.percent}
-            tone={coverageTone === "critical" ? "caution" : coverageTone === "neutral" ? "primary" : coverageTone}
-            caption="A regulator that inspects the same few sites repeatedly has a busy dashboard and an unwatched market."
-          />
-        </div>
-      </Card>
+      </Panel>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Compliance trend" subtitle="Average rating by month, on a full 0–100 scale">
-          <Sparkline
-            label="Average compliance rating by month"
-            points={data.ratingTrend.map((r) => ({ month: r.month, value: r.avg_rating }))}
+        <Panel title="Compliance trend" subtitle="Average rating by month, on a full 0–100 scale">
+          <ComplianceTrend
+            points={data.ratingTrend.map((r) => ({
+              month: r.month,
+              value: r.avg_rating,
+              inspections: r.inspections,
+            }))}
           />
-        </Card>
+        </Panel>
 
-        <Card
+        <Panel
           title="Findings raised and closed"
           subtitle="Enforcement is the closing, not the raising"
           footer={
@@ -139,19 +141,15 @@ export default async function ExecutivePage() {
               : `Median time to close: ${closure.medianDays} days across ${closure.closedCount} closed findings.`
           }
         >
-          <PairedBars
-            rows={data.findingsFlow.map((f) => ({ month: f.month, a: f.raised, b: f.closed }))}
-            aLabel="Raised"
-            bLabel="Closed"
-          />
-        </Card>
+          <FindingsFlow rows={data.findingsFlow} />
+        </Panel>
       </div>
 
       {/* The regulator measured the way it measures everyone else. */}
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-[0.9375rem] font-semibold text-ink">What we owe</h2>
-          <p className="mt-1 text-sm text-ink-muted">
+          <h2 className="text-[0.9375rem] font-semibold text-foreground">What we owe</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             The commitments the institution has made, held to the same standard it applies.
           </p>
         </div>
@@ -171,75 +169,77 @@ export default async function ExecutivePage() {
             tone={
               promises.decisionsWithin30Days.percent !== null &&
               promises.decisionsWithin30Days.percent < 80
-                ? "caution"
+                ? "warning"
                 : "neutral"
             }
+            icon={CalendarClock}
           />
           <Stat
             label="Findings past their due date"
             value={promises.overdueFindings}
             hint="Owed by the facilities, chased by us"
-            tone={promises.overdueFindings > 0 ? "critical" : "good"}
+            tone={promises.overdueFindings > 0 ? "destructive" : "success"}
             href="/findings?overdueOnly=true"
           />
           <Stat
             label="Certificates expiring in 30 days"
             value={promises.certificatesDueSoon}
             hint="Re-inspection needed before they lapse"
-            tone={promises.certificatesDueSoon > 0 ? "caution" : "neutral"}
+            tone={promises.certificatesDueSoon > 0 ? "warning" : "neutral"}
+            icon={FileWarning}
           />
           <Stat
             label="Devices awaiting approval"
             value={promises.devicesAwaitingApproval}
             hint="An inspector cannot sync until one is approved"
-            tone={promises.devicesAwaitingApproval > 0 ? "caution" : "neutral"}
+            tone={promises.devicesAwaitingApproval > 0 ? "warning" : "neutral"}
             href="/admin"
           />
         </div>
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card
+        <Panel
           title="By local government area"
           subtitle="Where to post the next inspector"
           flush={data.byLga.length > 0}
         >
-          <Table
+          <DataTable
             head={["LGA", "Facilities", "Inspected", "Avg rating", "Open findings"]}
             align={["left", "right", "right", "right", "right"]}
             empty={data.byLga.length === 0 ? <Empty>No facility is registered yet.</Empty> : undefined}
           >
             {data.byLga.map((r) => (
               <Row key={r.lga}>
-                <Cell className="font-medium text-ink">{r.lga}</Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
+                <Cell className="font-medium text-foreground">{r.lga}</Cell>
+                <Cell align="right" className="tabular-nums text-muted-foreground">
                   {r.facilities}
                 </Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
+                <Cell align="right" className="tabular-nums text-muted-foreground">
                   {r.inspected}
                 </Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
+                <Cell align="right" className="tabular-nums text-muted-foreground">
                   {r.avg_rating === null ? "—" : `${r.avg_rating}%`}
                 </Cell>
                 <Cell align="right" className="font-medium tabular-nums">
                   {r.open_findings > 0 ? (
-                    <span className="text-critical">{r.open_findings}</span>
+                    <span className="text-destructive">{r.open_findings}</span>
                   ) : (
-                    <span className="text-ink-faint">0</span>
+                    <span className="text-muted-foreground">0</span>
                   )}
                 </Cell>
               </Row>
             ))}
-          </Table>
-        </Card>
+          </DataTable>
+        </Panel>
 
-        <Card
+        <Panel
           title="Repeat failures"
           subtitle="The same site failing the same checkpoint more than once"
           flush={data.repeatFailures.length > 0}
           footer="A repeat means the last enforcement did not work, or the finding was closed without anything changing on site. Both are worth asking about."
         >
-          <Table
+          <DataTable
             head={["Facility", "Checkpoint", "Times", "Last raised"]}
             align={["left", "left", "right", "right"]}
             empty={
@@ -251,20 +251,20 @@ export default async function ExecutivePage() {
             {data.repeatFailures.map((r) => (
               <Row key={`${r.facility}-${r.checkpoint_ref}`}>
                 <Cell>
-                  <span className="font-medium text-ink">{r.facility}</span>
-                  {r.lga && <p className="text-xs text-ink-faint">{r.lga}</p>}
+                  <span className="font-medium text-foreground">{r.facility}</span>
+                  {r.lga && <p className="text-xs text-muted-foreground">{r.lga}</p>}
                 </Cell>
-                <Cell className="font-mono text-[0.8125rem] text-ink-muted">{r.checkpoint_ref}</Cell>
-                <Cell align="right" className="font-semibold tabular-nums text-critical">
+                <Cell className="font-mono text-[0.8125rem] text-muted-foreground">{r.checkpoint_ref}</Cell>
+                <Cell align="right" className="font-semibold tabular-nums text-destructive">
                   {r.times}
                 </Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
+                <Cell align="right" className="tabular-nums text-muted-foreground">
                   {formatDate(r.last_raised)}
                 </Cell>
               </Row>
             ))}
-          </Table>
-        </Card>
+          </DataTable>
+        </Panel>
       </div>
     </>
   );

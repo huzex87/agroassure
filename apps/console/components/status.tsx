@@ -11,22 +11,23 @@ import {
 // reader scan a column; it never carries meaning on its own, so the registry
 // stays readable to a colour-blind user and in a printed export.
 //
-// The tones used to be tints of one blue, which meant a valid certificate and a
-// critical finding looked the same. Colour was doing no work. Now good, caution
-// and critical are distinct hues and mean the same thing wherever they appear:
-// green is settled, amber wants attention this week, red wants it today.
+// The variants used to be tints of one blue, which meant a valid certificate
+// and a critical finding looked the same. Colour was doing no work. Now success,
+// warning and destructive are distinct hues and mean the same thing wherever
+// they appear: green is settled, amber wants attention this week, red wants it
+// today.
 
 export function CertificateStatus({ status }: { status: string }) {
-  const tone =
+  const variant =
     status === "valid"
-      ? "good"
+      ? "success"
       : status === "due_soon"
-        ? "caution"
+        ? "warning"
         : status === "overdue"
-          ? "critical"
-          : "neutral";
+          ? "destructive"
+          : "secondary";
   return (
-    <Badge tone={tone} dot>
+    <Badge variant={variant} dot>
       {label(CERTIFICATE_STATUS_LABEL, status)}
     </Badge>
   );
@@ -39,11 +40,11 @@ export function Rating({
   band: string | null;
   percent?: string | number | null;
 }) {
-  if (!band) return <span className="text-sm text-ink-faint">Not rated</span>;
-  const tone =
-    band === "satisfactory" ? "good" : band === "needs_improvement" ? "caution" : "critical";
+  if (!band) return <span className="text-sm text-muted-foreground">Not rated</span>;
+  const variant =
+    band === "satisfactory" ? "success" : band === "needs_improvement" ? "warning" : "destructive";
   return (
-    <Badge tone={tone} dot>
+    <Badge variant={variant} dot>
       {label(RATING_LABEL, band)}
       {percent !== undefined && percent !== null ? ` · ${Math.round(Number(percent))}%` : ""}
     </Badge>
@@ -51,9 +52,9 @@ export function Rating({
 }
 
 export function Severity({ severity }: { severity: string }) {
-  const tone =
-    severity === "critical" ? "critical" : severity === "major" ? "caution" : "neutral";
-  return <Badge tone={tone}>{label(SEVERITY_LABEL, severity)}</Badge>;
+  const variant =
+    severity === "critical" ? "destructive" : severity === "major" ? "warning" : "secondary";
+  return <Badge variant={variant}>{label(SEVERITY_LABEL, severity)}</Badge>;
 }
 
 export function FindingStatus({
@@ -63,22 +64,22 @@ export function FindingStatus({
   status: string;
   daysPastDue?: number | null;
 }) {
-  const tone =
+  const variant =
     status === "closed"
-      ? "good"
+      ? "success"
       : status === "escalated" || status === "overdue"
-        ? "critical"
+        ? "destructive"
         : status === "awaiting_verification"
-          ? "caution"
-          : "primary";
+          ? "warning"
+          : "accent";
   const overdue = daysPastDue !== null && daysPastDue !== undefined && daysPastDue > 0;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <Badge tone={tone} dot>
+      <Badge variant={variant} dot>
         {label(FINDING_STATUS_LABEL, status)}
       </Badge>
       {overdue && status !== "closed" && (
-        <span className="text-xs font-medium text-critical">
+        <span className="text-xs font-medium text-destructive">
           {daysPastDue} day{daysPastDue === 1 ? "" : "s"} past due
         </span>
       )}
@@ -89,7 +90,7 @@ export function FindingStatus({
 export function Response({ response }: { response: "yes" | "no" | "na" }) {
   // Three responses, and only three: the instrument offers what the paper form
   // offers, so the review screen shows exactly the same vocabulary.
-  const tone = response === "yes" ? "good" : response === "no" ? "critical" : "neutral";
+  const variant = response === "yes" ? "success" : response === "no" ? "destructive" : "secondary";
   const text = response === "yes" ? "Yes" : response === "no" ? "No" : "N/A";
-  return <Badge tone={tone}>{text}</Badge>;
+  return <Badge variant={variant}>{text}</Badge>;
 }

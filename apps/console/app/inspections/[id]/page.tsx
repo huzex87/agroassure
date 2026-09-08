@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InspectionDetail } from "../../../lib/api";
-import { Badge, Button, Card, Cell, Empty, Row, Table } from "../../../components/ui";
+import { Badge, Button, Panel, Cell, Empty, Row, DataTable } from "../../../components/ui";
 import { FindingStatus, Rating, Response, Severity } from "../../../components/status";
 import {
   DECISION_LABEL,
@@ -66,7 +66,7 @@ export default async function InspectionPage({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Check-in" className="lg:col-span-1">
+        <Panel title="Check-in" className="lg:col-span-1">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-ink-muted">Distance from registered point</dt>
@@ -84,16 +84,16 @@ export default async function InspectionPage({
               <dt className="text-ink-muted">Status</dt>
               <dd>
                 {i.checkin_flagged ? (
-                  <Badge tone="caution">Flagged for review</Badge>
+                  <Badge variant="warning">Flagged for review</Badge>
                 ) : (
-                  <Badge tone="good">Within range</Badge>
+                  <Badge variant="success">Within range</Badge>
                 )}
               </dd>
             </div>
           </dl>
-        </Card>
+        </Panel>
 
-        <Card title="Signatures" className="lg:col-span-1">
+        <Panel title="Signatures" className="lg:col-span-1">
           <dl className="space-y-2 text-sm">
             <div>
               <dt className="text-ink-muted">Inspector</dt>
@@ -109,9 +109,9 @@ export default async function InspectionPage({
               </dd>
             </div>
           </dl>
-        </Card>
+        </Panel>
 
-        <Card title="Instrument" className="lg:col-span-1">
+        <Panel title="Instrument" className="lg:col-span-1">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-ink-muted">Version</dt>
@@ -130,14 +130,14 @@ export default async function InspectionPage({
               </p>
             ) : null}
           </dl>
-        </Card>
+        </Panel>
       </div>
 
-      <Card
+      <Panel
         title="Findings"
         subtitle={`${openFindings.length} open of ${detail.findings.length}`}
       >
-        <Table
+        <DataTable
           head={["Reference", "Checkpoint", "Summary", "Severity", "Due", "Status", ""]}
           empty={
             detail.findings.length === 0 ? (
@@ -166,16 +166,16 @@ export default async function InspectionPage({
               <Cell>
                 {f.status === "awaiting_verification" && (
                   <form action={verifyFinding.bind(null, id, f.id)}>
-                    <Button variant="quiet">Verify closed</Button>
+                    <Button variant="outline">Verify closed</Button>
                   </form>
                 )}
               </Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
 
-      <Card
+      <Panel
         title="Responses"
         subtitle="Every checkpoint as answered on site, with the remark and exhibits captured at the moment of observation."
       >
@@ -224,10 +224,10 @@ export default async function InspectionPage({
             );
           })}
         </ul>
-      </Card>
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Decisions" subtitle="Append-only. A reversal is a new decision.">
+        <Panel title="Decisions" subtitle="Append-only. A reversal is a new decision.">
           {detail.decisions.length === 0 ? (
             <Empty>No decision has been recorded on this inspection.</Empty>
           ) : (
@@ -245,9 +245,9 @@ export default async function InspectionPage({
               ))}
             </ul>
           )}
-        </Card>
+        </Panel>
 
-        <Card title="Record a decision">
+        <Panel title="Record a decision">
           <form action={recordDecision.bind(null, id)} className="space-y-3">
             <label className="block text-sm">
               <span className="text-ink-muted">Decision</span>
@@ -304,7 +304,7 @@ export default async function InspectionPage({
             {/* The button being enabled is a courtesy. The API checks all three
                 conditions again, and the schema refuses an officer-less row. */}
           </div>
-        </Card>
+        </Panel>
       </div>
     </div>
   );

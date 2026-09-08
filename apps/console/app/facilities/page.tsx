@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type FacilityRow } from "../../lib/api";
-import { Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
+import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
 import { RegistryMap } from "../../components/registry-map";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
@@ -43,11 +43,11 @@ export default async function FacilitiesPage({
         }
       />
 
-      <Card>
+      <Panel>
         <RegistryMap facilities={facilities} />
-      </Card>
+      </Panel>
 
-      <Card>
+      <Panel>
         <form className="mb-4 flex flex-wrap gap-3" action="/facilities">
           <input
             name="q"
@@ -84,7 +84,7 @@ export default async function FacilitiesPage({
           </button>
         </form>
 
-        <Table
+        <DataTable
           head={["Business", "Type", "LGA", "Last inspected", "Rating", "Certificate"]}
           empty={
             facilities.length === 0 ? (
@@ -119,8 +119,8 @@ export default async function FacilitiesPage({
               </Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
     </>
   );
 }

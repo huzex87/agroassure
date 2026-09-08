@@ -1,221 +1,343 @@
-// Charts, drawn directly.
-//
-// No charting library. These are three shapes over at most twelve points, and a
-// dependency would bring a bundle, a theme system that disagrees with this one,
-// and a second set of accessibility habits. The registry map is drawn the same
-// way for the same reason.
-//
-// Every one of these carries its numbers in text as well as in the drawing: a
-// director reads the figure, a screen reader reads the figure, and a printed
-// page keeps the figure. The shape shows direction; it is never the only place
-// the value exists.
+"use client";
 
-const MUTED = "var(--color-ink-faint)";
-const GRID = "var(--color-line)";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  RadialBar,
+  RadialBarChart,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
-export function Sparkline({
+// The charts, on Recharts through shadcn's container.
+//
+// These were drawn by hand in SVG, which was the right call while there were
+// three shapes over twelve points and no library in the tree. They are now a
+// real part of how the programme is read, and hand-drawing bought a growing
+// pile of axis arithmetic and no interaction: a director could see the shape of
+// the trend but could not ask what any month actually was.
+//
+// Every one still carries its numbers in text as well as in the drawing — the
+// tooltip is an addition, never the only place a value exists — and the axis is
+// the measure rather than the range of the data, so a wobble between 88 and 91
+// stays a wobble instead of becoming a cliff.
+//
+// Nothing animates in. Recharts grows its series from zero over a second and a
+// half by default, so the first frame of a dashboard is an empty chart and the
+// second is a half-true one — on a page that already waited on the database,
+// that reads as broken rather than as lively, and a figure a director is about
+// to act on should never be shown briefly wrong.
+
+/** Short month for an axis: "2026-03" reads as "Mar". */
+function monthTick(value: string): string {
+  const [, m] = value.split("-");
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return names[Number(m) - 1] ?? value;
+}
+
+function monthFull(value: string): string {
+  const [y, m] = value.split("-");
+  const names = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return `${names[Number(m) - 1] ?? m} ${y}`;
+}
+
+/* -------------------------------------------------------------------------
+   Compliance trend */
+
+const trendConfig = {
+  rating: { label: "Average rating", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+
+export function ComplianceTrend({
   points,
-  label,
 }: {
-  points: Array<{ month: string; value: number | null }>;
-  label: string;
+  points: Array<{ month: string; value: number | null; inspections?: number }>;
 }) {
-  const real = points.filter((p) => p.value !== null) as Array<{ month: string; value: number }>;
-  if (real.length < 2) {
+  const data = points.filter((p) => p.value !== null);
+
+  if (data.length < 2) {
     return (
-      <p className="py-10 text-center text-sm text-ink-muted">
-        Not enough history yet to show a trend.
+      <p className="text-muted-foreground py-12 text-center text-sm">
+        Not enough history yet to show a trend. A month appears here once it has a submitted
+        inspection.
       </p>
     );
   }
 
-  const width = 640;
-  const height = 170;
-  const padX = 30;
-  const padY = 20;
-  // Ratings are a percentage, so the axis is the percentage — not the range of
-  // the data. Auto-scaling would turn a wobble between 88 and 91 into a cliff.
-  const x = (i: number) => padX + (i / (real.length - 1)) * (width - padX - 12);
-  const y = (v: number) => height - padY - (v / 100) * (height - padY * 2);
-
-  const line = real.map((p, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(p.value)}`).join(" ");
-  const area = `${line} L ${x(real.length - 1)} ${height - padY} L ${x(0)} ${height - padY} Z`;
-  const last = real[real.length - 1]!;
+  const last = data[data.length - 1]!;
 
   return (
-    <figure className="flex flex-col gap-2">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full"
-        role="img"
-        aria-label={`${label}. ${real.map((p) => `${p.month}: ${p.value}%`).join(", ")}`}
-      >
-        <defs>
-          <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.20" />
-            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {[0, 50, 100].map((v) => (
-          <g key={v}>
-            <line
-              x1={padX}
-              x2={width - 12}
-              y1={y(v)}
-              y2={y(v)}
-              stroke={GRID}
-              strokeWidth={1}
-              strokeDasharray={v === 0 ? undefined : "3 4"}
-            />
-            <text x={0} y={y(v) + 3.5} fontSize={10} fill={MUTED}>
-              {v}
-            </text>
-          </g>
-        ))}
-
-        <path d={area} fill="url(#spark-fill)" />
-        <path
-          d={line}
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeWidth={2.25}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Only the endpoint gets a marker. Twelve dots is noise; the latest
-            reading is the one a director is actually looking for. */}
-        <circle cx={x(real.length - 1)} cy={y(last.value)} r={5} fill="var(--color-surface)" />
-        <circle
-          cx={x(real.length - 1)}
-          cy={y(last.value)}
-          r={3.5}
-          fill="var(--color-primary)"
-        />
-      </svg>
-      <figcaption className="flex items-baseline justify-between text-xs text-ink-muted">
-        <span>{real[0]!.month}</span>
+    <div className="flex flex-col gap-3">
+      <ChartContainer config={trendConfig} className="aspect-[16/7] w-full">
+        <AreaChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+          <defs>
+            <linearGradient id="fill-rating" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-rating)" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="var(--color-rating)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} strokeDasharray="3 4" />
+          <XAxis
+            dataKey="month"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            tickFormatter={monthTick}
+            minTickGap={16}
+          />
+          {/* The axis is the percentage, not the range of the data: auto-scaling
+              would turn a wobble between 88 and 91 into a cliff. */}
+          {/* width holds the widest tick: at 36 the axis clipped "100" to "00". */}
+          <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tickLine={false} axisLine={false} width={38} />
+          <ChartTooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            content={
+              <ChartTooltipContent
+                labelFormatter={(v) => monthFull(String(v))}
+                formatter={(value) => (
+                  <span className="flex w-full justify-between gap-4">
+                    <span className="text-muted-foreground">Average rating</span>
+                    <span className="font-mono font-medium tabular-nums">{String(value)}%</span>
+                  </span>
+                )}
+              />
+            }
+          />
+          <Area
+            isAnimationActive={false}
+            dataKey="value"
+            name="rating"
+            type="monotone"
+            stroke="var(--color-rating)"
+            strokeWidth={2.25}
+            fill="url(#fill-rating)"
+            dot={false}
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+          />
+        </AreaChart>
+      </ChartContainer>
+      <p className="text-muted-foreground flex items-baseline justify-between text-xs">
+        <span>{monthFull(data[0]!.month)}</span>
         <span>
-          <span className="font-semibold tabular-nums text-ink">{last.value}%</span> · {last.month}
+          Latest <span className="text-foreground font-semibold tabular-nums">{last.value}%</span> ·{" "}
+          {monthFull(last.month)}
         </span>
-      </figcaption>
-    </figure>
+      </p>
+    </div>
   );
 }
+
+/* -------------------------------------------------------------------------
+   Findings raised against closed */
+
+const flowConfig = {
+  raised: { label: "Raised", color: "var(--chart-4)" },
+  closed: { label: "Closed", color: "var(--chart-2)" },
+} satisfies ChartConfig;
 
 /**
- * Two series side by side. Used for findings raised against findings closed,
- * where the comparison is the entire point: a chart of raisings alone would
- * flatter a regulator that never closes anything.
+ * The comparison is the entire point: a chart of raisings alone would flatter a
+ * regulator that never closes anything, which is why raised takes the critical
+ * hue and closed takes the settled one.
  */
-export function PairedBars({
+export function FindingsFlow({
   rows,
-  aLabel,
-  bLabel,
 }: {
-  rows: Array<{ month: string; a: number; b: number }>;
-  aLabel: string;
-  bLabel: string;
+  rows: Array<{ month: string; raised: number; closed: number }>;
 }) {
-  const max = Math.max(1, ...rows.map((r) => Math.max(r.a, r.b)));
-  const width = 640;
-  const height = 176;
-  const padX = 8;
-  const padY = 22;
-  const slot = (width - padX * 2) / Math.max(rows.length, 1);
-  const barW = Math.min(13, slot / 2.8);
-  const y = (v: number) => height - padY - (v / max) * (height - padY * 2);
-
   return (
-    <figure className="flex flex-col gap-2.5">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full"
-        role="img"
-        aria-label={`${aLabel} against ${bLabel}. ${rows
-          .map((r) => `${r.month}: ${r.a} ${aLabel}, ${r.b} ${bLabel}`)
-          .join(". ")}`}
-      >
-        <line
-          x1={padX}
-          x2={width - padX}
-          y1={height - padY}
-          y2={height - padY}
-          stroke="var(--color-line-firm)"
+    <ChartContainer config={flowConfig} className="aspect-[16/7] w-full">
+      <BarChart data={rows} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 4" />
+        <XAxis
+          dataKey="month"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tickFormatter={monthTick}
+          minTickGap={12}
         />
-        {rows.map((r, i) => {
-          const cx = padX + i * slot + slot / 2;
-          return (
-            <g key={r.month}>
-              <rect
-                x={cx - barW - 1.5}
-                y={y(r.a)}
-                width={barW}
-                height={Math.max(0, height - padY - y(r.a))}
-                rx={2.5}
-                fill="var(--color-primary)"
-              />
-              <rect
-                x={cx + 1.5}
-                y={y(r.b)}
-                width={barW}
-                height={Math.max(0, height - padY - y(r.b))}
-                rx={2.5}
-                fill="var(--color-good)"
-              />
-              {i % 2 === 0 && (
-                <text x={cx} y={height - 7} fontSize={9.5} fill={MUTED} textAnchor="middle">
-                  {r.month.slice(2)}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <figcaption className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-[3px] bg-primary" />
-          {aLabel}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-[3px] bg-good" />
-          {bLabel}
-        </span>
-      </figcaption>
-    </figure>
+        <YAxis tickLine={false} axisLine={false} width={38} allowDecimals={false} />
+        <ChartTooltip
+          cursor={false}
+          content={<ChartTooltipContent labelFormatter={(v) => monthFull(String(v))} />}
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Bar dataKey="raised" fill="var(--color-raised)" radius={[3, 3, 0, 0]} maxBarSize={14} isAnimationActive={false} />
+        <Bar dataKey="closed" fill="var(--color-closed)" radius={[3, 3, 0, 0]} maxBarSize={14} isAnimationActive={false} />
+      </BarChart>
+    </ChartContainer>
   );
 }
 
-/** A proportion, stated as a number and drawn as a bar. */
-export function Meter({
+/* -------------------------------------------------------------------------
+   Coverage */
+
+const coverageConfig = {
+  covered: { label: "Inspected in 12 months", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+
+/**
+ * Coverage as a dial, because it is a proportion of a whole and a director reads
+ * it as "how much of the register" rather than as a bar length. The number sits
+ * in the middle in text, so nothing depends on reading the arc.
+ */
+export function CoverageDial({
   percent,
-  caption,
-  tone = "primary",
+  inspected,
+  total,
 }: {
   percent: number | null;
-  caption: string;
-  tone?: "primary" | "good" | "caution";
+  inspected: number;
+  total: number;
 }) {
-  const width = Math.max(0, Math.min(100, percent ?? 0));
-  const fill =
-    tone === "good" ? "bg-good" : tone === "caution" ? "bg-caution" : "bg-primary";
+  const value = percent ?? 0;
+  const tone = value >= 75 ? "var(--chart-2)" : value >= 50 ? "var(--chart-3)" : "var(--chart-4)";
+
   return (
-    <div className="flex flex-col gap-2">
-      <div
-        className="h-2 w-full overflow-hidden rounded-pill bg-surface-sunk ring-1 ring-inset ring-line"
-        role="progressbar"
-        aria-valuenow={percent ?? 0}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={caption}
-      >
-        <div
-          className={`h-full rounded-pill ${fill} transition-[width] duration-500`}
-          style={{ width: `${width}%` }}
-        />
+    <div className="relative">
+      <ChartContainer config={coverageConfig} className="mx-auto aspect-square w-full max-w-[13rem]">
+        <RadialBarChart
+          data={[{ name: "covered", value, fill: tone }]}
+          startAngle={90}
+          endAngle={-270}
+          innerRadius="72%"
+          outerRadius="100%"
+        >
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
+          <RadialBar dataKey="value" background cornerRadius={999} isAnimationActive={false} />
+        </RadialBarChart>
+      </ChartContainer>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[2.25rem] leading-none font-semibold tracking-tight tabular-nums" style={{ color: tone }}>
+          {percent === null ? "—" : `${percent}%`}
+        </span>
+        <span className="text-muted-foreground mt-1.5 text-xs">
+          {inspected} of {total}
+        </span>
       </div>
-      <p className="text-xs leading-relaxed text-ink-muted">{caption}</p>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Where the register stands */
+
+const registerConfig = {
+  valid: { label: "Valid", color: "var(--chart-2)" },
+  due_soon: { label: "Due soon", color: "var(--chart-3)" },
+  overdue: { label: "Overdue", color: "var(--chart-4)" },
+  never_inspected: { label: "Not yet inspected", color: "var(--muted-foreground)" },
+} satisfies ChartConfig;
+
+/** The register split by certificate state — the one figure that is a whole. */
+export function RegisterSplit({ counts }: { counts: Record<string, number> }) {
+  const data = (["valid", "due_soon", "overdue", "never_inspected"] as const)
+    .map((key) => ({ key, label: String(registerConfig[key].label), value: counts[key] ?? 0 }))
+    .filter((d) => d.value > 0);
+
+  if (data.length === 0) {
+    return <p className="text-muted-foreground py-10 text-center text-sm">No facility is registered yet.</p>;
+  }
+
+  return (
+    <ChartContainer config={registerConfig} className="aspect-[16/9] w-full">
+      <PieChart>
+        <ChartTooltip content={<ChartTooltipContent nameKey="key" hideLabel />} />
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="key"
+          innerRadius="52%"
+          outerRadius="82%"
+          paddingAngle={2}
+          isAnimationActive={false}
+        >
+          {data.map((d) => (
+            <Cell key={d.key} fill={`var(--color-${d.key})`} stroke="var(--card)" strokeWidth={2} />
+          ))}
+        </Pie>
+        <ChartLegend content={<ChartLegendContent nameKey="key" />} />
+      </PieChart>
+    </ChartContainer>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Where the value chain is failing */
+
+const sectionConfig = {
+  findings: { label: "Findings", color: "var(--chart-1)" },
+  critical: { label: "Critical", color: "var(--chart-4)" },
+} satisfies ChartConfig;
+
+/**
+ * Sections down the side rather than across the bottom: section titles are
+ * phrases, and a category axis turns them into overlapping diagonal text the
+ * moment there are more than four.
+ */
+export function FindingsBySection({
+  rows,
+}: {
+  rows: Array<{ section_title: string; findings: number; critical: number }>;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-muted-foreground py-10 text-center text-sm">No findings recorded yet.</p>;
+  }
+
+  return (
+    <ChartContainer
+      config={sectionConfig}
+      className="w-full"
+      style={{ aspectRatio: "auto", height: `${Math.max(140, rows.length * 42)}px` }}
+    >
+      <BarChart data={rows} layout="vertical" margin={{ left: 4, right: 28, top: 4, bottom: 4 }}>
+        <CartesianGrid horizontal={false} strokeDasharray="3 4" />
+        <XAxis type="number" hide allowDecimals={false} />
+        <YAxis
+          type="category"
+          dataKey="section_title"
+          tickLine={false}
+          axisLine={false}
+          width={150}
+          tickMargin={6}
+        />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <Bar
+          dataKey="findings"
+          fill="var(--color-findings)"
+          radius={[0, 4, 4, 0]}
+          maxBarSize={18}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="findings"
+            position="right"
+            offset={8}
+            className="fill-muted-foreground"
+            fontSize={11}
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
   );
 }

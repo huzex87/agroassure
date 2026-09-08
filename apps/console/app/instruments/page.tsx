@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InstrumentRow } from "../../lib/api";
-import { Badge, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
+import { Badge, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 
 // The template version manager. A published version is frozen and an inspection
@@ -10,9 +10,9 @@ import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 export const dynamic = "force-dynamic";
 
 const STATUS_TONE = {
-  in_force: "good",
-  draft: "caution",
-  superseded: "neutral",
+  in_force: "success",
+  draft: "warning",
+  superseded: "secondary",
 } as const;
 
 const STATUS_LABEL = {
@@ -37,20 +37,20 @@ export default async function InstrumentsPage() {
       />
 
       {instruments.length === 0 && (
-        <Card>
+        <Panel>
           <Empty>No instrument has been authored for this jurisdiction yet.</Empty>
-        </Card>
+        </Panel>
       )}
 
       {instruments.map((instrument) => {
         const versions = (instrument.versions ?? []).filter((v) => v.id);
         return (
-          <Card
+          <Panel
             key={instrument.id}
             title={instrument.name}
             subtitle={label(FACILITY_TYPE_LABEL, instrument.facility_type)}
           >
-            <Table
+            <DataTable
               head={["Version", "Status", "In force from", "Bands", "Inspections bound", ""]}
               empty={
                 versions.length === 0 ? (
@@ -62,7 +62,7 @@ export default async function InstrumentsPage() {
                 <Row key={v.id}>
                   <Cell className="font-medium">{v.version_label}</Cell>
                   <Cell>
-                    <Badge tone={STATUS_TONE[v.status]}>{STATUS_LABEL[v.status]}</Badge>
+                    <Badge variant={STATUS_TONE[v.status]}>{STATUS_LABEL[v.status]}</Badge>
                   </Cell>
                   <Cell className="text-ink-muted">{formatDate(v.effective_from)}</Cell>
                   <Cell className="text-ink-muted tabular-nums">
@@ -84,8 +84,8 @@ export default async function InstrumentsPage() {
                   </Cell>
                 </Row>
               ))}
-            </Table>
-          </Card>
+            </DataTable>
+          </Panel>
         );
       })}
     </>

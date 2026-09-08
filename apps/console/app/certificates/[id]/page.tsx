@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get } from "../../../lib/api";
-import { Badge, Card } from "../../../components/ui";
+import { Badge, Panel } from "../../../components/ui";
 import { Rating } from "../../../components/status";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../../lib/format";
 
@@ -49,9 +49,9 @@ export default async function CertificatePage({
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-ink">Certificate {c.serial}</h1>
           {c.status === "valid" ? (
-            <Badge tone="good" dot>Valid</Badge>
+            <Badge variant="success" dot>Valid</Badge>
           ) : (
-            <Badge tone={c.status === "revoked" ? "critical" : "neutral"} dot>
+            <Badge variant={c.status === "revoked" ? "destructive" : "secondary"} dot>
               {c.status === "revoked" ? "Revoked" : "Superseded"}
             </Badge>
           )}
@@ -59,7 +59,7 @@ export default async function CertificatePage({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Certificate of compliance" className="lg:col-span-2">
+        <Panel title="Certificate of compliance" className="lg:col-span-2">
           <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-ink-muted">Business</dt>
@@ -128,9 +128,9 @@ export default async function CertificatePage({
               Preview
             </a>
           </div>
-        </Card>
+        </Panel>
 
-        <Card title="Public verification">
+        <Panel title="Public verification">
           <p className="text-sm text-ink-muted">
             The code below is what the QR on the certificate resolves to. A buyer scanning it
             gets one of exactly two answers: this certificate, or a neutral statement that no
@@ -149,7 +149,7 @@ export default async function CertificatePage({
               rendered certificate shows the space where the authority&rsquo;s own mark belongs.
             </p>
           )}
-        </Card>
+        </Panel>
       </div>
     </div>
   );

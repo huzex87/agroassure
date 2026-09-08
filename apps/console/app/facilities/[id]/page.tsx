@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get } from "../../../lib/api";
-import { Card, Cell, Empty, Row, Table } from "../../../components/ui";
+import { Panel, Cell, Empty, Row, DataTable } from "../../../components/ui";
 import { Rating } from "../../../components/status";
 import { FACILITY_TYPE_LABEL, formatDate, formatPercent, label } from "../../../lib/format";
 
@@ -57,7 +57,7 @@ export default async function FacilityPage({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Registered location" className="lg:col-span-1">
+        <Panel title="Registered location" className="lg:col-span-1">
           {lat === null || lng === null ? (
             <p className="text-sm text-ink-muted">
               No registered point yet. The first inspection captures one, and every visit
@@ -85,10 +85,10 @@ export default async function FacilityPage({
               </div>
             </dl>
           )}
-        </Card>
+        </Panel>
 
-        <Card title="Certificates" className="lg:col-span-2">
-          <Table
+        <Panel title="Certificates" className="lg:col-span-2">
+          <DataTable
             head={["Serial", "Rating", "Issued", "Valid to", "Next due", "Status"]}
             empty={
               certificates.length === 0 ? (
@@ -115,12 +115,12 @@ export default async function FacilityPage({
                 <Cell className="text-ink-muted capitalize">{c.status}</Cell>
               </Row>
             ))}
-          </Table>
-        </Card>
+          </DataTable>
+        </Panel>
       </div>
 
-      <Card title="Inspection history" subtitle="Every visit, newest first.">
-        <Table
+      <Panel title="Inspection history" subtitle="Every visit, newest first.">
+        <DataTable
           head={["Reference", "Submitted", "Inspector", "Rating", "Findings", ""]}
           empty={
             inspections.length === 0 ? (
@@ -151,8 +151,8 @@ export default async function FacilityPage({
               </Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
     </div>
   );
 }

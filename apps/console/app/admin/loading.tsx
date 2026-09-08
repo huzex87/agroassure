@@ -1,4 +1,4 @@
-import { SkeletonHeader, SkeletonTable } from "../../components/skeleton";
+import { SkeletonHeader, SkeletonTable } from "../../components/skeleton-blocks";
 
 export default function Loading() {
   return (

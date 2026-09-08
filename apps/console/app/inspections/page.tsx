@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InspectionRow } from "../../lib/api";
-import { Badge, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
+import { Badge, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { Rating } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -38,7 +38,7 @@ export default async function InspectionsPage({
         }
       />
 
-      <Card>
+      <Panel>
         <form className="mb-4 flex flex-wrap gap-3" action="/inspections">
           <select
             name="ratingBand"
@@ -79,7 +79,7 @@ export default async function InspectionsPage({
           </button>
         </form>
 
-        <Table
+        <DataTable
           head={["Reference", "Facility", "Inspector", "Submitted", "Rating", "Findings", "Review"]}
           empty={
             inspections.length === 0 ? (
@@ -99,8 +99,8 @@ export default async function InspectionsPage({
                 <div className="mt-1 flex flex-wrap gap-1">
                   {/* Both of these are recorded facts, flagged for a human to
                       judge rather than reasons to have refused the record. */}
-                  {i.checkin_flagged && <Badge tone="caution">Check-in flagged</Badge>}
-                  {i.version_discrepancy && <Badge tone="neutral">Version superseded mid-visit</Badge>}
+                  {i.checkin_flagged && <Badge variant="warning">Check-in flagged</Badge>}
+                  {i.version_discrepancy && <Badge variant="secondary">Version superseded mid-visit</Badge>}
                 </div>
               </Cell>
               <Cell>
@@ -118,15 +118,15 @@ export default async function InspectionsPage({
               <Cell className="tabular-nums">{i.findings_count}</Cell>
               <Cell>
                 {i.reviewed ? (
-                  <Badge tone="good" dot>Decided</Badge>
+                  <Badge variant="success" dot>Decided</Badge>
                 ) : (
-                  <Badge tone="caution" dot>Awaiting decision</Badge>
+                  <Badge variant="warning" dot>Awaiting decision</Badge>
                 )}
               </Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
     </>
   );
 }

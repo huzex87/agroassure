@@ -1,5 +1,5 @@
 import { get, type DeviceRow, type UserRow } from "../../lib/api";
-import { Badge, Button, Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
+import { Badge, Button, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { approveDevice, enrollDevice, revokeDevice } from "./actions";
 
@@ -37,8 +37,8 @@ export default async function AdminPage() {
         }
       />
 
-      <Card title="Users" subtitle={`${users.length} in this jurisdiction`}>
-        <Table
+      <Panel title="Users" subtitle={`${users.length} in this jurisdiction`}>
+        <DataTable
           head={["Name", "Contact", "Roles", "Status", "Added"]}
           empty={users.length === 0 ? <Empty>No user has been created yet.</Empty> : undefined}
         >
@@ -52,7 +52,7 @@ export default async function AdminPage() {
                     <span className="text-ink-muted">No role</span>
                   ) : (
                     u.roles.map((r) => (
-                      <Badge key={r} tone="neutral">
+                      <Badge key={r} variant="secondary">
                         {ROLE_LABEL[r] ?? r}
                       </Badge>
                     ))
@@ -61,19 +61,19 @@ export default async function AdminPage() {
               </Cell>
               <Cell>
                 {u.status === "active" ? (
-                  <Badge tone="good" dot>Active</Badge>
+                  <Badge variant="success" dot>Active</Badge>
                 ) : (
-                  <Badge tone="caution" dot>Suspended</Badge>
+                  <Badge variant="warning" dot>Suspended</Badge>
                 )}
               </Cell>
               <Cell className="text-ink-muted">{formatDate(u.created_at)}</Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Enrol a device" className="lg:col-span-1">
+        <Panel title="Enrol a device" className="lg:col-span-1">
           <p className="mb-4 text-sm text-ink-muted">
             The device generates its own keypair and keeps the private half in its Keystore,
             where it cannot be exported. Enrolment registers only the public half, which is what
@@ -115,10 +115,10 @@ export default async function AdminPage() {
             </label>
             <Button disabled={inspectors.length === 0}>Enrol device</Button>
           </form>
-        </Card>
+        </Panel>
 
-        <Card title="Devices" className="lg:col-span-2">
-          <Table
+        <Panel title="Devices" className="lg:col-span-2">
+          <DataTable
             head={["Label", "Assigned to", "Enrolled", "Events", "Status", ""]}
             empty={
               devices.length === 0 ? <Empty>No device has been enrolled yet.</Empty> : undefined
@@ -137,12 +137,12 @@ export default async function AdminPage() {
                 <Cell className="tabular-nums">{d.events_authored}</Cell>
                 <Cell>
                   {d.status === "active" ? (
-                    <Badge tone="good" dot>Active</Badge>
+                    <Badge variant="success" dot>Active</Badge>
                   ) : d.status === "pending" ? (
-                    <Badge tone="caution" dot>Awaiting approval</Badge>
+                    <Badge variant="warning" dot>Awaiting approval</Badge>
                   ) : (
                     <div>
-                      <Badge tone="critical" dot>Revoked</Badge>
+                      <Badge variant="destructive" dot>Revoked</Badge>
                       <p className="mt-1 text-xs text-ink-muted">
                         {formatDateTime(d.revoked_at)}
                       </p>
@@ -167,20 +167,20 @@ export default async function AdminPage() {
                         aria-label={`Reason for revoking ${d.label ?? "device"}`}
                         className="w-32 rounded-[12px] border border-line px-2 py-1 text-xs"
                       />
-                      <Button variant="quiet">Revoke</Button>
+                      <Button variant="outline">Revoke</Button>
                     </form>
                   )}
                 </Cell>
               </Row>
             ))}
-          </Table>
+          </DataTable>
           <p className="mt-4 text-xs text-ink-muted">
             Revoking a device stops the server accepting anything new signed with its key. Every
             event it already authored stays valid and stays attributed: it was signed by a key
             the regulator trusted at the time, and rewriting that would be the tampering the
             hash chain exists to prevent.
           </p>
-        </Card>
+        </Panel>
       </div>
     </>
   );

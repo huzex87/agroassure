@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type FindingRow } from "../../lib/api";
-import { Card, Cell, Empty, Row, Table, PageHeader } from "../../components/ui";
+import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { FindingStatus, Severity } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -50,7 +50,7 @@ export default async function FindingsPage({
         }
       />
 
-      <Card>
+      <Panel>
         <form className="mb-4 flex flex-wrap items-center gap-3" action="/findings">
           <select
             name="status"
@@ -96,7 +96,7 @@ export default async function FindingsPage({
           </button>
         </form>
 
-        <Table
+        <DataTable
           head={["Reference", "Facility", "Finding", "Severity", "Due", "Status"]}
           empty={
             findings.length === 0 ? (
@@ -143,8 +143,8 @@ export default async function FindingsPage({
               </Cell>
             </Row>
           ))}
-        </Table>
-      </Card>
+        </DataTable>
+      </Panel>
     </>
   );
 }

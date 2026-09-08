@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { get, type DashboardSummary, type RiskSuggestion } from "../lib/api";
-import { Badge, Card, Cell, Empty, PageHeader, Reason, Row, Stat, Table } from "../components/ui";
-import { formatPercent } from "../lib/format";
+import { Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
+import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
 // The regulator dashboard: what to do today. Every number here reads from a
 // projection, so a heavy query on this page can never contend with an
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
               ? `${tiles.overdueFindings} past their due date`
               : "None past their due date"
           }
-          tone={tiles.overdueFindings > 0 ? "critical" : "neutral"}
+          tone={tiles.overdueFindings > 0 ? "destructive" : "neutral"}
           href="/findings"
         />
         <Stat
@@ -53,9 +53,9 @@ export default async function DashboardPage() {
           // certificates is not a good state, it is an unstarted one.
           tone={
             tiles.certificatesDueSoon > 0
-              ? "caution"
+              ? "warning"
               : tiles.validCertificates > 0
-                ? "good"
+                ? "success"
                 : "neutral"
           }
         />
@@ -67,12 +67,12 @@ export default async function DashboardPage() {
               ? "No inspections submitted in the last 90 days"
               : `${clock.decided} of ${clock.total} inspections in the last 90 days`
           }
-          tone={clock.percent !== null && clock.percent < 80 ? "caution" : "neutral"}
+          tone={clock.percent !== null && clock.percent < 80 ? "warning" : "neutral"}
         />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card
+        <Panel
           title="Risk-targeted inspections"
           subtitle="Suggestions, with the reason that produced each one. Scheduling is yours."
         >
@@ -110,69 +110,28 @@ export default async function DashboardPage() {
               ))}
             </ul>
           )}
-        </Card>
+        </Panel>
 
-        <Card
+        <Panel
           title="Findings by section"
           subtitle="Where the value chain is actually failing, not where it is assumed to."
-          flush={summary.findingsBySection.length > 0}
         >
-          {summary.findingsBySection.length === 0 ? (
-            <Empty>No findings recorded yet.</Empty>
-          ) : (
-            <Table head={["Section", "Findings", "Critical"]} align={["left", "right", "right"]}>
-              {summary.findingsBySection.map((s) => (
-                <Row key={s.section_ordinal}>
-                  <Cell className="font-medium text-ink">{s.section_title}</Cell>
-                  <Cell align="right" className="tabular-nums text-ink-muted">
-                    {s.findings}
-                  </Cell>
-                  <Cell align="right">
-                    {s.critical > 0 ? (
-                      <Badge tone="critical">{s.critical}</Badge>
-                    ) : (
-                      <span className="text-ink-faint">—</span>
-                    )}
-                  </Cell>
-                </Row>
-              ))}
-            </Table>
-          )}
-        </Card>
+          <FindingsBySection rows={summary.findingsBySection} />
+        </Panel>
       </div>
 
-      <Card
+      <Panel
         title="Compliance trend"
-        subtitle="Average rating and inspection volume by month."
-        flush={summary.complianceTrend.length > 0}
+        subtitle="Average rating by month, on a full 0–100 scale."
       >
-        {summary.complianceTrend.length === 0 ? (
-          <Empty>
-            Not enough history yet to show a trend. A month appears here once it has a
-            submitted inspection.
-          </Empty>
-        ) : (
-          <Table
-            head={["Month", "Inspections", "Satisfactory", "Average rating"]}
-            align={["left", "right", "right", "right"]}
-          >
-            {summary.complianceTrend.map((m) => (
-              <Row key={m.month}>
-                <Cell className="font-medium text-ink">{m.month}</Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
-                  {m.inspections}
-                </Cell>
-                <Cell align="right" className="tabular-nums text-ink-muted">
-                  {m.satisfactory} of {m.inspections}
-                </Cell>
-                <Cell align="right" className="font-medium tabular-nums">
-                  {formatPercent(m.avg_rating)}
-                </Cell>
-              </Row>
-            ))}
-          </Table>
-        )}
-      </Card>
+        <ComplianceTrend
+          points={summary.complianceTrend.map((m) => ({
+            month: m.month,
+            value: m.avg_rating === null ? null : Number(m.avg_rating),
+            inspections: m.inspections,
+          }))}
+        />
+      </Panel>
     </>
   );
 }

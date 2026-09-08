@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { Button, Card } from "../../components/ui";
+import { Button, Panel } from "../../components/ui";
 import { authorizeUrl, challengeFor, newState, newVerifier, oidcSettings } from "../../lib/oidc";
 import { isWellFormedToken } from "../../lib/api";
 
@@ -144,7 +144,7 @@ export default async function SignInPage({
   if (settings) {
     return (
       <div className="w-full">
-        <Card title="Sign in" subtitle="Continue with your institutional account.">
+        <Panel title="Sign in" subtitle="Continue with your institutional account.">
           {notice}
           <form action={startOidc}>
             <Button>Continue</Button>
@@ -154,14 +154,14 @@ export default async function SignInPage({
             sees your password, and your role and jurisdiction come from the provider rather
             than from anything you can set here.
           </p>
-        </Card>
+        </Panel>
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      <Card
+      <Panel
         title="Sign in"
         subtitle={
           users.length > 0
@@ -236,7 +236,7 @@ export default async function SignInPage({
           jurisdiction from it. Set OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET and
           OIDC_REDIRECT_URI to replace this with the OpenID Connect redirect.
         </p>
-      </Card>
+      </Panel>
     </div>
   );
 }

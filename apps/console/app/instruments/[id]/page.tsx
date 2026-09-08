@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get } from "../../../lib/api";
-import { Badge, Card, Empty } from "../../../components/ui";
+import { Badge, Panel, Empty } from "../../../components/ui";
 import { SEVERITY_LABEL, label } from "../../../lib/format";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +61,7 @@ export default async function InstrumentVersionPage({
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-ink">{version.versionLabel}</h1>
-          <Badge tone={version.status === "in_force" ? "good" : "neutral"}>
+          <Badge variant={version.status === "in_force" ? "success" : "secondary"}>
             {version.status === "in_force"
               ? "In force"
               : version.status === "draft"
@@ -76,7 +76,7 @@ export default async function InstrumentVersionPage({
       </header>
 
       {version.status === "draft" && (
-        <Card
+        <Panel
           title={changes.from ? `Changes from ${changes.from}` : "Changes"}
           subtitle="What moves if this version is published. Nothing already submitted is affected."
         >
@@ -91,7 +91,7 @@ export default async function InstrumentVersionPage({
               {changes.changes.map((c, i) => (
                 <li key={`${c.ref}-${i}`} className="flex items-start gap-3 py-2.5">
                   <span className="w-12 shrink-0 font-mono text-xs text-ink-muted">{c.ref}</span>
-                  <Badge tone={c.kind === "removed" ? "caution" : "neutral"}>
+                  <Badge variant={c.kind === "removed" ? "warning" : "secondary"}>
                     {label(CHANGE_LABEL, c.kind)}
                   </Badge>
                   <span className="min-w-0 flex-1 text-sm text-ink-muted">{c.detail}</span>
@@ -99,11 +99,11 @@ export default async function InstrumentVersionPage({
               ))}
             </ul>
           )}
-        </Card>
+        </Panel>
       )}
 
       {version.sections.map((section) => (
-        <Card
+        <Panel
           key={section.ordinal}
           title={`${section.ordinal}. ${section.titleEn}`}
           subtitle={section.titleHa}
@@ -128,7 +128,7 @@ export default async function InstrumentVersionPage({
               </li>
             ))}
           </ul>
-        </Card>
+        </Panel>
       ))}
     </div>
   );
