@@ -7,20 +7,20 @@ import {
   signEventHash,
   type InstrumentStructure,
 } from "@agroassure/domain";
-import { AppModule } from "../app.module";
-import { PgService } from "../db/pg.service";
-import { ProjectorService } from "../projections/projector.service";
-import { EventAppender } from "../events/event-appender.service";
-import { IngestService } from "../sync/ingest.service";
-import { PgEventStore } from "../sync/pg-event-store";
-import { RegistryService } from "../console/registry.service";
-import { InspectionsService } from "../console/inspections.service";
-import { FindingsService } from "../console/findings.service";
-import { CertificatesService } from "../console/certificates.service";
-import { AdminService } from "../console/admin.service";
-import { PlanningService } from "../console/planning.service";
-import { QueryService } from "../sync/query.service";
-import type { Principal } from "../common/principal";
+import { AppModule } from "../src/app.module";
+import { PgService } from "../src/db/pg.service";
+import { ProjectorService } from "../src/projections/projector.service";
+import { EventAppender } from "../src/events/event-appender.service";
+import { IngestService } from "../src/sync/ingest.service";
+import { PgEventStore } from "../src/sync/pg-event-store";
+import { RegistryService } from "../src/console/registry.service";
+import { InspectionsService } from "../src/console/inspections.service";
+import { FindingsService } from "../src/console/findings.service";
+import { CertificatesService } from "../src/console/certificates.service";
+import { AdminService } from "../src/console/admin.service";
+import { PlanningService } from "../src/console/planning.service";
+import { QueryService } from "../src/sync/query.service";
+import type { Principal } from "../src/common/principal";
 
 // A demo programme with a year of history behind it.
 //
@@ -38,7 +38,7 @@ import type { Principal } from "../common/principal";
 // point, because seeded rows written straight into the read models would be a
 // demonstration of something this platform does not do.
 //
-//   DATABASE_URL=postgres://... node dist/cli/seed-demo.js
+//   DATABASE_URL=postgres://... pnpm --filter @agroassure/sync-gateway seed:demo
 //
 // Re-runnable. Fictional throughout: the businesses do not exist, and the
 // people are the seeded demo accounts.

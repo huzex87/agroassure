@@ -59,6 +59,13 @@ jobs:
       - name: Type-check every package
         run: pnpm -r run typecheck
 
+      # The demo seeder lives outside the service's own tsconfig, because it
+      # imports field-core to author events the way a handset does and that has
+      # no business in the image the gateway ships as. Out of that build, it is
+      # also out of every check — so it gets its own, or it rots.
+      - name: Type-check the development tools
+        run: pnpm --filter @agroassure/sync-gateway run typecheck:tools
+
       - name: Unit tests
         run: pnpm -r run test
 
