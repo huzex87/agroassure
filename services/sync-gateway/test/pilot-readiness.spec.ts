@@ -72,4 +72,36 @@ describe("a pilot deployment", () => {
     expect(config.devSignIn).toBe(true);
     expect(config.evidenceStore).toBe("local");
   });
+
+  // Encryption is not authentication. sslmode=no-verify gets a connection up
+  // against a managed Postgres in one line and accepts whatever certificate
+  // answers, which is exactly the shape a pilot would otherwise ship in.
+  const NO_VERIFY = "postgresql://u:p@db.example:5432/postgres?sslmode=no-verify";
+
+  it("refuses a database connection that is encrypted but not authenticated", () => {
+    expect(() =>
+      loadConfig({ ...PILOT, DATABASE_URL: NO_VERIFY }),
+    ).toThrow(/encrypted but not authenticated/);
+  });
+
+  it("names whichever of the two connections is unverified", () => {
+    let message = "";
+    try {
+      loadConfig({ ...PILOT, PUBLIC_VERIFY_DATABASE_URL: NO_VERIFY });
+    } catch (e) {
+      message = e instanceof Error ? e.message : String(e);
+    }
+    expect(message).toMatch(/PUBLIC_VERIFY_DATABASE_URL/);
+    expect(message).not.toMatch(/DATABASE_URL and/);
+  });
+
+  it("accepts it once the provider's CA is configured", () => {
+    const config = loadConfig({
+      ...PILOT,
+      DATABASE_URL: NO_VERIFY,
+      PUBLIC_VERIFY_DATABASE_URL: NO_VERIFY,
+      PGSSLROOTCERT_PEM: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----",
+    });
+    expect(config.databaseUrl).toBe(NO_VERIFY);
+  });
 });

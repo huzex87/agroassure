@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { Pool } from "pg";
+import { sslOptionsFor } from "../db/ssl";
 import { CONFIG, type AppConfig } from "../config/config";
 
 // The public verification surface returns one of exactly two answers, and it
@@ -78,7 +79,7 @@ export class PublicVerifyService implements OnModuleDestroy {
           "application connection. Set it to a public_verify_role connection before production.",
       );
     }
-    this.pool = new Pool({ connectionString: config.publicVerifyDatabaseUrl, max: 4 });
+    this.pool = new Pool({ connectionString: config.publicVerifyDatabaseUrl, ssl: sslOptionsFor(), max: 4 });
   }
 
   /**

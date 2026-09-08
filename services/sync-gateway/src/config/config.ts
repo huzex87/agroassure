@@ -1,5 +1,7 @@
 // Environment configuration. Read once at boot; fail fast on missing essentials.
 
+import { isUnverifiedSsl, sslOptionsFor } from "../db/ssl";
+
 export interface S3Config {
   bucket: string;
   region: string;
@@ -140,6 +142,22 @@ function assertFitForPilot(env: NodeJS.ProcessEnv, config: AppConfig): void {
   if (!config.publicVerifyUsesOwnRole) {
     refusals.push(
       "no PUBLIC_VERIFY_DATABASE_URL. The public surface would share the application's connection instead of a role granted one view, so a fault there could reach the whole database.",
+    );
+  }
+
+  // Encryption is not authentication. sslmode=no-verify accepts whatever
+  // certificate answers, so an active machine-in-the-middle can hold both ends
+  // of the encrypted conversation. Configuring the provider's CA settles it.
+  const unverified = [
+    ["DATABASE_URL", config.databaseUrl],
+    ["PUBLIC_VERIFY_DATABASE_URL", config.publicVerifyDatabaseUrl],
+  ].filter(([, url]) => isUnverifiedSsl(url as string));
+
+  if (unverified.length > 0 && !sslOptionsFor(env)) {
+    refusals.push(
+      `${unverified.map(([name]) => name).join(" and ")} disable certificate verification and no ` +
+        "CA is configured, so the database connection is encrypted but not authenticated. " +
+        "Set PGSSLROOTCERT_PEM to the provider's CA certificate.",
     );
   }
 

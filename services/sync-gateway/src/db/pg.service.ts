@@ -1,5 +1,6 @@
 import { Injectable, Inject, OnModuleDestroy } from "@nestjs/common";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { sslOptionsFor } from "./ssl";
 import { CONFIG, type AppConfig } from "../config/config";
 
 // Thin wrapper over a pg Pool. Exposes query() for one-off statements and
@@ -12,7 +13,7 @@ export class PgService implements OnModuleDestroy {
   private readonly pool: Pool;
 
   constructor(@Inject(CONFIG) config: AppConfig) {
-    this.pool = new Pool({ connectionString: config.databaseUrl });
+    this.pool = new Pool({ connectionString: config.databaseUrl, ssl: sslOptionsFor() });
   }
 
   async query<T extends QueryResultRow = QueryResultRow>(
