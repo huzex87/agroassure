@@ -96,7 +96,7 @@ export class TokenVerifier {
    * report itself unhealthy, not fail to boot because the provider was briefly
    * slow.
    */
-  private jwks: Promise<JwksClient> | null = null;
+  private jwks: Promise<{ client: JwksClient; issuer: string }> | null = null;
 
   constructor(@Inject(CONFIG) private readonly config: AppConfig) {
     if (config.oidc) {
@@ -126,8 +126,18 @@ export class TokenVerifier {
     }
   }
 
-  /** The provider's own answer to where its keys are. */
-  private keys(): Promise<JwksClient> {
+  /**
+   * The provider's own answer to where its keys are, and to what its issuer
+   * claim actually reads.
+   *
+   * The issuer configured locally is normalised (trailing slash stripped) so
+   * it composes cleanly into the discovery URL, but the "iss" a provider
+   * stamps into a token is its own literal string — Auth0's carries a
+   * trailing slash, for one. Trusting the discovery document's own `issuer`
+   * field over the local one is what the spec requires anyway: it MUST match
+   * the token's claim exactly.
+   */
+  private keys(): Promise<{ client: JwksClient; issuer: string }> {
     if (this.jwks) return this.jwks;
 
     const oidc = this.config.oidc!;
@@ -137,11 +147,11 @@ export class TokenVerifier {
       if (!response.ok) {
         throw new Error(`identity provider did not answer discovery at ${url} (${response.status})`);
       }
-      const doc = (await response.json()) as { jwks_uri?: string };
+      const doc = (await response.json()) as { jwks_uri?: string; issuer?: string };
       if (!doc.jwks_uri) throw new Error(`${url} names no jwks_uri`);
 
       this.logger.log(`key set: ${doc.jwks_uri}`);
-      return new JwksClient({
+      const client = new JwksClient({
         jwksUri: doc.jwks_uri,
         cache: true,
         cacheMaxAge: 10 * 60 * 1000,
@@ -150,6 +160,7 @@ export class TokenVerifier {
         rateLimit: true,
         jwksRequestsPerMinute: 10,
       });
+      return { client, issuer: typeof doc.issuer === "string" ? doc.issuer : oidc.issuer };
     })();
 
     // A failed lookup is not cached: a provider that was briefly unreachable
@@ -169,8 +180,9 @@ export class TokenVerifier {
     // credentials suddenly being wrong. fetch throws a bare TypeError when DNS
     // or the network fails, so it is caught here rather than escaping as a 500.
     let client: JwksClient;
+    let issuer: string;
     try {
-      client = await this.keys();
+      ({ client, issuer } = await this.keys());
     } catch (err) {
       this.logger.error(`cannot reach the identity provider: ${String(err)}`);
       throw new ServiceUnavailableException("the identity provider could not be reached");
@@ -189,7 +201,7 @@ export class TokenVerifier {
           // Asymmetric only. Accepting HS256 here would let anyone who learned
           // the public key sign their own tokens with it.
           algorithms: ["RS256", "RS384", "RS512", "ES256"],
-          issuer: oidc.issuer,
+          issuer,
           audience: oidc.audience,
         },
         (err, decoded) =>
