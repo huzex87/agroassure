@@ -18,7 +18,7 @@ services:
     name: agroassure-gateway
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: 0.5c-512mb
     region: ohio            # co-located with the Supabase project and the evidence bucket
     healthCheckPath: /health
     autoDeployTrigger: commit
