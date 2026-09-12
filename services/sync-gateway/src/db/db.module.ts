@@ -2,6 +2,7 @@ import { Global, Module } from "@nestjs/common";
 import { PgService } from "./pg.service";
 import { CONFIG, loadConfig } from "../config/config";
 import { TokenVerifier } from "../common/token-verifier";
+import { UserDirectory } from "../common/user-directory";
 
 // Global because configuration, the connection pool, and token verification are
 // needed by every module and belong to none of them. TokenVerifier in particular
@@ -14,7 +15,8 @@ import { TokenVerifier } from "../common/token-verifier";
     { provide: CONFIG, useFactory: () => loadConfig() },
     PgService,
     TokenVerifier,
+    UserDirectory,
   ],
-  exports: [PgService, CONFIG, TokenVerifier],
+  exports: [PgService, CONFIG, TokenVerifier, UserDirectory],
 })
 export class DbModule {}

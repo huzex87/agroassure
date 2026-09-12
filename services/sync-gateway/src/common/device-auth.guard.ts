@@ -1,7 +1,14 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import type { Request } from "express";
 import { PRINCIPAL_KEY, type Principal } from "./principal";
 import { TokenVerifier } from "./token-verifier";
+import { UserDirectory } from "./user-directory";
 import { MetricsService } from "../health/metrics.service";
 import { attributeContext } from "./request-context";
 
@@ -19,6 +26,7 @@ import { attributeContext } from "./request-context";
 export class DeviceAuthGuard implements CanActivate {
   constructor(
     private readonly verifier: TokenVerifier,
+    private readonly directory: UserDirectory,
     private readonly metrics: MetricsService,
   ) {}
 
@@ -38,6 +46,20 @@ export class DeviceAuthGuard implements CanActivate {
       this.metrics.increment("auth_failures");
       throw err;
     }
+
+    // The token said who the provider knows. This says who this platform
+    // knows, and every record that names a person names that one. A valid
+    // token for somebody the register has never heard of is refused rather
+    // than admitted: the register is what decides who holds an office here,
+    // and a certificate has to name an officer who exists.
+    const user = await this.directory.resolve(principal.userId);
+    if (!user) {
+      this.metrics.increment("auth_failures");
+      throw new ForbiddenException(
+        "your sign-in is not linked to a user on this platform; an administrator must add you",
+      );
+    }
+    principal = { ...principal, userId: user.id };
 
     (req as Request & Record<string, unknown>)[PRINCIPAL_KEY] = principal;
     // Now that the caller is known, the rest of this request's log lines can
