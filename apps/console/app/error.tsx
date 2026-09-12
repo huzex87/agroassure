@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { DENIED } from "../lib/api";
+
 // An error here is usually the API refusing something on purpose — a role that
 // does not permit a page, an invariant that will not bend. Say so plainly.
 //
@@ -11,8 +13,24 @@ import Link from "next/link";
 // go through", which reads as a broken console rather than as a rule. lib/api
 // turns the envelope into a sentence; this decides how much alarm to show.
 
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
-  const denied = error.message.startsWith("Your role does not have access");
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  // Not error.message: Next replaces that with "the specific message is
+  // omitted in production builds" before it ever reaches the browser, so
+  // reading it here worked on a laptop and nowhere else. The digest is the
+  // only field that crosses.
+  const denied = error.digest?.startsWith(DENIED) ?? false;
+  const roles = denied ? error.digest!.slice(`${DENIED}:`.length) : "";
+  const explanation = denied
+    ? roles && roles !== error.digest
+      ? `This page is available to: ${roles}.`
+      : "This page is not available to your role."
+    : error.message || "The request failed.";
 
   return (
     <div className="mx-auto w-full max-w-lg py-12">
@@ -43,22 +61,17 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           <h1 className="text-base font-semibold text-ink">
             {denied ? "Not available to your role" : "That did not go through"}
           </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-            {error.message || "The request failed."}
-          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{explanation}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {/* A refusal will refuse again, so "try again" is the wrong offer:
-              what that reader needs is a way out, not a way to repeat it. */}
-          {denied ? (
-            <Link
-              href="/facilities"
-              className="inline-flex items-center rounded-control bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-            >
-              Go to Facilities
-            </Link>
-          ) : (
+              what that reader needs is a way out, not a way to repeat it.
+              It used to offer Facilities, but an auditor and an inspector are
+              both refused there too, so the way out led straight back here. The
+              rail is still on screen for anyone with somewhere to go; the one
+              offer that is never wrong is to arrive as somebody else. */}
+          {denied ? null : (
             <button
               type="button"
               onClick={reset}
@@ -69,7 +82,11 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           )}
           <Link
             href="/signin"
-            className="inline-flex items-center rounded-control bg-surface px-3.5 py-2 text-sm font-medium text-ink ring-1 ring-inset ring-line-firm transition-colors hover:bg-surface-sunk"
+            className={
+              denied
+                ? "inline-flex items-center rounded-control bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
+                : "inline-flex items-center rounded-control bg-surface px-3.5 py-2 text-sm font-medium text-ink ring-1 ring-inset ring-line-firm transition-colors hover:bg-surface-sunk"
+            }
           >
             Sign in as someone else
           </Link>

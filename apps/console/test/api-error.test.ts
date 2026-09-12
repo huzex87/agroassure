@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readableError } from "../lib/api";
+import { DENIED, denialDigest, readableError } from "../lib/api";
 
 // The gateway nests its message inside another message object. Putting the raw
 // body on an Error meant an inspector who opened the dashboard — which their
@@ -56,5 +56,29 @@ describe("readableError", () => {
   it("falls back to the status when there is nothing at all", () => {
     expect(readableError("", res(502, "Bad Gateway"))).toBe("Bad Gateway");
     expect(readableError("", res(599))).toBe("Request failed with status 599");
+  });
+});
+
+// Next replaces a Server Component error's message with "the specific message
+// is omitted in production builds" and forwards only the digest. The refusal
+// therefore has to travel in the digest or it does not reach the reader at all
+// — which is how the friendly screen came to be dead code in production while
+// passing every test on a laptop.
+describe("a refusal crossing into the browser", () => {
+  it("carries the roles in the digest, which is the field that survives", () => {
+    const message = readableError(
+      JSON.stringify({ message: { message: "requires one of: desk_supervisor, state_admin" } }),
+      res(403),
+    );
+    expect(denialDigest(403, message)).toBe(`${DENIED}:desk supervisor, state admin`);
+  });
+
+  it("still marks a refusal that named no roles", () => {
+    expect(denialDigest(403, readableError("", res(403)))).toBe(DENIED);
+  });
+
+  it("leaves anything that is not a refusal alone", () => {
+    expect(denialDigest(500, "boom")).toBeUndefined();
+    expect(denialDigest(504, "upstream timed out")).toBeUndefined();
   });
 });

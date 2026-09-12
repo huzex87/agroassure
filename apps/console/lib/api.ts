@@ -40,12 +40,39 @@ export function isWellFormedToken(token: string): boolean {
 }
 
 export class ApiError extends Error {
+  /**
+   * Next strips a Server Component error's message in production and forwards
+   * only `digest` to the error boundary. So the refusal used to arrive at the
+   * browser as "the specific message is omitted in production builds" — an
+   * inspector opening the dashboard was told the console had broken, when the
+   * console was doing exactly what it is supposed to do. What the reader needs
+   * to be told travels here, because nothing else survives the crossing.
+   */
+  readonly digest?: string;
+
   constructor(
     readonly status: number,
     message: string,
+    digest?: string,
   ) {
     super(message);
+    this.digest = digest;
   }
+}
+
+/** The prefix the error boundary recognises a role refusal by. */
+export const DENIED = "role-denied";
+
+/**
+ * A refusal, in the one field that reaches the browser.
+ *
+ * Read back out of the sentence rather than off the response, so there is a
+ * single place that decides how a 403 is phrased.
+ */
+export function denialDigest(status: number, message: string): string | undefined {
+  if (status !== 403) return undefined;
+  const roles = /It is available to: (.+)\.$/.exec(message)?.[1];
+  return roles ? `${DENIED}:${roles}` : DENIED;
 }
 
 /**
@@ -102,7 +129,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (response.status === 401) redirect("/signin");
   if (!response.ok) {
-    throw new ApiError(response.status, readableError(await response.text(), response));
+    const message = readableError(await response.text(), response);
+    throw new ApiError(response.status, message, denialDigest(response.status, message));
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
