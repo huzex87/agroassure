@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DENIED, denialDigest, readableError } from "../lib/api";
+import { denialDigest, readableError } from "../lib/api";
+import { DENIED } from "../lib/denied";
 
 // The gateway nests its message inside another message object. Putting the raw
 // body on an Error meant an inspector who opened the dashboard — which their

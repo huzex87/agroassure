@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { DENIED } from "../lib/api";
+import { DENIED } from "../lib/denied";
 
 // An error here is usually the API refusing something on purpose — a role that
 // does not permit a page, an invariant that will not bend. Say so plainly.

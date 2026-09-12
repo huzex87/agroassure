@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { DENIED } from "./denied";
+
 // The console reads and writes through the API, never through the database.
 // Every rule that matters — role, jurisdiction, the certificate invariant, the
 // public-verify boundary — is enforced on the far side of this file, so nothing
@@ -59,9 +61,6 @@ export class ApiError extends Error {
     this.digest = digest;
   }
 }
-
-/** The prefix the error boundary recognises a role refusal by. */
-export const DENIED = "role-denied";
 
 /**
  * A refusal, in the one field that reaches the browser.
