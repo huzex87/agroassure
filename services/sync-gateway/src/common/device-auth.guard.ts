@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import type { Request } from "express";
@@ -24,6 +25,8 @@ import { attributeContext } from "./request-context";
 
 @Injectable()
 export class DeviceAuthGuard implements CanActivate {
+  private readonly logger = new Logger("Auth");
+
   constructor(
     private readonly verifier: TokenVerifier,
     private readonly directory: UserDirectory,
@@ -55,6 +58,13 @@ export class DeviceAuthGuard implements CanActivate {
     const user = await this.directory.resolve(principal.userId);
     if (!user) {
       this.metrics.increment("auth_failures");
+      // Named, because the administrator who has to fix this needs the one
+      // thing the person being refused cannot tell them: the subject their
+      // provider issues them under, which is what app_user.oidc_subject must
+      // be set to. Refusing without saying who leaves nobody able to act.
+      this.logger.warn(
+        `refused: no active app_user with oidc_subject ${JSON.stringify(principal.userId)}`,
+      );
       throw new ForbiddenException(
         "your sign-in is not linked to a user on this platform; an administrator must add you",
       );
