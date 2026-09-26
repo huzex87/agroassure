@@ -3,26 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { post } from "../../lib/api";
 
-export async function enrollDevice(formData: FormData) {
-  const label = String(formData.get("label") ?? "").trim();
-  await post("/v1/devices", {
-    assignedUserId: String(formData.get("assignedUserId") ?? ""),
-    label: label || undefined,
-    publicKeyBase64: String(formData.get("publicKeyBase64") ?? "").trim(),
-  });
-  revalidatePath("/admin");
-}
-
 export async function approveDevice(deviceId: string) {
   await post(`/v1/devices/${deviceId}/approve`, {});
-  revalidatePath("/admin");
+  revalidatePath("/team");
 }
 
 export async function revokeDevice(deviceId: string, formData: FormData) {
   await post(`/v1/devices/${deviceId}/revoke`, {
     reason: String(formData.get("reason") ?? ""),
   });
-  revalidatePath("/admin");
+  revalidatePath("/team");
 }
 
 export async function createUser(formData: FormData) {
@@ -31,5 +21,5 @@ export async function createUser(formData: FormData) {
     email: String(formData.get("email") ?? "").trim() || undefined,
     roles: formData.getAll("roles").map(String),
   });
-  revalidatePath("/admin");
+  revalidatePath("/team");
 }

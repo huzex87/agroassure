@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { generateKeypair, identity, setDeviceId, forgetIdentity } from "../src/signer";
-import { setInspectorId, inspectorId, resetSession } from "../src/session";
+import { setInspectorId, setInspectorName, inspectorId, resetSession } from "../src/session";
 import {
   fetchDeviceState,
   fetchSignInUsers,
@@ -95,6 +95,7 @@ export default function Enrol() {
     try {
       const { userId } = await signInAs(user.email);
       await setInspectorId(userId);
+      await setInspectorName(user.full_name);
       // Ask straight away. There is nothing else the inspector could usefully
       // do at this point, and one tap is better than two.
       const state = await requestEnrolment(publicKey, user.full_name);
@@ -183,11 +184,6 @@ export default function Enrol() {
         <View style={styles.card}>
           <Text style={styles.h1}>{t("awaitingApproval")}</Text>
           <Text style={styles.body}>{t("awaitingApprovalBody")}</Text>
-          <View style={styles.divider} />
-          <Text style={styles.muted}>{t("thisDevice")}</Text>
-          <Text style={styles.mono} selectable>
-            {publicKey}
-          </Text>
           <Pressable style={styles.button} onPress={check} disabled={busy}>
             {busy ? (
               <ActivityIndicator color="#fff" />
@@ -215,7 +211,7 @@ export default function Enrol() {
           disabled={busy}
           accessibilityRole="button"
         >
-          <Text style={[styles.buttonText, styles.buttonQuietText]}>{t("signOutDevice")}</Text>
+          <Text style={[styles.buttonText, styles.buttonQuietText]}>{t("signOut")}</Text>
         </Pressable>
       ) : null}
     </ScrollView>

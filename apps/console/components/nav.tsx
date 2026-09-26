@@ -31,13 +31,13 @@ export const NAV: Array<{ heading: string; items: NavItem[] }> = [
     items: [
       { href: "/facilities", label: "Facilities", Icon: IconBuilding },
       { href: "/inspections", label: "Inspections", Icon: IconClipboard },
-      { href: "/findings", label: "Corrective actions", Icon: IconFlag },
-      { href: "/instruments", label: "Instruments", Icon: IconLayers },
+      { href: "/findings", label: "Issues to fix", Icon: IconFlag },
+      { href: "/instruments", label: "Checklists", Icon: IconLayers },
     ],
   },
   {
     heading: "Administration",
-    items: [{ href: "/admin", label: "Users and devices", Icon: IconUsers }],
+    items: [{ href: "/team", label: "Team", Icon: IconUsers }],
   },
 ];
 

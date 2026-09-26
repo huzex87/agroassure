@@ -345,7 +345,7 @@ export default function Checklist() {
                     onPress={() => commit(ref, draft)}
                     accessibilityRole="button"
                   >
-                    <Text style={styles.buttonText}>Save</Text>
+                    <Text style={styles.buttonText}>{t("save")}</Text>
                   </Pressable>
                 ) : null}
               </View>

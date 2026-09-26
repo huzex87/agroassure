@@ -42,7 +42,7 @@ export default async function FindingsPage({
   return (
     <>
       <PageHeader
-        title="Corrective actions"
+        title="Issues to fix"
         summary={
           <>
           {findings.length} shown · {overdue} past due · {escalated} escalated

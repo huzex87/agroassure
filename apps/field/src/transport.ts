@@ -155,3 +155,8 @@ export function httpTransport(): SyncTransport {
     },
   };
 }
+
+/** Signed out: the session token goes with the person it belonged to. */
+export async function clearToken(): Promise<void> {
+  await SecureStore.deleteItemAsync(TOKEN);
+}

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import * as SecureStore from "expo-secure-store";
 
 // English and Hausa are both first-class. The instrument's own content is
 // bilingual in the data model — paired columns in one row — so a checkpoint
@@ -10,79 +11,107 @@ export type Language = "en" | "ha";
 const STRINGS = {
   todaysVisits: { en: "Today's visits", ha: "Ziyarce-ziyarcen yau" },
   noVisits: {
-    en: "No visits assigned. Sync before you leave to collect your day.",
-    ha: "Babu ziyarar da aka ba ka. Yi sync kafin ka tafi don karɓar aikin ranarka.",
-  },
-  offline: { en: "Offline", ha: "Babu haɗi" },
-  online: { en: "Online", ha: "Akwai haɗi" },
-  queued: { en: "queued", ha: "a jira" },
-  syncNow: { en: "Sync now", ha: "Yi sync yanzu" },
-  nothingLost: {
-    en: "Saved on this device. It will sync automatically.",
-    ha: "An adana a wannan na'urar. Zai yi sync da kansa.",
+    en: "No visits yet. Your supervisor's assignments appear here as soon as your phone has a signal.",
+    ha: "Babu ziyara tukuna. Ayyukan da shugabanka ya ba ka za su bayyana a nan da zarar wayarka ta sami sigina.",
   },
   startInspection: { en: "Start inspection", ha: "Fara binciken" },
   continueInspection: { en: "Continue", ha: "Ci gaba" },
   yes: { en: "Yes", ha: "Ee" },
   no: { en: "No", ha: "A'a" },
   na: { en: "N/A", ha: "Ba ya shafa" },
-  remark: { en: "Remark", ha: "Bayani" },
+  remark: { en: "What did you see?", ha: "Me ka gani?" },
   remarkRequired: {
-    en: "A remark is required for an adverse response.",
-    ha: "Ana buƙatar bayani domin amsa mara kyau.",
+    en: "Say what you saw. A \"No\" needs a short note.",
+    ha: "Faɗi abin da ka gani. Amsar \"A'a\" tana buƙatar ɗan bayani.",
   },
+  save: { en: "Save", ha: "Adana" },
   addPhoto: { en: "Add photo", ha: "Ƙara hoto" },
   photoBound: {
-    en: "Checksummed at capture. It cannot be replaced after submission.",
-    ha: "An lissafa checksum lokacin ɗauka. Ba za a iya maye gurbinsa ba bayan mikawa.",
+    en: "🔒 Saved as evidence. Photos can't be changed after you submit.",
+    ha: "🔒 An adana a matsayin shaida. Ba za a iya canza hotuna ba bayan ka mika.",
   },
-  running: { en: "Compliance so far", ha: "Bin ka'ida ya zuwa yanzu" },
+  running: { en: "Score so far", ha: "Maki ya zuwa yanzu" },
   answered: { en: "answered", ha: "an amsa" },
-  signOff: { en: "Sign off", ha: "Sanya hannu" },
-  inspectorSignature: { en: "Inspector", ha: "Mai binciken" },
-  facilityRep: { en: "Facility representative", ha: "Wakilin ma'aikata" },
+  signOff: { en: "Finish and sign", ha: "Kammala ka sa hannu" },
+  inspectorSignature: { en: "Your signature", ha: "Sa hannunka" },
+  facilityRep: { en: "Facility representative", ha: "Wakilin wurin" },
   repName: { en: "Full name", ha: "Cikakken suna" },
   repRole: { en: "Role", ha: "Matsayi" },
   sign: { en: "Sign", ha: "Sanya hannu" },
   submit: { en: "Submit inspection", ha: "Mika binciken" },
-  findings: { en: "Findings", ha: "Abubuwan da aka gano" },
+  submittedTitle: { en: "Inspection submitted", ha: "An mika binciken" },
+  submittedBody: {
+    en: "It is saved on this phone and will be sent to your office automatically.",
+    ha: "An adana shi a wannan wayar kuma za a aika shi ofishinku da kansa.",
+  },
+  backToVisits: { en: "Back to today's visits", ha: "Koma ziyarce-ziyarcen yau" },
+  findings: { en: "Issues found", ha: "Matsalolin da aka gano" },
   unanswered: { en: "still unanswered", ha: "ba a amsa ba tukuna" },
   checkinFar: {
-    en: "You are further from the registered location than expected. This is recorded for your supervisor; carry on.",
-    ha: "Kana nesa da wurin da aka yi rijista fiye da yadda ake tsammani. An rubuta wannan don shugabanka; ci gaba.",
+    en: "You seem to be some distance from this facility's address. That's fine — it's noted for your supervisor. Carry on.",
+    ha: "Da alama kana nesa da adireshin wannan wurin. Ba komai — an rubuta wa shugabanka. Ci gaba.",
   },
+  // Getting a phone ready to use.
   whoAreYou: { en: "Who are you?", ha: "Wane ne kai?" },
   signInBody: {
-    en: "Choose your name. This device will then ask your administrator to approve it.",
-    ha: "Zaɓi sunanka. Sannan wannan na'urar za ta nemi shugabanka ya amince da ita.",
+    en: "Choose your name to set up this phone.",
+    ha: "Zaɓi sunanka don saita wannan wayar.",
   },
   noSignInAvailable: {
-    en: "This server does not offer sign-in. Ask your administrator to enrol this device.",
-    ha: "Wannan sabar ba ta bayar da shiga ba. Ka nemi shugabanka ya yi rijistar na'urar.",
+    en: "Ask your administrator for an invite code.",
+    ha: "Ka nemi shugabanka ya ba ka lambar gayyata.",
   },
-  awaitingApproval: { en: "Waiting for approval", ha: "Ana jiran amincewa" },
+  awaitingApproval: { en: "Almost ready", ha: "Kusan a shirye" },
   awaitingApprovalBody: {
-    en: "Your administrator can see this device now. Your work is saved here in the meantime and will sync once it is approved.",
-    ha: "Shugabanka na iya ganin wannan na'urar yanzu. Aikinka na nan a adane, zai yi sync bayan an amince.",
+    en: "Your administrator needs to confirm this phone. You can start working now — everything is saved here and will be sent once it's confirmed.",
+    ha: "Shugabanka yana buƙatar ya tabbatar da wannan wayar. Za ka iya fara aiki yanzu — komai na adane a nan, za a aika bayan an tabbatar.",
   },
-  thisDevice: { en: "This device's key", ha: "Makullin wannan na'urar" },
   checkAgain: { en: "Check again", ha: "Sake dubawa" },
-  deviceReady: { en: "This device is ready", ha: "Wannan na'urar a shirye take" },
+  deviceReady: { en: "You're all set", ha: "Komai ya shirya" },
   deviceReadyBody: {
-    en: "Approved. Everything queued on this device can sync now.",
-    ha: "An amince. Duk abin da ke jira zai iya yin sync yanzu.",
+    en: "This phone is ready. Your visits will appear automatically.",
+    ha: "Wannan wayar ta shirya. Ziyarce-ziyarcenka za su bayyana da kansu.",
   },
-  signOutDevice: { en: "Sign out of this device", ha: "Fita daga wannan na'urar" },
-  enrolTitle: { en: "Enrol this device", ha: "Yi rijistar wannan na'urar" },
-  enrolBody: {
-    en: "Give this code to your administrator. The key that signs your work stays on this device and is never sent.",
-    ha: "Ba wa shugabanka wannan lambar. Makullin da ke sa hannu kan aikinka yana nan a wannan na'urar, ba a taɓa aika shi ba.",
+  setUpPhone: { en: "Set up this phone", ha: "Saita wannan wayar" },
+  setUpPhoneBody: {
+    en: "This phone isn't linked to your account yet. Tap here to finish setting it up.",
+    ha: "Ba a haɗa wannan wayar da asusunka ba tukuna. Taɓa nan don kammala saitawa.",
   },
-  language: { en: "Hausa", ha: "English" },
+  // Sending.
+  allSent: { en: "Everything is sent", ha: "An aika komai" },
+  sending: { en: "Sending…", ha: "Ana aikawa…" },
+  waitingToSend: { en: "waiting to send", ha: "suna jiran aikawa" },
+  savedOnPhone: {
+    en: "Saved on this phone. It will send by itself when there's a signal.",
+    ha: "An adana a wannan wayar. Zai aika da kansa idan akwai sigina.",
+  },
+  noSignal: {
+    en: "No connection right now. Your work is safe on this phone.",
+    ha: "Babu haɗi yanzu. Aikinka na nan lafiya a wannan wayar.",
+  },
+  lastSent: { en: "Last sent", ha: "An aika na ƙarshe" },
+  sendNow: { en: "Send now", ha: "Aika yanzu" },
+  // Account.
+  account: { en: "Account", ha: "Asusu" },
+  language: { en: "Language", ha: "Harshe" },
+  switchLanguage: { en: "Hausa", ha: "English" },
+  chooseLanguage: { en: "Choose your language", ha: "Zaɓi harshenka" },
+  chooseLanguageBody: {
+    en: "You can change this later in Account.",
+    ha: "Za ka iya canza wannan daga baya a Asusu.",
+  },
+  signedInAs: { en: "Signed in as", ha: "An shiga a matsayin" },
+  signOut: { en: "Sign out of this phone", ha: "Fita daga wannan wayar" },
+  signOutUnsent: {
+    en: "Some work hasn't been sent yet. Signing out now would lose it. Send it first.",
+    ha: "Akwai aikin da ba a aika ba tukuna. Fita yanzu zai sa a rasa shi. Ka fara aikawa.",
+  },
+  signOutConfirm: { en: "Sign out", ha: "Fita" },
+  cancel: { en: "Cancel", ha: "Soke" },
   // Why sign-off is not available yet. Short and imperative: these sit under a
   // disabled button, and a dimmed control that will not say why is a dead end.
   blockedUnanswered: {
-    en: "Answer every checkpoint first.",
+    en: "Answer every question first.",
     ha: "Ka amsa dukkan tambayoyi tukuna.",
   },
   blockedInspector: {
@@ -90,24 +119,17 @@ const STRINGS = {
     ha: "Ba ka sanya hannu ba tukuna.",
   },
   blockedRepName: {
-    en: "Name the facility representative.",
-    ha: "Rubuta sunan wakilin ma'aikata.",
+    en: "Add the facility representative's name and role.",
+    ha: "Rubuta sunan wakilin wurin da matsayinsa.",
   },
   blockedRepSign: {
     en: "The representative has not signed yet.",
     ha: "Wakilin bai sanya hannu ba tukuna.",
   },
-  priorFinding: { en: "open finding here", ha: "abin da ba a gyara ba" },
-  priorFindings: { en: "open findings here", ha: "abubuwan da ba a gyara ba" },
-  device: { en: "Device", ha: "Na'ura" },
+  priorFinding: { en: "issue still open here", ha: "matsalar da ba a gyara ba" },
+  priorFindings: { en: "issues still open here", ha: "matsalolin da ba a gyara ba" },
   submitted: { en: "Submitted", ha: "An mika" },
-  recorded: { en: "Recorded", ha: "An rubuta" },
-  workWaiting: { en: "Work waiting to send", ha: "Aikin da ke jiran aikawa" },
-  allSent: { en: "Everything is sent", ha: "An aika komai" },
-  upToDate: {
-    en: "This device has nothing waiting. Sync to collect any new visits.",
-    ha: "Babu abin da ke jira a wannan na'urar. Yi sync don karɓar sabbin ziyarce-ziyarce.",
-  },
+  recorded: { en: "Saved", ha: "An adana" },
   whyThisVisit: { en: "Why this visit", ha: "Dalilin wannan ziyarar" },
 } as const;
 
@@ -162,6 +184,20 @@ export const LanguageContext = createContext<{
   language: Language;
   setLanguage: (l: Language) => void;
 }>({ language: "en", setLanguage: () => {} });
+
+// The choice survives a restart. It is asked once, on first launch, and after
+// that lives in Account — an inspector who reads Hausa should never have to
+// find a toggle before they can read the screen that tells them where it is.
+const LANGUAGE_KEY = "agroassure.language";
+
+export async function storedLanguage(): Promise<Language | null> {
+  const value = await SecureStore.getItemAsync(LANGUAGE_KEY);
+  return value === "en" || value === "ha" ? value : null;
+}
+
+export async function storeLanguage(language: Language): Promise<void> {
+  await SecureStore.setItemAsync(LANGUAGE_KEY, language);
+}
 
 export function useLanguage() {
   const { language, setLanguage } = useContext(LanguageContext);

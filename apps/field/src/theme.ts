@@ -114,6 +114,51 @@ export const styles = StyleSheet.create({
   buttonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
   buttonQuietText: { color: colors.ink },
   buttonDisabled: { opacity: 0.4 },
+  buttonDanger: { backgroundColor: colors.critical },
+
+  // -- identity -----------------------------------------------------------
+  brandMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...raised,
+  },
+  brandMarkText: { color: colors.white, fontSize: 30, fontWeight: "800" },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: colors.primaryTint,
+    borderWidth: 1,
+    borderColor: colors.primaryLine,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: colors.primaryDark, fontSize: 16, fontWeight: "700" },
+
+  // A two- or three-way choice, all options visible, the chosen one filled.
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceSunk,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentOn: { backgroundColor: colors.surface, ...raised },
+  segmentText: { fontSize: 15, fontWeight: "600", color: colors.inkMuted },
+  segmentTextOn: { color: colors.primaryDark },
 
   input: {
     borderWidth: 1,
@@ -233,6 +278,23 @@ export const styles = StyleSheet.create({
   },
   actionText: { fontSize: 15, fontWeight: "600", color: colors.primaryDark, flexShrink: 1 },
   actionChevron: { fontSize: 22, lineHeight: 24, color: colors.primaryDark },
+
+  // The one moment the app celebrates anything: a visit safely recorded.
+  successBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: colors.goodTint,
+    borderWidth: 1,
+    borderColor: colors.good,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  successTick: { fontSize: 26, fontWeight: "700", color: colors.good },
+
+  // A status line: a coloured dot and a sentence, on the visits screen.
+  statusDot: { width: 10, height: 10, borderRadius: 999 },
 
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 4 },
 

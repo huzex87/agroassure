@@ -144,15 +144,13 @@ export default async function SignInPage({
   if (settings) {
     return (
       <div className="w-full">
-        <Panel title="Sign in" subtitle="Continue with your institutional account.">
+        <Panel title="Sign in" subtitle="Use your work account to continue.">
           {notice}
           <form action={startOidc}>
-            <Button>Continue</Button>
+            <Button className="w-full" size="lg">Continue with work account</Button>
           </form>
           <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
-            You will be sent to your organisation&rsquo;s identity provider. This console never
-            sees your password, and your role and jurisdiction come from the provider rather
-            than from anything you can set here.
+            You&rsquo;ll sign in on your organisation&rsquo;s page and come straight back here.
           </p>
         </Panel>
       </div>
@@ -163,12 +161,13 @@ export default async function SignInPage({
     <div className="w-full">
       <Panel
         title="Sign in"
-        subtitle={
-          users.length > 0
-            ? "Development sign-in. Choose who to continue as."
-            : "Development sign-in. Paste an API token to continue."
-        }
+        subtitle={users.length > 0 ? "Choose who to continue as." : undefined}
       >
+        {/* Said once, plainly, so nobody mistakes a demo for the real thing. */}
+        <p className="mb-4 flex items-center gap-2 rounded-control border border-warning-border bg-warning-muted px-3 py-2 text-xs font-medium text-warning">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-warning" />
+          Demo mode — no password is needed on this server.
+        </p>
         {notice}
 
         {/* Names, not tokens. Copying a 296-character string between a terminal
@@ -212,10 +211,15 @@ export default async function SignInPage({
           </div>
         ) : null}
 
-        <details className={users.length > 0 ? "mt-6" : ""}>
-          <summary className="cursor-pointer text-sm text-ink-muted">
-            {users.length > 0 ? "Or paste an API token" : "API token"}
-          </summary>
+        {users.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            Sign-in isn&rsquo;t set up on this server yet. Ask your administrator for access.
+          </p>
+        ) : null}
+
+        {/* For the people who build and support the platform, not for its users. */}
+        <details className="mt-6 border-t border-line pt-4">
+          <summary className="cursor-pointer text-xs text-ink-faint">Developer options</summary>
           <form action={signInWithToken} className="mt-3 space-y-3">
           <label className="block text-sm">
             <span className="text-ink-muted">API token</span>
@@ -230,12 +234,6 @@ export default async function SignInPage({
           </form>
         </details>
 
-        <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
-          No identity provider is configured, so this page stands in for one. It verifies
-          nothing; the API validates the token on every request and derives the role and
-          jurisdiction from it. Set OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET and
-          OIDC_REDIRECT_URI to replace this with the OpenID Connect redirect.
-        </p>
       </Panel>
     </div>
   );
