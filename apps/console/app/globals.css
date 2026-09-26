@@ -211,8 +211,10 @@
     box-shadow: 0 1px 2px rgb(7 36 53 / 0.04);
     transition: border-color 120ms, box-shadow 120ms;
   }
+  /* Faint enough that an example is never mistaken for something typed. */
   .field::placeholder {
-    color: var(--muted-foreground);
+    color: var(--ink-faint);
+    opacity: 1;
   }
   .field:hover {
     border-color: var(--color-primary-200);

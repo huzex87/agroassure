@@ -43,9 +43,11 @@ function Channel({ icon, label, outcome }: { icon: ReactNode; label: string; out
         <p className="font-medium">
           {label} · {word}
         </p>
-        <p className="truncate text-xs opacity-80">
+        <p className="truncate text-xs opacity-80" title={outcome.detail ?? undefined}>
           {outcome.to ?? outcome.detail ?? "—"}
-          {outcome.to && outcome.status !== "sent" && outcome.detail ? ` — ${outcome.detail}` : ""}
+          {/* On a failure it says why; on a demo server, that "sent" meant the
+              service log rather than a real phone or inbox. */}
+          {outcome.to && outcome.detail ? ` — ${outcome.detail}` : ""}
         </p>
       </div>
     </div>
