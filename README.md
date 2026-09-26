@@ -278,6 +278,41 @@ The server-side spine is complete and tested. What remains:
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.
 
+## Getting an inspector working
+
+One form in the console, one code on the phone. Nothing waits on anybody.
+
+1. **Invite.** An administrator opens **Team** and enters the inspector's name
+   and phone number (email optional). The gateway creates them with the
+   inspector role and issues a one-time code, e.g. `K7PM-4XQ2`, sent by SMS and
+   email. The console shows the same code and a QR code, for someone standing
+   at the desk, and says which channel it went out on.
+2. **Enter the code.** The inspector installs the app, chooses a language and
+   types the code — or taps the link in the message, which opens the app with
+   the code already filled in.
+3. **Inspect.** The phone is active straight away. Assigned visits arrive on
+   their own, and finished work sends itself whenever there is a signal.
+
+Sending the invite *is* the approval. The phone still generates its own
+ed25519 key and registers only the public half, so every event stays
+attributable to one person on one phone. The only change is that the
+administrator's decision comes before the phone exists, not after.
+
+- **Codes** use 8 characters with no look-alikes, work once, expire after
+  `INVITE_TTL_HOURS` (72 by default), and are stored as an HMAC rather than in
+  plain text. Sending a new code cancels the old one. `POST /v1/auth/activate`
+  is rate limited per address.
+- **Phone sessions** are signed with `DEVICE_TOKEN_SECRET` and carry no roles.
+  On every request the guard checks that the phone is still active and the
+  person is still an active inspector. **Sign out remotely** on the Team page
+  therefore takes effect on the phone's next request.
+- **Delivery.** Email goes through Resend or SendGrid (`EMAIL_PROVIDER`). SMS
+  goes through Termii, Africa's Talking or Twilio (`SMS_PROVIDER`), using
+  Termii's DND route by default so numbers on the do-not-disturb list are still
+  reached. Local numbers such as `0803 123 4567` become `+2348031234567`. A
+  failed send never fails the invite; the console says what happened. See
+  `.env.example` for every setting.
+
 ## Authentication and evidence
 
 Both were development stand-ins and are now real, though only the gateway side

@@ -4,7 +4,7 @@ import { applyBootstrap, drain } from "@agroassure/field-core";
 import { getStore } from "./db";
 import { identity } from "./signer";
 import { readFileBytes } from "./capture";
-import { fetchBootstrap, httpTransport } from "./transport";
+import { ApiError, fetchBootstrap, httpTransport } from "./transport";
 
 // Sending work without being asked.
 //
@@ -21,7 +21,7 @@ import { fetchBootstrap, httpTransport } from "./transport";
 // deduplicate it, but a second request on a weak signal is time the inspector
 // is standing in a car park waiting for.
 
-export type SyncPhase = "idle" | "sending" | "sent" | "offline" | "notReady";
+export type SyncPhase = "idle" | "sending" | "sent" | "offline" | "notReady" | "signedOut";
 
 export interface SyncStatus {
   phase: SyncPhase;
@@ -87,6 +87,11 @@ export function syncNow(): Promise<SyncStatus> {
       applyBootstrap(store, await fetchBootstrap());
       return publish({ phase: "sent", lastSentAt: new Date(), detail: null, queued: queuedNow() });
     } catch (err) {
+      // Signed out remotely. Not a connection problem, and retrying will not
+      // fix it: the phone needs a new invite code, so say that instead.
+      if (err instanceof ApiError && err.status === 401) {
+        return publish({ phase: "signedOut", detail: err.message, queued: queuedNow() });
+      }
       return publish({
         phase: "offline",
         detail: err instanceof Error ? err.message : String(err),
@@ -123,7 +128,9 @@ export function useAutoSync(): SyncStatus {
     // and a phone polling a server all day for no reason is a flat battery by
     // the afternoon inspection.
     const timer = setInterval(() => {
-      if (status.queued > 0 && status.phase !== "notReady") requestSync();
+      if (status.queued > 0 && status.phase !== "notReady" && status.phase !== "signedOut") {
+        requestSync();
+      }
     }, RETRY_MS);
 
     return () => {

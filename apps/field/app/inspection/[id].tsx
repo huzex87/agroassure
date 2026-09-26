@@ -58,7 +58,7 @@ export default function Checklist() {
   useEffect(() => {
     (async () => {
       const userId = await inspectorId();
-      if (!userId) return router.replace("/enrol");
+      if (!userId) return router.replace("/activate");
       setSession(await inspectionSession(userId));
     })().catch((e) => setError(String(e)));
     // Keyed on the inspection alone: router comes from useRouter() and is not

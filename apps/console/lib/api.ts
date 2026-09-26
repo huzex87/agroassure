@@ -311,6 +311,40 @@ export interface UserRow {
   status: string;
   roles: string[];
   created_at: string;
+  /** Phones currently able to send this person's work. */
+  active_phones?: number;
+  phone_last_seen_at?: string | null;
+  /** An invitation sent and not yet used, if there is one. */
+  invitation_id?: string | null;
+  invitation_expires_at?: string | null;
+  invitation_email_status?: ChannelStatus | null;
+  invitation_sms_status?: ChannelStatus | null;
+}
+
+export type ChannelStatus = "sent" | "failed" | "skipped";
+
+export interface ChannelOutcome {
+  to: string | null;
+  status: ChannelStatus;
+  detail: string | null;
+}
+
+/** What the gateway hands back once, when an invite code is issued. */
+export interface IssuedInvitation {
+  invitationId: string;
+  userId: string;
+  fullName: string;
+  code: string;
+  link: string;
+  qrSvg: string;
+  expiresAt: string;
+  email: ChannelOutcome;
+  sms: ChannelOutcome;
+}
+
+export interface InviteChannels {
+  email: "resend" | "sendgrid" | "log" | "none";
+  sms: "termii" | "africastalking" | "twilio" | "log" | "none";
 }
 
 export interface DeviceRow {
@@ -322,4 +356,5 @@ export interface DeviceRow {
   assigned_to: string | null;
   public_key: string;
   events_authored: number;
+  last_seen_at?: string | null;
 }

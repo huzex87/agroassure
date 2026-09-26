@@ -174,6 +174,23 @@ export const styles = StyleSheet.create({
     minHeight: 50,
   },
 
+  // The invite code: big, spaced, and unmistakable, because it is typed once
+  // by someone reading it off another screen.
+  codeInput: {
+    borderWidth: 1.5,
+    borderColor: colors.lineFirm,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 4,
+    textAlign: "center",
+    color: colors.ink,
+    backgroundColor: colors.surfaceSunk,
+    fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }),
+  },
+
   // -- the three responses ------------------------------------------------
   // Each is a large target because a mis-tap on a compliance record is not a
   // small thing, and each settles into the colour of what it means rather than

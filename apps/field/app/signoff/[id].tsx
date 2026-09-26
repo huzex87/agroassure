@@ -57,7 +57,7 @@ export default function Signoff() {
   useEffect(() => {
     (async () => {
       const who = await inspectorId();
-      if (!who) return router.replace("/enrol");
+      if (!who) return router.replace("/activate");
       setUserId(who);
       const session = await inspectionSession(who);
       setInspection(session.inspection);

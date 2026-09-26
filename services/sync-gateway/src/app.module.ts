@@ -6,6 +6,7 @@ import { SyncModule } from "./sync/sync.module";
 import { ConsoleModule } from "./console/console.module";
 import { PublicVerifyModule } from "./public-verify/public-verify.module";
 import { WorkersModule } from "./workers/workers.module";
+import { InvitationsModule } from "./invitations/invitations.module";
 import { HealthController } from "./health/health.controller";
 import { MetricsService } from "./health/metrics.service";
 import { RequestContextMiddleware } from "./common/request-context";
@@ -28,6 +29,7 @@ class MetricsModule {}
     EventsModule,
     SyncModule,
     ConsoleModule,
+    InvitationsModule,
     PublicVerifyModule,
     WorkersModule,
   ],

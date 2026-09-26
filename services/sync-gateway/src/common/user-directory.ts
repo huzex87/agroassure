@@ -52,4 +52,35 @@ export class UserDirectory {
     const row = rows[0];
     return row ? { id: row.id, jurisdictionId: row.jurisdiction_id } : null;
   }
+
+  /**
+   * The inspector a phone session speaks for, if that phone is still theirs
+   * and still active, and they are still an active inspector.
+   *
+   * Every one of those conditions is read on every request, which is what
+   * makes "sign out remotely" mean now rather than when a token expires. The
+   * phone's last-seen time is refreshed at most every five minutes on the way
+   * through, so the Team page can say which phones are actually in use
+   * without a write on every sync.
+   */
+  async resolvePhone(userId: string, deviceId: string): Promise<DirectoryUser | null> {
+    const rows = await this.pg.query<{ id: string; jurisdiction_id: string | null }>(
+      `WITH phone AS (
+         SELECT id FROM device
+          WHERE id = $2 AND assigned_user_id = $1 AND status = 'active'
+       ), touched AS (
+         UPDATE device SET last_seen_at = now()
+          WHERE id IN (SELECT id FROM phone)
+            AND (last_seen_at IS NULL OR last_seen_at < now() - interval '5 minutes')
+       )
+       SELECT u.id, u.jurisdiction_id
+         FROM app_user u
+        WHERE u.id = $1 AND u.status = 'active'
+          AND EXISTS (SELECT 1 FROM phone)
+          AND EXISTS (SELECT 1 FROM user_role r WHERE r.user_id = u.id AND r.role_code = 'inspector')`,
+      [userId, deviceId],
+    );
+    const row = rows[0];
+    return row ? { id: row.id, jurisdictionId: row.jurisdiction_id } : null;
+  }
 }

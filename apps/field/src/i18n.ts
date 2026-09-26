@@ -52,31 +52,40 @@ const STRINGS = {
     ha: "Da alama kana nesa da adireshin wannan wurin. Ba komai — an rubuta wa shugabanka. Ci gaba.",
   },
   // Getting a phone ready to use.
-  whoAreYou: { en: "Who are you?", ha: "Wane ne kai?" },
-  signInBody: {
-    en: "Choose your name to set up this phone.",
-    ha: "Zaɓi sunanka don saita wannan wayar.",
+  welcome: { en: "Welcome to AgroAssure", ha: "Barka da zuwa AgroAssure" },
+  enterCode: {
+    en: "Enter the invite code from your email or SMS.",
+    ha: "Shigar da lambar gayyata daga imel ko saƙon SMS ɗinka.",
   },
-  noSignInAvailable: {
-    en: "Ask your administrator for an invite code.",
-    ha: "Ka nemi shugabanka ya ba ka lambar gayyata.",
+  inviteCode: { en: "Invite code", ha: "Lambar gayyata" },
+  continue: { en: "Continue", ha: "Ci gaba" },
+  settingUp: { en: "Setting up your phone…", ha: "Ana saita wayarka…" },
+  noCode: {
+    en: "No code? Ask your administrator to invite you. Codes are sent by email and SMS.",
+    ha: "Ba ka da lamba? Ka nemi shugabanka ya gayyace ka. Ana aika lambobi ta imel da SMS.",
   },
-  awaitingApproval: { en: "Almost ready", ha: "Kusan a shirye" },
-  awaitingApprovalBody: {
-    en: "Your administrator needs to confirm this phone. You can start working now — everything is saved here and will be sent once it's confirmed.",
-    ha: "Shugabanka yana buƙatar ya tabbatar da wannan wayar. Za ka iya fara aiki yanzu — komai na adane a nan, za a aika bayan an tabbatar.",
+  cannotReach: {
+    en: "Couldn't reach the server. Check your internet connection and try again.",
+    ha: "Ba a iya kaiwa sabar ba. Duba haɗin intanet ɗinka ka sake gwadawa.",
   },
-  checkAgain: { en: "Check again", ha: "Sake dubawa" },
-  deviceReady: { en: "You're all set", ha: "Komai ya shirya" },
+  welcomeName: { en: "Welcome", ha: "Barka da zuwa" },
   deviceReadyBody: {
-    en: "This phone is ready. Your visits will appear automatically.",
-    ha: "Wannan wayar ta shirya. Ziyarce-ziyarcenka za su bayyana da kansu.",
+    en: "Your phone is ready. Your visits will appear here automatically.",
+    ha: "Wayarka ta shirya. Ziyarce-ziyarcenka za su bayyana a nan da kansu.",
   },
+  seeVisits: { en: "See today's visits", ha: "Duba ziyarce-ziyarcen yau" },
+  alreadySetUp: { en: "This phone is already set up", ha: "An riga an saita wannan wayar" },
+  alreadySetUpBody: {
+    en: "To use it for someone else, sign out in Account first.",
+    ha: "Don amfani da ita ga wani, ka fara fita a Asusu.",
+  },
+  signedOutTitle: { en: "This phone was signed out", ha: "An fitar da wannan wayar" },
+  signedOutBody: {
+    en: "Your administrator signed this phone out. Ask them for a new invite code to continue.",
+    ha: "Shugabanka ya fitar da wannan wayar. Ka nemi sabuwar lambar gayyata don ci gaba.",
+  },
+  enterNewCode: { en: "Enter a new code", ha: "Shigar da sabuwar lamba" },
   setUpPhone: { en: "Set up this phone", ha: "Saita wannan wayar" },
-  setUpPhoneBody: {
-    en: "This phone isn't linked to your account yet. Tap here to finish setting it up.",
-    ha: "Ba a haɗa wannan wayar da asusunka ba tukuna. Taɓa nan don kammala saitawa.",
-  },
   // Sending.
   allSent: { en: "Everything is sent", ha: "An aika komai" },
   sending: { en: "Sending…", ha: "Ana aikawa…" },

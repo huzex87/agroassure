@@ -50,6 +50,30 @@ export class DeviceAuthGuard implements CanActivate {
       throw err;
     }
 
+    // A phone session. It carries no roles of its own: a phone does field work
+    // and nothing else, so it is an inspector in the jurisdiction the register
+    // holds for that person — or it is refused, with a sentence the phone can
+    // show, because the fix is a new invite code and not a retry.
+    if (principal.via === "device") {
+      const inspector = await this.directory.resolvePhone(principal.userId, principal.deviceId!);
+      if (!inspector) {
+        this.metrics.increment("auth_failures");
+        throw new UnauthorizedException({
+          message: "This phone has been signed out. Ask your administrator for a new invite code.",
+          reason: "phone_signed_out",
+        });
+      }
+      principal = {
+        ...principal,
+        userId: inspector.id,
+        jurisdictionId: inspector.jurisdictionId,
+        roles: ["inspector"],
+      };
+      (req as Request & Record<string, unknown>)[PRINCIPAL_KEY] = principal;
+      attributeContext(principal.userId, principal.deviceId);
+      return true;
+    }
+
     // The token said who the provider knows. This says who this platform
     // knows, and every record that names a person names that one. A valid
     // token for somebody the register has never heard of is refused rather

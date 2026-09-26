@@ -47,7 +47,7 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="index" options={{ title: "AgroAssure" }} />
-            <Stack.Screen name="enrol" options={{ title: t("setUpPhone", language) }} />
+            <Stack.Screen name="activate" options={{ headerShown: false }} />
             <Stack.Screen name="account" options={{ title: t("account", language) }} />
             <Stack.Screen name="inspection/[id]" options={{ title: "" }} />
             <Stack.Screen name="signoff/[id]" options={{ title: t("signOff", language) }} />

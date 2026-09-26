@@ -17,6 +17,20 @@ export async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN);
 }
 
+/**
+ * A refusal from the gateway: its sentence, which is written for people, and
+ * where it gave one a reason code, which is written for this app to act on.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly reason: string | null,
+  ) {
+    super(message);
+  }
+}
+
 async function request<T>(
   path: string,
   headers: Record<string, string>,
@@ -31,16 +45,19 @@ async function request<T>(
     // The gateway sends a sentence in `message`; anything else reaching an
     // inspector's error card would be a wall of JSON.
     const detail = await response.text();
-    let message: unknown;
+    let parsed: { message?: unknown; reason?: unknown } | undefined;
     try {
-      message = JSON.parse(detail)?.message;
+      parsed = JSON.parse(detail);
     } catch {
-      message = undefined;
+      parsed = undefined;
     }
-    throw new Error(
+    const message = parsed?.message;
+    throw new ApiError(
       typeof message === "string" && message
         ? message
         : `${response.status} ${response.statusText}`.trim(),
+      response.status,
+      typeof parsed?.reason === "string" ? parsed.reason : null,
     );
   }
   return (await response.json()) as T;
@@ -57,59 +74,31 @@ async function callAnonymous<T>(path: string, init?: RequestInit): Promise<T> {
   return request<T>(path, {}, init);
 }
 
-export interface SignInUser {
-  id: string;
-  full_name: string;
-  email: string;
-  roles: string[];
+export interface Activation {
+  token: string;
+  userId: string;
+  fullName: string;
+  deviceId: string;
 }
 
 /**
- * Who this deployment will sign you in as.
- *
- * A stand-in for the institution's provider, and only available when the
- * gateway was started with development sign-in enabled. Where it is not, this
- * throws and the screen falls back to asking for a token.
+ * Spend an invite code. The phone offers the public half of its key; the
+ * gateway registers it as this person's active phone and returns the session
+ * the phone uses from then on. Nothing else is needed — no approval step, no
+ * second person — because the administrator already decided when they sent
+ * the code.
  */
-export async function fetchSignInUsers(): Promise<SignInUser[]> {
-  return callAnonymous<SignInUser[]>("/v1/auth/dev-users");
-}
-
-export async function signInAs(email: string): Promise<{ token: string; userId: string }> {
-  const body = await callAnonymous<{ token: string; userId: string }>("/v1/auth/dev-signin", {
+export async function activate(
+  code: string,
+  publicKeyBase64: string,
+  label?: string,
+): Promise<Activation> {
+  const body = await callAnonymous<Activation>("/v1/auth/activate", {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ code, publicKeyBase64, label }),
   });
   await setToken(body.token);
   return body;
-}
-
-export interface DeviceState {
-  deviceId: string | null;
-  status: "none" | "pending" | "active" | "revoked" | string;
-}
-
-/**
- * Ask to be enrolled, submitting the public half of the key this device
- * generated. Grants nothing on its own: the gateway refuses events from any
- * device that is not active, so this only puts the handset in front of an
- * administrator.
- */
-export async function requestEnrolment(
-  publicKeyBase64: string,
-  label?: string,
-): Promise<DeviceState> {
-  return call<DeviceState>("/v1/devices/enrolment-request", {
-    method: "POST",
-    body: JSON.stringify({ publicKeyBase64, label }),
-  });
-}
-
-export async function fetchDeviceState(publicKeyBase64: string): Promise<DeviceState> {
-  return call<DeviceState>("/v1/devices/status", {
-    method: "POST",
-    body: JSON.stringify({ publicKeyBase64 }),
-  });
 }
 
 export async function fetchBootstrap(): Promise<BootstrapBundle> {

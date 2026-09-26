@@ -10,6 +10,7 @@ import { JwksClient } from "jwks-rsa";
 import type { Role } from "@agroassure/domain";
 import { CONFIG, type AppConfig, type OidcConfig } from "../config/config";
 import type { Principal } from "./principal";
+import { looksLikeDeviceSession, verifyDeviceSession } from "../invitations/device-session";
 
 // Turning a bearer token into a verified Principal.
 //
@@ -110,10 +111,32 @@ export class TokenVerifier {
   }
 
   async verify(token: string): Promise<Principal> {
+    // A phone's own session, from spending an invitation. Checked first and on
+    // its own secret; everything else about it — roles, jurisdiction, whether
+    // the phone is still allowed — the guard reads from the database.
+    if (looksLikeDeviceSession(token)) return this.verifyPhone(token);
+
     const claims = this.config.oidc ? await this.verifyOidc(token) : this.verifyShared(token);
 
     if (!claims.sub) throw new UnauthorizedException("token carries no subject");
     return this.toPrincipal(claims);
+  }
+
+  private verifyPhone(token: string): Principal {
+    const secret = this.config.invites.deviceTokenSecret;
+    if (!secret) throw new UnauthorizedException("phone sessions are not enabled on this server");
+    try {
+      const claims = verifyDeviceSession(token, secret);
+      return {
+        userId: claims.sub,
+        deviceId: claims.device_id,
+        jurisdictionId: null,
+        roles: [],
+        via: "device",
+      };
+    } catch {
+      throw new UnauthorizedException("invalid token");
+    }
   }
 
   private verifyShared(token: string): TokenClaims {

@@ -31,6 +31,43 @@ export interface OidcConfig {
   jurisdictionClaim: string;
 }
 
+/** Where invitation emails go out from. "log" writes them to the service log. */
+export interface EmailConfig {
+  provider: "resend" | "sendgrid" | "log" | "none";
+  apiKey: string | null;
+  from: string | null;
+}
+
+/** Where invitation texts go out from. Termii and Africa's Talking both reach Nigerian networks. */
+export interface SmsConfig {
+  provider: "termii" | "africastalking" | "twilio" | "log" | "none";
+  apiKey: string | null;
+  /** The sender name or number the text appears to come from. */
+  senderId: string | null;
+  /** Africa's Talking username, or the Twilio account SID. */
+  account: string | null;
+  /** Termii route: "dnd" reaches numbers on the do-not-disturb list, which "generic" does not. */
+  channel: string;
+  /** Country calling code assumed for a number written locally, e.g. 0803... */
+  defaultCountryCode: string;
+}
+
+export interface InviteConfig {
+  /**
+   * Signs the session a phone receives when an invitation is spent. Separate
+   * from the identity provider on purpose: a phone is not a person signing in
+   * to a website, and its session is only worth anything while the phone it
+   * names is active — the guard checks that on every request.
+   */
+  deviceTokenSecret: string | null;
+  /** How long a code stays usable. */
+  ttlHours: number;
+  /** Where the field app can be downloaded, quoted in every invitation. */
+  appDownloadUrl: string | null;
+  email: EmailConfig;
+  sms: SmsConfig;
+}
+
 export interface AppConfig {
   port: number;
   databaseUrl: string;
@@ -63,6 +100,8 @@ export interface AppConfig {
    * forgetting to set a variable.
    */
   devSignIn: boolean;
+  /** Invitations, and the phone sessions they create. */
+  invites: InviteConfig;
   /** Base URL a certificate QR code points at. */
   publicVerifyBaseUrl: string;
   /** Lookups allowed per source address per minute on the public surface. */
@@ -94,6 +133,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authJwtSecret: authJwtSecret ?? "",
     oidc,
     devSignIn: loadDevSignIn(env, oidc !== null),
+    invites: loadInvites(env, oidc === null ? (authJwtSecret ?? null) : null),
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
     evidenceStoreDir: env.EVIDENCE_STORE_DIR ?? "./evidence-store",
@@ -198,6 +238,75 @@ function loadDevSignIn(env: NodeJS.ProcessEnv, hasProvider: boolean): boolean {
     );
   }
   return asked;
+}
+
+/**
+ * Invitation delivery and phone sessions.
+ *
+ * Nothing here is required to boot. A deployment with no provider still
+ * issues codes — the console shows each one for the administrator to pass on
+ * by hand — so a missing SMS account slows onboarding down rather than
+ * stopping the service. What is refused is a provider named without the
+ * credentials it needs, because that is a deployment that believes it is
+ * sending messages and is not.
+ */
+export function loadInvites(
+  env: NodeJS.ProcessEnv,
+  developmentSecret: string | null,
+): InviteConfig {
+  const explicit = env.DEVICE_TOKEN_SECRET;
+  if (explicit !== undefined && explicit.length < 32) {
+    throw new Error("DEVICE_TOKEN_SECRET must be at least 32 characters");
+  }
+
+  const ttlHours = Number(env.INVITE_TTL_HOURS ?? 72);
+  if (!Number.isFinite(ttlHours) || ttlHours < 1 || ttlHours > 24 * 30) {
+    throw new Error("INVITE_TTL_HOURS must be between 1 and 720");
+  }
+
+  // Printing a live code into a log is handing it to whoever reads the log. A
+  // development machine may; a pilot may not, so its default is to send nothing.
+  const quiet = env.APP_ENV === "pilot" ? "none" : "log";
+
+  const emailProvider = (env.EMAIL_PROVIDER ?? quiet) as EmailConfig["provider"];
+  if (!["resend", "sendgrid", "log", "none"].includes(emailProvider)) {
+    throw new Error("EMAIL_PROVIDER must be one of: resend, sendgrid, log, none");
+  }
+  if ((emailProvider === "resend" || emailProvider === "sendgrid") && (!env.EMAIL_API_KEY || !env.EMAIL_FROM)) {
+    throw new Error(`EMAIL_PROVIDER=${emailProvider} needs EMAIL_API_KEY and EMAIL_FROM`);
+  }
+
+  const smsProvider = (env.SMS_PROVIDER ?? quiet) as SmsConfig["provider"];
+  if (!["termii", "africastalking", "twilio", "log", "none"].includes(smsProvider)) {
+    throw new Error("SMS_PROVIDER must be one of: termii, africastalking, twilio, log, none");
+  }
+  if (["termii", "africastalking", "twilio"].includes(smsProvider)) {
+    if (!env.SMS_API_KEY || !env.SMS_SENDER_ID) {
+      throw new Error(`SMS_PROVIDER=${smsProvider} needs SMS_API_KEY and SMS_SENDER_ID`);
+    }
+    if ((smsProvider === "africastalking" || smsProvider === "twilio") && !env.SMS_ACCOUNT) {
+      throw new Error(`SMS_PROVIDER=${smsProvider} needs SMS_ACCOUNT (username or account SID)`);
+    }
+  }
+
+  return {
+    deviceTokenSecret: explicit ?? developmentSecret,
+    ttlHours,
+    appDownloadUrl: env.FIELD_APP_DOWNLOAD_URL ?? null,
+    email: {
+      provider: emailProvider,
+      apiKey: env.EMAIL_API_KEY ?? null,
+      from: env.EMAIL_FROM ?? null,
+    },
+    sms: {
+      provider: smsProvider,
+      apiKey: env.SMS_API_KEY ?? null,
+      senderId: env.SMS_SENDER_ID ?? null,
+      account: env.SMS_ACCOUNT ?? null,
+      channel: env.SMS_CHANNEL ?? "dnd",
+      defaultCountryCode: (env.SMS_DEFAULT_COUNTRY_CODE ?? "234").replace(/^\+/, ""),
+    },
+  };
 }
 
 function loadS3(env: NodeJS.ProcessEnv): S3Config {

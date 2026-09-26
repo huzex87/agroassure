@@ -34,20 +34,24 @@ export default function Account() {
     }, []),
   );
 
-  const unsent = sync.queued > 0;
+  // Unsent work blocks signing out — unless the administrator already signed
+  // this phone out, in which case nothing on it can be sent any more and
+  // keeping the person here would only trap them.
+  const signedOutRemotely = sync.phase === "signedOut";
+  const unsent = sync.queued > 0 && !signedOutRemotely;
 
   async function signOut() {
     setBusy(true);
     try {
       // Refused while work is waiting, because the key that signed it is about
       // to be destroyed and nothing else can send it.
-      if (getStore().pendingCount() > 0) return;
+      if (!signedOutRemotely && getStore().pendingCount() > 0) return;
       // The visits belonged to the person leaving, not to the phone.
       getStore().replaceAssignedFacilities([]);
       await forgetIdentity();
       await clearInspector();
       await clearToken();
-      router.replace("/enrol");
+      router.replace("/activate");
     } finally {
       setBusy(false);
       setConfirming(false);

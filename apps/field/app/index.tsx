@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { applyBootstrap, type AssignedFacility } from "@agroassure/field-core";
 import { getStore } from "../src/db";
 import { inspectorId, inspectionSession } from "../src/session";
+import { identity } from "../src/signer";
 import { currentPosition } from "../src/capture";
 import { refreshQueued, syncNow, useAutoSync, type SyncStatus } from "../src/auto-sync";
 import { useLanguage, type StringKey } from "../src/i18n";
@@ -49,6 +50,12 @@ export default function Today() {
   useFocusEffect(
     useCallback(() => {
       load();
+      // A phone that has not been set up has nothing to show here. Go straight
+      // to the one thing it can do: take an invite code.
+      Promise.all([identity(), inspectorId()]).then(([id, who]) => {
+        if (!id.deviceId || !who) router.replace("/activate");
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load]),
   );
 
@@ -79,7 +86,7 @@ export default function Today() {
     try {
       const userId = await inspectorId();
       if (!userId) {
-        router.push("/enrol");
+        router.replace("/activate");
         return;
       }
       const { inspection } = await inspectionSession(userId);
@@ -115,20 +122,20 @@ export default function Today() {
         </Pressable>
       </View>
 
-      {sync.phase === "notReady" ? (
+      {sync.phase === "signedOut" ? (
         <Pressable
-          style={[styles.card, { borderColor: colors.primaryLine }]}
-          onPress={() => router.push("/enrol")}
+          style={[styles.card, { borderColor: colors.critical }]}
+          onPress={() => router.push("/activate")}
           accessibilityRole="button"
         >
-          <Text style={styles.h2}>{t("setUpPhone")}</Text>
-          <Text style={styles.muted}>{t("setUpPhoneBody")}</Text>
+          <Text style={styles.h2}>{t("signedOutTitle")}</Text>
+          <Text style={styles.muted}>{t("signedOutBody")}</Text>
           <View style={styles.actionRow}>
-            <Text style={styles.actionText}>{t("setUpPhone")}</Text>
+            <Text style={styles.actionText}>{t("enterNewCode")}</Text>
             <Text style={styles.actionChevron}>›</Text>
           </View>
         </Pressable>
-      ) : (
+      ) : sync.phase === "notReady" ? null : (
         <SendStatus sync={sync} t={t} />
       )}
 
