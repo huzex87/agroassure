@@ -91,13 +91,24 @@ jobs:
       # ("server /data") and service containers run the image's entrypoint with
       # no arguments — as a service it starts, prints its usage, and exits.
       - name: Start MinIO for the evidence object-lock suite
+        # The server binary from MinIO's own download site, not a container
+        # image: minio/minio was withdrawn from Docker Hub, and a pull that is
+        # refused fails this job before a single test runs. The binary is what
+        # the image wrapped, so the suite tests the same object-lock either way.
         run: |
-          docker run -d --name minio -p 9000:9000             -e MINIO_ROOT_USER=agroassure             -e MINIO_ROOT_PASSWORD=agroassure-local-verification             minio/minio:latest server /data
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/minio" \
+            https://dl.min.io/server/minio/release/linux-amd64/minio
+          chmod +x "$RUNNER_TEMP/minio"
+          mkdir -p "$RUNNER_TEMP/minio-data"
+          MINIO_ROOT_USER=agroassure \
+          MINIO_ROOT_PASSWORD=agroassure-local-verification \
+            nohup "$RUNNER_TEMP/minio" server "$RUNNER_TEMP/minio-data" --address :9000 \
+            > "$RUNNER_TEMP/minio.log" 2>&1 &
           for i in $(seq 1 30); do
             curl -fsS http://localhost:9000/minio/health/live && break
             sleep 2
           done
-          curl -fsS http://localhost:9000/minio/health/live
+          curl -fsS http://localhost:9000/minio/health/live || { cat "$RUNNER_TEMP/minio.log"; exit 1; }
 
       - name: Prepare a disposable database for the lifecycle suite
         run: |
