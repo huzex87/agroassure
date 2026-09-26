@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { buildRiskSignals, facilityRisk, type FacilityRiskInput } from "@agroassure/domain";
 import { PgService } from "../db/pg.service";
 import type { Principal } from "../common/principal";
@@ -99,6 +105,91 @@ export class PlanningService {
       ],
     );
     return rows[0]!.id;
+  }
+
+  /**
+   * Several facilities for one inspector, in one go — the way a supervisor
+   * actually plans a week. All or nothing: a batch that half-landed would leave
+   * the supervisor guessing which visits were made. A facility that already has
+   * a visit planned is refused rather than planned twice.
+   */
+  async createAssignments(
+    principal: Principal,
+    input: Omit<CreateAssignmentInput, "facilityId"> & { facilityIds: string[] },
+  ): Promise<string[]> {
+    const scope = jurisdictionFilter(principal);
+    const facilityIds = [...new Set(input.facilityIds)];
+    if (facilityIds.length === 0) throw new BadRequestException("Choose at least one facility.");
+    if (facilityIds.length > 200) throw new BadRequestException("Plan at most 200 visits at a time.");
+
+    return this.pg.transaction(async (client) => {
+      const inspector = await client.query<{ jurisdiction_id: string | null }>(
+        `SELECT u.jurisdiction_id FROM app_user u
+          WHERE u.id = $1 AND u.status = 'active'
+            AND EXISTS (SELECT 1 FROM user_role r WHERE r.user_id = u.id AND r.role_code = 'inspector')`,
+        [input.assignedToUserId],
+      );
+      if (inspector.rowCount === 0) throw new NotFoundException("active inspector");
+      if (scope !== null && inspector.rows[0]!.jurisdiction_id !== scope) {
+        throw new ForbiddenException("That inspector works in another state.");
+      }
+
+      const facilities = await client.query<{ id: string; name: string; jurisdiction_id: string; planned: boolean }>(
+        `SELECT f.id, f.name, f.jurisdiction_id,
+                EXISTS (SELECT 1 FROM assignment a
+                         WHERE a.facility_id = f.id AND a.status IN ('planned','in_progress')) AS planned
+           FROM facility f WHERE f.id = ANY($1::uuid[])`,
+        [facilityIds],
+      );
+      if (facilities.rowCount !== facilityIds.length) throw new NotFoundException("facility");
+      for (const f of facilities.rows) {
+        if (scope !== null && f.jurisdiction_id !== scope) {
+          throw new ForbiddenException("A facility is outside your state.");
+        }
+        if (f.planned) throw new ConflictException(`${f.name} already has a visit planned.`);
+      }
+
+      const ids: string[] = [];
+      for (const f of facilities.rows) {
+        const row = await client.query<{ id: string }>(
+          `INSERT INTO assignment (jurisdiction_id, facility_id, assigned_to_user_id,
+                                   created_by_user_id, kind, reason, due_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7::date) RETURNING id`,
+          [
+            f.jurisdiction_id,
+            f.id,
+            input.assignedToUserId,
+            principal.userId,
+            input.kind,
+            input.reason ?? null,
+            input.dueBy ?? null,
+          ],
+        );
+        ids.push(row.rows[0]!.id);
+      }
+      return ids;
+    });
+  }
+
+  /**
+   * Who can be sent: every active inspector in the state, with whether their
+   * phone is working and how much is already on their list, so a supervisor
+   * can spread the week rather than find out afterwards that one person has
+   * everything.
+   */
+  async inspectors(principal: Principal) {
+    return this.pg.query(
+      `SELECT u.id, u.full_name,
+              EXISTS (SELECT 1 FROM device d WHERE d.assigned_user_id = u.id AND d.status = 'active') AS has_phone,
+              (SELECT count(*) FROM assignment a
+                WHERE a.assigned_to_user_id = u.id AND a.status IN ('planned','in_progress'))::int AS open_visits
+         FROM app_user u
+        WHERE u.status = 'active'
+          AND EXISTS (SELECT 1 FROM user_role r WHERE r.user_id = u.id AND r.role_code = 'inspector')
+          AND ($1::uuid IS NULL OR u.jurisdiction_id = $1)
+        ORDER BY u.full_name`,
+      [jurisdictionFilter(principal)],
+    );
   }
 
   async cancelAssignment(principal: Principal, assignmentId: string): Promise<void> {

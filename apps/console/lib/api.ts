@@ -139,6 +139,25 @@ export function get<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
+/**
+ * A read the page can live without: the answer, or null on any failure,
+ * without the redirect to sign-in that get() makes on a 401. For what frames a
+ * page — the navigation, a setup checklist — rather than what the page is for.
+ */
+export async function tryGet<T>(path: string): Promise<T | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: { authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    return response.ok ? ((await response.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function post<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(path, {
     method: "POST",
@@ -240,6 +259,48 @@ export interface RiskSuggestion {
   score: number;
   reasons: string[];
   leadingReason: string;
+}
+
+export interface InspectorOption {
+  id: string;
+  full_name: string;
+  has_phone: boolean;
+  open_visits: number;
+}
+
+export interface AssignmentRow {
+  id: string;
+  kind: "routine" | "risk_targeted" | "follow_up";
+  reason: string | null;
+  due_by: string | null;
+  status: "planned" | "in_progress" | "completed" | "cancelled";
+  created_at: string;
+  inspection_id: string | null;
+  facility_id: string;
+  facility_name: string;
+  licence_number: string;
+  facility_type: string;
+  lga: string | null;
+  assigned_to: string;
+}
+
+export interface SetupProgress {
+  facilities: number;
+  checklistsInForce: number;
+  inspectors: number;
+  inspectorsWithPhone: number;
+  invitesWaiting: number;
+  plannedVisits: number;
+  submittedInspections: number;
+}
+
+export interface Me {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  roles: string[];
+  jurisdictionId: string | null;
+  jurisdictionName: string | null;
 }
 
 export interface InspectionDetail {

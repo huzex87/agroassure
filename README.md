@@ -278,6 +278,36 @@ The server-side spine is complete and tested. What remains:
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.
 
+## Setting up a new state
+
+Until a state has run its first inspection, the dashboard shows a five-step
+checklist. Each step ticks itself off from the record (`GET /v1/setup`), not
+from anyone clicking "done":
+
+1. **Add your facilities.** Go to *Facilities → Add facility*, or *Import* the
+   spreadsheet the office already keeps. Save it as CSV (a template is
+   offered). Common headings such as "Business name" or "Licence No." are
+   recognised, "Agro dealer" is understood however it is spelled, and
+   coordinates can be two columns or one cell. Every row is checked on the
+   server before anything is saved, and the preview lists what is wrong with
+   each rejected row by its row number in the sheet. The rows that pass are
+   imported together in one transaction (`POST /v1/facilities/import`). A
+   licence number already in the registry is refused before any event is
+   written, both here and on the single-facility form.
+2. **Check your checklists.** Publish the questions inspectors answer on site.
+3. **Invite your inspectors.** Covered in the next section.
+4. **Plan the first visits.** *Plan visits* shows every inspector, whether
+   their phone is set up and how many visits they already have. Tick
+   facilities, sorted with never-inspected and overdue first, and add a reason
+   the inspector will see. A batch is all or nothing
+   (`POST /v1/assignments/batch`), and a facility that already has a visit
+   planned can't be planned twice. Risk suggestions sit alongside with their
+   reasons and a one-click *Send*.
+5. **Review the first inspection.**
+
+The menu shows each person only the pages their role can use
+(`GET /v1/me`). The gateway still authorises every request.
+
 ## Getting an inspector working
 
 One form in the console, one code on the phone. Nothing waits on anybody.

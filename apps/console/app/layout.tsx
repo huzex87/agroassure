@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { signOut } from "../lib/session-actions";
 import { SideNav, TopNav } from "../components/nav";
+import { tryGet, type Me } from "../lib/api";
 import "./globals.css";
 
 // Two faces, each doing one job.
@@ -74,6 +75,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     );
   }
 
+  // Who is signed in, for the menu and the name at its foot. Asked of the
+  // gateway rather than read out of the token, because a provider's token
+  // names roles in its own claim format and the gateway already knows how to
+  // read it.
+  const me = await tryGet<Me>("/v1/me");
+  const roles = me?.roles ?? null;
+
   return (
     <html lang="en" className={fonts}>
       <body className="min-h-screen">
@@ -98,11 +106,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Wordmark />
             </Link>
 
-            <SideNav />
+            <SideNav roles={roles} />
 
             {/* Pushed to the bottom: the account is not a destination, it is
                 where you leave from. */}
             <div className="mt-auto pt-8">
+              {me ? (
+                <div className="mb-2 flex items-center gap-2.5 rounded-control px-3 py-2">
+                  <span
+                    aria-hidden
+                    className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700 ring-1 ring-inset ring-primary-100"
+                  >
+                    {me.fullName
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((p) => p[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase() || "?"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-ink">{me.fullName}</span>
+                    <span className="block truncate text-xs text-ink-muted">
+                      {me.jurisdictionName ?? "All states"}
+                    </span>
+                  </span>
+                </div>
+              ) : null}
               <form action={signOut}>
                 <button
                   type="submit"
@@ -136,7 +166,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="sticky top-0 z-30 md:hidden">
-              <TopNav />
+              <TopNav roles={roles} />
             </div>
             <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 md:px-8 md:py-8">
               <div className="mx-auto flex w-full max-w-[80rem] flex-col gap-7">{children}</div>

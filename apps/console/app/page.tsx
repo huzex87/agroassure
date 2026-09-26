@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { get, type DashboardSummary, type RiskSuggestion } from "../lib/api";
+import { redirect } from "next/navigation";
+import { get, tryGet, type DashboardSummary, type Me, type RiskSuggestion, type SetupProgress } from "../lib/api";
+import { SetupChecklist } from "../components/setup-checklist";
 import { Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
@@ -9,10 +11,19 @@ import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
 export const dynamic = "force-dynamic";
 
+const DASHBOARD_ROLES = ["desk_supervisor", "authorising_officer", "state_admin", "national_admin", "auditor"];
+
 export default async function DashboardPage() {
-  const [summary, suggestions] = await Promise.all([
+  // Everyone lands here after signing in, and not every role may read the
+  // dashboard. Send them to the record, which every role can, rather than to
+  // a refusal.
+  const me = await tryGet<Me>("/v1/me");
+  if (me && !me.roles.some((r) => DASHBOARD_ROLES.includes(r))) redirect("/inspections");
+
+  const [summary, suggestions, setup] = await Promise.all([
     get<DashboardSummary>("/v1/dashboard"),
     get<RiskSuggestion[]>("/v1/risk-suggestions?limit=8"),
+    tryGet<SetupProgress>("/v1/setup"),
   ]);
 
   const { tiles, decisionsWithin30Days: clock } = summary;
@@ -23,6 +34,8 @@ export default async function DashboardPage() {
         title="Compliance overview"
         summary="Live from the inspection record. Figures update as inspections sync."
       />
+
+      {setup ? <SetupChecklist progress={setup} /> : null}
 
       {/* The tiles that carry a problem take the colour of the problem. A row
           where everything is ink means there is nothing to chase today, which
