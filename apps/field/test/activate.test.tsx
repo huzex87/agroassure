@@ -39,6 +39,19 @@ const ACTIVATED = {
   deviceId: "018f0000-0000-7000-8000-0000000000dd",
 };
 
+/** Tap four digits on the PIN pad. */
+async function typePin(pin: string) {
+  for (const digit of pin) await press(screen.getByLabelText(digit));
+}
+
+/** The PIN every successful activation now asks for, chosen and confirmed. */
+async function choosePin(pin = "2580") {
+  expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
+  await typePin(pin);
+  expect(await screen.findByText("Enter the same PIN again")).toBeTruthy();
+  await typePin(pin);
+}
+
 function renderActivate() {
   const Activate = require("../app/activate").default;
   return renderScreen(<Activate />);
@@ -55,6 +68,9 @@ beforeEach(async () => {
     "agroassure.user.id",
     "agroassure.user.name",
     "agroassure.session.token",
+    "agroassure.pin.hash",
+    "agroassure.pin.salt",
+    "agroassure.pin.failures",
   ]) {
     await SecureStore.deleteItemAsync(key);
   }
@@ -94,6 +110,7 @@ describe("the activation screen", () => {
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
 
+    await choosePin();
     expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
 
     const [url, init] = fetchMock.mock.calls[0];
@@ -109,6 +126,25 @@ describe("the activation screen", () => {
 
     fireEvent.press(screen.getByText("See today's visits"));
     expect(mockRouter.replace).toHaveBeenCalledWith("/");
+  });
+
+  it("asks for a PIN before letting anyone in, and again if the two do not match", async () => {
+    fetchMock.mockImplementation(() => reply(200, ACTIVATED));
+    renderActivate();
+    fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
+    await press(screen.getByText("Continue"));
+
+    expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
+    await typePin("1111");
+    await typePin("2222");
+    expect(await screen.findByText("Those didn't match. Choose your PIN again.")).toBeTruthy();
+    expect(await SecureStore.getItemAsync("agroassure.pin.hash")).toBeNull();
+
+    await choosePin("1357");
+    expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
+    const stored = await SecureStore.getItemAsync("agroassure.pin.hash");
+    expect(stored).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored).not.toContain("1357");
   });
 
   it("shows the server's reason when a code is refused", async () => {
@@ -147,6 +183,7 @@ describe("the activation screen", () => {
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
 
+    await choosePin();
     expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
     const first = JSON.parse(fetchMock.mock.calls[0][1].body).publicKeyBase64;
     const second = JSON.parse(fetchMock.mock.calls[1][1].body).publicKeyBase64;

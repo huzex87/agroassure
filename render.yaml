@@ -55,6 +55,16 @@ services:
       - key: OIDC_AUDIENCE
         sync: false
 
+      # -- staff sign-in by email link -----------------------------------------
+      # Instead of (or beside) OIDC: staff type their work email and receive a
+      # one-time link. CONSOLE_URL is the console's address; the secret signs
+      # console sessions (32+ characters). Using email instead of OIDC also
+      # means leaving AUTH_JWT_SECRET unset — the pilot refuses to start with it.
+      - key: CONSOLE_URL
+        sync: false
+      - key: CONSOLE_SESSION_SECRET
+        sync: false
+
       # -- inspectors' phones -------------------------------------------------
       # Signs the session a phone gets when it spends an invite code. At least
       # 32 characters; without it the console can still list the team, but no

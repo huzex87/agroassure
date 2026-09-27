@@ -369,6 +369,23 @@ officer's browser. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and
 console keeps the development token box, because half-configured has to mean not
 configured rather than a partly built redirect nobody can get back out of.
 
+**Email sign-in.** With `CONSOLE_URL` and `CONSOLE_SESSION_SECRET` set, staff
+can sign in by entering their work email and receiving a one-time link that
+works for 15 minutes. The request gets the same response whether or not the
+address has an account, only a hash of each link is stored, and the link is
+used up only when the person taps **Continue** (email scanners open links on
+arrival). A console session carries no roles; the gateway reads the person's
+roles from the database on every request, just as it does for phone sessions.
+A pilot can run on this instead of OIDC. In that case it refuses to start if
+`AUTH_JWT_SECRET` is still set, because that secret can mint a token for any
+role.
+
+**Phone PIN.** The field app asks for a 4-digit PIN when it opens and when it
+returns after 5 minutes away. The PIN is stored salted and hashed in the
+phone's secure storage. Forgetting it, or getting it wrong 5 times, signs the
+person out but keeps the phone's key and any unsent inspections, so a new
+invite code for the same person brings everything back.
+
 **Evidence.** `EVIDENCE_STORE=s3` puts exhibits in a bucket under object-lock in
 COMPLIANCE mode with a per-object retention, which no one can shorten — not the
 operator, not the account root, not this code. The bucket must be created with

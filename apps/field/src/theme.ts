@@ -191,6 +191,37 @@ export const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }),
   },
 
+  // -- the PIN pad ---------------------------------------------------------
+  pinDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.lineFirm,
+    backgroundColor: colors.surface,
+  },
+  pinDotOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  pinGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 14,
+    width: 3 * 76 + 2 * 14,
+  },
+  pinKey: {
+    width: 76,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    ...raised,
+  },
+  pinKeyPressed: { backgroundColor: colors.primaryTint, borderColor: colors.primaryLine },
+  pinKeyText: { fontSize: 26, fontWeight: "600", color: colors.ink },
+
   // -- the three responses ------------------------------------------------
   // Each is a large target because a mis-tap on a compliance record is not a
   // small thing, and each settles into the colour of what it means rather than

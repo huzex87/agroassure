@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { getStore } from "../src/db";
 import { forgetIdentity } from "../src/signer";
+import { clearPin } from "../src/pin";
 import { clearInspector, inspectorName } from "../src/session";
 import { clearToken } from "../src/transport";
 import { syncNow, useAutoSync } from "../src/auto-sync";
@@ -49,6 +50,7 @@ export default function Account() {
       // The visits belonged to the person leaving, not to the phone.
       getStore().replaceAssignedFacilities([]);
       await forgetIdentity();
+      await clearPin();
       await clearInspector();
       await clearToken();
       router.replace("/activate");

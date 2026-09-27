@@ -1,10 +1,11 @@
 # AgroAssure go-live guide
 
-Three jobs, in this order:
+Four jobs, in this order:
 
 1. [Turn on phone invites on Render](#1-turn-on-phone-invites-on-render) (about 20 minutes, plus 1–3 days for Termii to approve your SMS sender name)
-2. [Stop the failing Vercel gateway build](#2-stop-the-failing-vercel-gateway-build) (about 2 minutes)
-3. [Test on a real Android phone](#3-test-on-a-real-android-phone) (about 45 minutes)
+2. [Turn on email sign-in for the console](#2-turn-on-email-sign-in-for-the-console) (about 10 minutes, optional if you keep your identity provider)
+3. [Stop the failing Vercel gateway build](#3-stop-the-failing-vercel-gateway-build) (about 2 minutes)
+4. [Test on a real Android phone](#4-test-on-a-real-android-phone) (about 45 minutes)
 
 > **Before you start:** merge pull request #1 into `main`. Render deploys
 > automatically from `main`, and the new database table for invitations is
@@ -111,7 +112,46 @@ Optional settings:
 
 ---
 
-## 2. Stop the failing Vercel gateway build
+## 2. Turn on email sign-in for the console
+
+With this on, supervisors and administrators sign in by typing their work
+email and clicking the link that arrives. No passwords, and no identity
+provider to pay for or configure. It uses the same Resend account as the
+invites (step 1c).
+
+1. **Make a second secret**, the same way as step 1a. Use a different value
+   from `DEVICE_TOKEN_SECRET`.
+2. In **Render → agroassure-gateway → Environment**, add:
+
+   | Key | Value |
+   |---|---|
+   | `CONSOLE_URL` | the console's address, for example `https://console-agroassure.vercel.app`, with no slash at the end |
+   | `CONSOLE_SESSION_SECRET` | the secret from step 1 |
+
+3. **If you are replacing your identity provider** (not keeping both), also
+   delete `OIDC_ISSUER`, `OIDC_AUDIENCE` and any `AUTH_JWT_SECRET` from Render.
+   In **Vercel → console → Settings → Environment Variables**, delete the
+   `OIDC_*` variables too.
+   > The gateway refuses to start in pilot mode if `AUTH_JWT_SECRET` is left
+   > set without an identity provider. That secret can mint any role, so it
+   > must not remain as a back door. If the deploy fails, the Render log line
+   > says exactly which setting to fix.
+4. Click **Save, rebuild, and deploy**.
+5. **Make sure every staff member has an email address.** In the console,
+   **Team → Add a colleague** records it. Only people on the Team page can
+   sign in.
+
+**Check it:** open the console's sign-in page. It should say **"We'll email
+you a link — no password needed."** Enter your email, open the link, and click
+**Continue**.
+
+> Why a **Continue** button? Email security scanners open every link as soon
+> as a message arrives. If the link signed you in straight away, the scanner
+> would use it up first, and you would be told it had already been used.
+
+---
+
+## 3. Stop the failing Vercel gateway build
 
 The gateway runs on **Render**. It keeps background timers running, which
 Vercel's serverless platform can't do. The `sync-gateway` project on Vercel
@@ -137,9 +177,9 @@ project**, which is the regulator website.
 
 ---
 
-## 3. Test on a real Android phone
+## 4. Test on a real Android phone
 
-### 3a. Prepare the console
+### 4a. Prepare the console
 
 Sign in to the console as an administrator and make sure you have:
 
@@ -152,7 +192,7 @@ Sign in to the console as an administrator and make sure you have:
 - [ ] **An inspector.** Use **Team → Invite an inspector** with the test phone
       number. Keep the code handy.
 
-### 3b. Build and install the app
+### 4b. Build and install the app
 
 On a computer with Node 22 and pnpm:
 
@@ -176,7 +216,7 @@ npx eas-cli build -p android --profile preview
 > `https://agroassure-gateway.onrender.com`. If your gateway lives elsewhere,
 > change `EXPO_PUBLIC_API_URL` in `apps/field/eas.json` before building.
 
-### 3c. Walk through it
+### 4c. Walk through it
 
 Tick each step as you go. If something doesn't match what's expected, note what
 the screen said.
@@ -190,7 +230,13 @@ the screen said.
        *Expected:* "That code isn't right…"
 4. [ ] Type the real code from the SMS. Lowercase and spaces are fine.
        Tap **Continue**.
+       *Expected:* "Choose a 4-digit PIN".
+4a. [ ] Enter a PIN, then enter it again. Try entering a different second
+       PIN first: it should say "Those didn't match".
        *Expected:* "Welcome, [first name]" with a green tick.
+4b. [ ] Press the Home button, wait more than 5 minutes, and reopen the app.
+       *Expected:* "Enter your PIN". A wrong PIN shows "Tries left: 4";
+       the right one returns you to exactly where you were.
 5. [ ] Other way in: on the phone, open the invite **email** and tap
        **Open on this phone**.
        *Expected:* the app opens with the code already filled in. This only
@@ -242,11 +288,11 @@ the screen said.
         the new code on the phone.
         *Expected:* it works, and the phone shows as a new active phone.
 
-### 3d. If something goes wrong
+### 4d. If something goes wrong
 
 | What you see | Likely cause | Fix |
 |---|---|---|
-| "Couldn't reach the server" | No internet on the phone, or the APK was built before `eas.json` pointed at Render | Check the phone's data, or rebuild the APK (step 3b) |
+| "Couldn't reach the server" | No internet on the phone, or the APK was built before `eas.json` pointed at Render | Check the phone's data, or rebuild the APK (step 4b) |
 | "phone invitations are not set up on this server" | `DEVICE_TOKEN_SECRET` missing | Step 1d |
 | Invite dialog: SMS **Not delivered** | Sender ID not approved, no DND route, or empty wallet | The detail line says which. Fix it in Termii, then **Send new code** |
 | Invite dialog: SMS **Not sent · SMS sending is not set up** | `SMS_PROVIDER` not set | Step 1d |
@@ -254,5 +300,7 @@ the screen said.
 | Visit never appears on the phone | Visit planned for a different inspector, or the phone hasn't synced | Check **Plan visits → Upcoming**, then **Account → Send now** |
 | Tapping a visit gives an error about the checklist | No checklist in force for that facility type | Publish one under **Checklists** |
 | "This code has expired" | Older than 3 days | **Send new code** |
+| Inspector forgot their PIN | — | They tap **Forgot PIN?** → **Sign out and reset PIN**. Send them a new code; their unsent work is kept and sends once they're back in |
+| Console: "This sign-in link has expired or has already been used" | Link older than 15 minutes, or already used | Request a new one on the sign-in page |
 
 When everything is ticked, the pilot is ready for real inspectors.

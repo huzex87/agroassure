@@ -15,6 +15,8 @@ import { forgetIdentity, generateKeypair, identity, setDeviceId } from "../src/s
 import { inspectorId, inspectorName, setInspectorId, setInspectorName } from "../src/session";
 import { activate, ApiError } from "../src/transport";
 import { requestSync } from "../src/auto-sync";
+import { setPin } from "../src/pin";
+import { PinPad } from "../src/pin-pad";
 import { useLanguage } from "../src/i18n";
 import { colors, styles } from "../src/theme";
 import { CODE_LENGTH, cleanCode, displayCode } from "../src/invite-code";
@@ -37,7 +39,7 @@ function phoneLabel(): string {
   return Platform.OS === "ios" ? "iPhone" : "Android phone";
 }
 
-type Step = "checking" | "enter" | "done" | "alreadySetUp";
+type Step = "checking" | "enter" | "choosePin" | "confirmPin" | "done" | "alreadySetUp";
 
 export default function Activate() {
   const router = useRouter();
@@ -50,6 +52,8 @@ export default function Activate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [firstPin, setFirstPin] = useState<string | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
   const input = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -95,7 +99,10 @@ export default function Activate() {
       await setInspectorId(result.userId);
       await setInspectorName(result.fullName);
       setName(result.fullName);
-      setStep("done");
+      // Set a PIN before anything else: from this moment the phone holds a
+      // working session, and a phone that is lost before it has a PIN is a
+      // phone anyone can use.
+      setStep("choosePin");
       // Collect the day straight away, while the person is still looking.
       requestSync();
     } catch (err) {
@@ -113,6 +120,36 @@ export default function Activate() {
     return (
       <View style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (step === "choosePin" || step === "confirmPin") {
+    return (
+      <View style={[styles.screen, styles.content, { justifyContent: "center", paddingBottom: insets.bottom + 24 }]}>
+        <PinPad
+          title={step === "choosePin" ? t("choosePin") : t("confirmPin")}
+          subtitle={step === "choosePin" ? t("choosePinBody") : null}
+          error={pinError}
+          deleteLabel={t("deletePin")}
+          onComplete={async (pin) => {
+            if (step === "choosePin") {
+              setFirstPin(pin);
+              setPinError(null);
+              setStep("confirmPin");
+              return;
+            }
+            if (pin !== firstPin) {
+              setFirstPin(null);
+              setPinError(t("pinMismatch"));
+              setStep("choosePin");
+              return;
+            }
+            await setPin(pin);
+            setPinError(null);
+            setStep("done");
+          }}
+        />
       </View>
     );
   }

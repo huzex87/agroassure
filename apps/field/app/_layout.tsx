@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { LanguageContext, storeLanguage, storedLanguage, t, type Language } from "../src/i18n";
 import { colors, styles } from "../src/theme";
+import { PinGate } from "../src/pin-gate";
 
 export default function RootLayout() {
   // Language is app state, not a per-screen concern: an inspector switches once
@@ -52,6 +53,7 @@ export default function RootLayout() {
             <Stack.Screen name="inspection/[id]" options={{ title: "" }} />
             <Stack.Screen name="signoff/[id]" options={{ title: t("signOff", language) }} />
           </Stack>
+          <PinGate />
         </LanguageContext.Provider>
       )}
     </SafeAreaProvider>

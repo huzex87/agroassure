@@ -86,6 +86,27 @@ const STRINGS = {
   },
   enterNewCode: { en: "Enter a new code", ha: "Shigar da sabuwar lamba" },
   setUpPhone: { en: "Set up this phone", ha: "Saita wannan wayar" },
+  // The PIN.
+  choosePin: { en: "Choose a 4-digit PIN", ha: "Zaɓi PIN mai lambobi 4" },
+  choosePinBody: {
+    en: "You'll enter it each time you open AgroAssure. It keeps your inspections safe if the phone is lost.",
+    ha: "Za ka shigar da shi duk lokacin da ka buɗe AgroAssure. Yana kare bincikenka idan wayar ta ɓace.",
+  },
+  confirmPin: { en: "Enter the same PIN again", ha: "Sake shigar da PIN ɗin" },
+  pinMismatch: { en: "Those didn't match. Choose your PIN again.", ha: "Ba su yi daidai ba. Sake zaɓar PIN ɗinka." },
+  enterPin: { en: "Enter your PIN", ha: "Shigar da PIN ɗinka" },
+  wrongPin: { en: "Wrong PIN. Tries left:", ha: "PIN ba daidai ba. Sauran gwaji:" },
+  forgotPin: { en: "Forgot PIN?", ha: "Ka manta PIN?" },
+  forgotPinBody: {
+    en: "You'll need a new invite code from your administrator. Work saved on this phone is kept and will send once you're back in.",
+    ha: "Za ka buƙaci sabuwar lambar gayyata daga shugabanka. Aikin da ke wannan wayar zai kasance, kuma za a aika shi bayan ka dawo.",
+  },
+  signOutAndReset: { en: "Sign out and reset PIN", ha: "Fita ka sake saita PIN" },
+  lockedOut: {
+    en: "Too many wrong tries. Ask your administrator for a new invite code.",
+    ha: "Kuskure ya yi yawa. Ka nemi sabuwar lambar gayyata daga shugabanka.",
+  },
+  deletePin: { en: "Delete", ha: "Goge" },
   // Sending.
   allSent: { en: "Everything is sent", ha: "An aika komai" },
   sending: { en: "Sending…", ha: "Ana aikawa…" },
