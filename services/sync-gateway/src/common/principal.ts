@@ -13,7 +13,7 @@ export interface Principal {
    * gave it. The guard then takes roles and jurisdiction from the database,
    * and refuses the request if the phone has been signed out.
    */
-  via?: "device";
+  via?: "device" | "console";
 }
 
 // Marker key used to attach the principal to the Express request.

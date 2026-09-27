@@ -173,6 +173,18 @@ export class InviteDelivery {
   }
 
   async sendEmail(to: string | null, m: InviteMessage): Promise<ChannelOutcome> {
+    return this.sendEmailContent(to, {
+      subject: emailSubject(),
+      text: emailText(m),
+      html: emailHtml(m),
+    });
+  }
+
+  /** Any email, through whichever provider this deployment uses. */
+  async sendEmailContent(
+    to: string | null,
+    content: { subject: string; text: string; html: string },
+  ): Promise<ChannelOutcome> {
     const cfg = this.config.invites.email;
     if (!to) return { to: null, status: "skipped", detail: "no email address" };
     if (cfg.provider === "none") {
@@ -181,7 +193,7 @@ export class InviteDelivery {
     try {
       switch (cfg.provider) {
         case "log":
-          this.logger.log(`[email to ${to}] ${emailSubject()}\n${emailText(m)}`);
+          this.logger.log(`[email to ${to}] ${content.subject}\n${content.text}`);
           break;
         case "resend":
           await call("https://api.resend.com/emails", {
@@ -190,9 +202,9 @@ export class InviteDelivery {
             body: JSON.stringify({
               from: cfg.from,
               to: [to],
-              subject: emailSubject(),
-              text: emailText(m),
-              html: emailHtml(m),
+              subject: content.subject,
+              text: content.text,
+              html: content.html,
             }),
           });
           break;
@@ -203,10 +215,10 @@ export class InviteDelivery {
             body: JSON.stringify({
               personalizations: [{ to: [{ email: to }] }],
               from: { email: cfg.from },
-              subject: emailSubject(),
+              subject: content.subject,
               content: [
-                { type: "text/plain", value: emailText(m) },
-                { type: "text/html", value: emailHtml(m) },
+                { type: "text/plain", value: content.text },
+                { type: "text/html", value: content.html },
               ],
             }),
           });

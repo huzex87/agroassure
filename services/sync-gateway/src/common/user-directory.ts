@@ -63,6 +63,27 @@ export class UserDirectory {
    * through, so the Team page can say which phones are actually in use
    * without a write on every sync.
    */
+  /**
+   * The person a console session speaks for, with the roles the register gives
+   * them now. A national role is unscoped, so it carries no jurisdiction — the
+   * same rule a provider's token follows (see tokenClaims).
+   */
+  async resolveConsoleUser(
+    userId: string,
+  ): Promise<(DirectoryUser & { roles: string[] }) | null> {
+    const rows = await this.pg.query<{ id: string; jurisdiction_id: string | null; roles: string[] }>(
+      `SELECT u.id, u.jurisdiction_id,
+              coalesce(array_agg(r.role_code) FILTER (WHERE r.role_code IS NOT NULL), '{}') AS roles
+         FROM app_user u
+         LEFT JOIN user_role r ON r.user_id = u.id
+        WHERE u.id = $1 AND u.status = 'active'
+        GROUP BY u.id, u.jurisdiction_id`,
+      [userId],
+    );
+    const row = rows[0];
+    return row ? { id: row.id, jurisdictionId: row.jurisdiction_id, roles: row.roles } : null;
+  }
+
   async resolvePhone(userId: string, deviceId: string): Promise<DirectoryUser | null> {
     const rows = await this.pg.query<{ id: string; jurisdiction_id: string | null }>(
       `WITH phone AS (

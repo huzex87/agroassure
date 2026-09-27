@@ -68,6 +68,16 @@ export interface InviteConfig {
   sms: SmsConfig;
 }
 
+/** Console sign-in by a one-time link sent to a person's work email. */
+export interface EmailSignInConfig {
+  /** Signs the console session a spent link is exchanged for. */
+  sessionSecret: string;
+  /** Where the console is, so the emailed link can point at it. */
+  consoleUrl: string;
+  /** How long a link works. Short: it is a password sent over email. */
+  linkTtlMinutes: number;
+}
+
 export interface AppConfig {
   port: number;
   databaseUrl: string;
@@ -102,6 +112,8 @@ export interface AppConfig {
   devSignIn: boolean;
   /** Invitations, and the phone sessions they create. */
   invites: InviteConfig;
+  /** Email sign-in links for the console, when configured. */
+  emailSignIn: EmailSignInConfig | null;
   /** Base URL a certificate QR code points at. */
   publicVerifyBaseUrl: string;
   /** Lookups allowed per source address per minute on the public surface. */
@@ -114,12 +126,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const oidc = loadOidc(env);
 
-  // One of the two must be able to verify a token. With OIDC configured the
-  // shared secret is not needed at all, and requiring it would leave a second
-  // way in that nobody was watching.
+  // Something must be able to verify a token: the institution's provider, the
+  // console's own email sign-in, or — in development — a shared secret. With a
+  // provider configured the shared secret is not needed at all, and requiring
+  // it would leave a second way in that nobody was watching.
   const authJwtSecret = env.AUTH_JWT_SECRET;
-  if (!oidc && !authJwtSecret) {
-    throw new Error("either OIDC_ISSUER (with OIDC_AUDIENCE) or AUTH_JWT_SECRET is required");
+  const emailSignIn = loadEmailSignIn(
+    env,
+    !oidc && env.APP_ENV !== "pilot" ? (authJwtSecret ?? null) : null,
+  );
+  if (!oidc && !authJwtSecret && !emailSignIn) {
+    throw new Error(
+      "no way to sign in: set OIDC_ISSUER (with OIDC_AUDIENCE), or CONSOLE_URL and CONSOLE_SESSION_SECRET for email sign-in, or AUTH_JWT_SECRET in development",
+    );
   }
 
   const publicVerifyDatabaseUrl = env.PUBLIC_VERIFY_DATABASE_URL;
@@ -134,6 +153,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     oidc,
     devSignIn: loadDevSignIn(env, oidc !== null),
     invites: loadInvites(env, oidc === null ? (authJwtSecret ?? null) : null),
+    emailSignIn,
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
     evidenceStoreDir: env.EVIDENCE_STORE_DIR ?? "./evidence-store",
@@ -169,9 +189,19 @@ function assertFitForPilot(env: NodeJS.ProcessEnv, config: AppConfig): void {
       "DEV_SIGNIN is on. It verifies no password and asks for no proof, so naming a user is enough to become them.",
     );
   }
-  if (!config.oidc) {
+  if (!config.oidc && !config.emailSignIn) {
     refusals.push(
-      "no OIDC_ISSUER. Tokens would be signed and verified with a shared secret, which is a development stand-in for an identity provider.",
+      "no way for staff to sign in. Set OIDC_ISSUER for the institution's identity provider, or CONSOLE_URL and CONSOLE_SESSION_SECRET for email sign-in links.",
+    );
+  }
+  if (!config.oidc && config.authJwtSecret) {
+    refusals.push(
+      "AUTH_JWT_SECRET is set without an identity provider. Anyone holding it can mint a token for any role; it is a development stand-in and must be removed.",
+    );
+  }
+  if (config.emailSignIn && ["none", "log"].includes(config.invites.email.provider)) {
+    refusals.push(
+      "email sign-in is on but EMAIL_PROVIDER is not a real provider, so nobody would ever receive a sign-in link.",
     );
   }
   if (config.evidenceStore !== "s3") {
@@ -307,6 +337,29 @@ export function loadInvites(
       defaultCountryCode: (env.SMS_DEFAULT_COUNTRY_CODE ?? "234").replace(/^\+/, ""),
     },
   };
+}
+
+/**
+ * Email sign-in, on when CONSOLE_URL says where the console is. The session
+ * secret must be given explicitly outside development: it signs every console
+ * session, and a default would be a secret nobody chose.
+ */
+export function loadEmailSignIn(
+  env: NodeJS.ProcessEnv,
+  developmentSecret: string | null,
+): EmailSignInConfig | null {
+  const consoleUrl = env.CONSOLE_URL?.trim();
+  if (!consoleUrl) return null;
+  if (!/^https?:\/\//.test(consoleUrl)) throw new Error("CONSOLE_URL must start with https://");
+
+  const explicit = env.CONSOLE_SESSION_SECRET;
+  if (explicit !== undefined && explicit.length < 32) {
+    throw new Error("CONSOLE_SESSION_SECRET must be at least 32 characters");
+  }
+  const sessionSecret = explicit ?? developmentSecret;
+  if (!sessionSecret) throw new Error("CONSOLE_URL is set, so CONSOLE_SESSION_SECRET is required");
+
+  return { sessionSecret, consoleUrl: consoleUrl.replace(/\/$/, ""), linkTtlMinutes: 15 };
 }
 
 function loadS3(env: NodeJS.ProcessEnv): S3Config {

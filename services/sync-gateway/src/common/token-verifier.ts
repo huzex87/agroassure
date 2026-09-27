@@ -11,6 +11,7 @@ import type { Role } from "@agroassure/domain";
 import { CONFIG, type AppConfig, type OidcConfig } from "../config/config";
 import type { Principal } from "./principal";
 import { looksLikeDeviceSession, verifyDeviceSession } from "../invitations/device-session";
+import { looksLikeConsoleSession, verifyConsoleSession } from "../auth/console-session";
 
 // Turning a bearer token into a verified Principal.
 //
@@ -115,6 +116,14 @@ export class TokenVerifier {
     // its own secret; everything else about it — roles, jurisdiction, whether
     // the phone is still allowed — the guard reads from the database.
     if (looksLikeDeviceSession(token)) return this.verifyPhone(token);
+    // A console session from an emailed sign-in link. Same shape of trust as a
+    // phone's: it says who, and the guard asks the register what they may do.
+    if (looksLikeConsoleSession(token)) return this.verifyConsole(token);
+    // No provider and no shared secret means email sign-in is the only way in,
+    // and a token that is neither of the platform's own is not one of ours.
+    if (!this.config.oidc && !this.config.authJwtSecret) {
+      throw new UnauthorizedException("invalid token");
+    }
 
     const claims = this.config.oidc ? await this.verifyOidc(token) : this.verifyShared(token);
 
@@ -134,6 +143,17 @@ export class TokenVerifier {
         roles: [],
         via: "device",
       };
+    } catch {
+      throw new UnauthorizedException("invalid token");
+    }
+  }
+
+  private verifyConsole(token: string): Principal {
+    const secret = this.config.emailSignIn?.sessionSecret;
+    if (!secret) throw new UnauthorizedException("email sign-in is not enabled on this server");
+    try {
+      const { sub } = verifyConsoleSession(token, secret);
+      return { userId: sub, deviceId: null, jurisdictionId: null, roles: [], via: "console" };
     } catch {
       throw new UnauthorizedException("invalid token");
     }
