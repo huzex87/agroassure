@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig, type AppConfig, type InviteConfig } from "../src/config/config";
+import { loadFirstAdmin, stateCodeFor } from "../src/config/first-admin";
 import { hashCode, hashStatusToken, RegistrationService } from "../src/registration/registration.service";
 import { RegisterController, Window } from "../src/registration/registration.controller";
 import type { PgService } from "../src/db/pg.service";
@@ -164,5 +165,35 @@ describe("the open endpoints", () => {
         jurisdictionId: "018f0000-0000-7000-8000-000000000001",
       });
     }
+  });
+});
+
+describe("naming the first administrator", () => {
+  it("is off unless an email is given, and refuses one that is not an email", () => {
+    expect(loadFirstAdmin({})).toBeNull();
+    expect(() => loadFirstAdmin({ FIRST_ADMIN_EMAIL: "not-an-email" })).toThrow(/FIRST_ADMIN_EMAIL/);
+  });
+
+  it("fills in the rest sensibly", () => {
+    expect(loadFirstAdmin({ FIRST_ADMIN_EMAIL: " Owner@Agency.gov.ng " })).toEqual({
+      email: "owner@agency.gov.ng",
+      name: "owner",
+      state: "Katsina State",
+      stateCode: "KATSINA",
+    });
+    expect(
+      loadFirstAdmin({
+        FIRST_ADMIN_EMAIL: "a@b.ng",
+        FIRST_ADMIN_NAME: "Huzaifa Musa",
+        FIRST_ADMIN_STATE: "Kano State",
+      }),
+    ).toMatchObject({ name: "Huzaifa Musa", state: "Kano State", stateCode: "KANO" });
+    expect(stateCodeFor("Federal Capital Territory")).toBe("FEDERALCAPIT");
+    expect(loadFirstAdmin({ ...DEV, FIRST_ADMIN_EMAIL: "a@b.ng", FIRST_ADMIN_STATE_CODE: "kt" })?.stateCode).toBe("KT");
+  });
+
+  it("reaches the configuration", () => {
+    expect(loadConfig({ ...DEV, FIRST_ADMIN_EMAIL: "a@b.ng" }).firstAdmin?.email).toBe("a@b.ng");
+    expect(loadConfig(DEV).firstAdmin).toBeNull();
   });
 });

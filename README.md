@@ -343,6 +343,17 @@ administrator's decision comes before the phone exists, not after.
   failed send never fails the invite; the console says what happened. See
   `.env.example` for every setting.
 
+## Testing with real people
+
+Two guides in `docs/`:
+
+- [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list
+  (SMS and email accounts, Render settings, naming yourself the first
+  administrator, building the app) and a full walk-through on a real phone.
+- [`pilot-testing-guide.md`](docs/pilot-testing-guide.md), for the testers
+  themselves: what inspectors, office staff and administrators should each try,
+  what should happen, and how to report what didn't.
+
 ## People asking to join
 
 Invitations start with the administrator. Registration starts with the person,

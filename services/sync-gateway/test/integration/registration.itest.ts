@@ -315,6 +315,15 @@ runIf("asking to join, end to end", () => {
     expect(approved.inviteSent).toBe(false);
   });
 
+  it("lets a national administrator grant the national role", async () => {
+    const email = `yusuf.${stamp}@example.org`;
+    const req = await registrations.start({ fullName: "Yusuf Bako", email, phone: "08095556666", jurisdictionId, source: "console" });
+    await registrations.verify({ ...req, emailCode: outbox.emailCodeFor(email), smsCode: outbox.smsCodeFor("+2348095556666") });
+    const national: Principal = { ...stateAdmin, roles: ["national_admin"] };
+    const approved = await registrations.approve(national, req.registrationId, "national_admin");
+    expect(await directory.resolveConsoleUser(approved.userId)).toMatchObject({ roles: ["national_admin"] });
+  });
+
   it("sends an invite code at once to an inspector who asked on the website", async () => {
     const email = `hauwa.${stamp}@example.org`;
     const req = await registrations.start({
@@ -344,5 +353,36 @@ runIf("asking to join, end to end", () => {
 
     await new Promise((r) => setTimeout(r, 50));
     expect(outbox.emails.some((e) => e.to === email && /separate message with a code/.test(e.text))).toBe(true);
+  });
+});
+
+runIf("the first administrator", () => {
+  it("is created once, with their state, and left alone after", async () => {
+    const { FirstAdminService } = await import("../../src/registration/first-admin.service");
+    const config = { databaseUrl: DATABASE_URL } as AppConfig;
+    const pg = new PgService(config);
+    const svc = new FirstAdminService(pg, config);
+    const stamp = Date.now();
+    const wanted = {
+      email: `owner.${stamp}@example.org`,
+      name: "Deployment Owner",
+      state: `Test State ${stamp}`,
+      stateCode: `TS${stamp}`,
+    };
+
+    expect(await svc.ensure(wanted)).toBe("added " + wanted.state + ", created the account, made national administrator");
+    expect(await svc.ensure(wanted)).toBe("already set up");
+
+    const [row] = await pg.query<{ roles: string[]; jurisdiction: string }>(
+      `SELECT array_agg(r.role_code) AS roles, j.name AS jurisdiction
+         FROM app_user u JOIN user_role r ON r.user_id = u.id JOIN jurisdiction j ON j.id = u.jurisdiction_id
+        WHERE u.email = $1 GROUP BY j.name`,
+      [wanted.email],
+    );
+    expect(row).toEqual({ roles: ["national_admin"], jurisdiction: wanted.state });
+
+    // A suspension someone chose is not overruled by the setting.
+    await pg.query(`UPDATE app_user SET status = 'suspended' WHERE email = $1`, [wanted.email]);
+    expect(await svc.ensure(wanted)).toMatch(/suspended/);
   });
 });

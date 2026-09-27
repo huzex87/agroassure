@@ -99,6 +99,16 @@ services:
       # invitations only.
       - key: SELF_REGISTRATION
         value: "on"
+      # You, the owner. On every start the gateway makes sure this email is a
+      # national administrator (adding the state if missing), so a new
+      # deployment has someone who can sign in and approve everyone else.
+      # Safe to leave set: it only fills in what is missing.
+      - key: FIRST_ADMIN_EMAIL
+        sync: false
+      - key: FIRST_ADMIN_NAME
+        sync: false
+      - key: FIRST_ADMIN_STATE
+        sync: false
 
       # -- evidence ------------------------------------------------------------
       - key: EVIDENCE_STORE

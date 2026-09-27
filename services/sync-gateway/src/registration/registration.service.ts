@@ -432,7 +432,9 @@ export class RegistrationService {
       const userId = user.rows[0]!.id;
       await client.query(
         `INSERT INTO user_role (user_id, role_code, jurisdiction_id) VALUES ($1,$2,$3)`,
-        [userId, role, role === "national_admin" ? null : row.jurisdiction_id],
+        // Every role row names a state (it is part of the key); a national
+        // role is unscoped whichever state it names.
+        [userId, role, row.jurisdiction_id],
       );
 
       // The phone that asked becomes the inspector's phone, if the role is one

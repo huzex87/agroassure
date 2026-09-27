@@ -1,15 +1,37 @@
 # AgroAssure go-live guide
 
-Four jobs, in this order:
+This is everything left on **your** side, the owner's, before real people can
+test. The code is done. What remains is accounts, settings and one app build.
 
-1. [Turn on phone invites on Render](#1-turn-on-phone-invites-on-render) (about 20 minutes, plus 1–3 days for Termii to approve your SMS sender name)
-2. [Turn on email sign-in for the console](#2-turn-on-email-sign-in-for-the-console) (about 10 minutes, optional if you keep your identity provider)
-3. [Stop the failing Vercel gateway build](#3-stop-the-failing-vercel-gateway-build) (about 2 minutes)
-4. [Test on a real Android phone](#4-test-on-a-real-android-phone) (about 45 minutes)
+## Your to-do list
 
-> **Before you start:** merge pull request #1 into `main`. Render deploys
-> automatically from `main`, and the new database table for invitations is
-> created by itself when the gateway restarts. Nothing needs to be run by hand.
+Tick these off in order. Each links to the detailed steps below.
+
+- [ ] **0. Merge the open pull request** into `main`. Render deploys from
+      `main` by itself and creates any new database tables on restart. Nothing
+      needs to be run by hand.
+- [ ] **1. Sign up for SMS and email** and put the keys in Render
+      ([step 1](#1-turn-on-phone-invites-on-render)). About 20 minutes, plus
+      **1–3 days for Termii to approve your SMS sender name**. Start this first.
+- [ ] **2. Turn on email sign-in and name yourself the first administrator**
+      ([step 2](#2-turn-on-email-sign-in-for-the-console)). About 10 minutes.
+      Without this, nobody can sign in to the console on the live server: the
+      only administrators there are demo accounts whose inboxes don't exist.
+- [ ] **3. Stop the failing Vercel gateway build**
+      ([step 3](#3-stop-the-failing-vercel-gateway-build)). About 2 minutes.
+- [ ] **4. Build the Android app and test it yourself**
+      ([step 4](#4-test-on-a-real-android-phone)). About 45 minutes.
+- [ ] **5. Load your real data**: your facilities spreadsheet
+      (**Facilities → Add facility → Import**) and a checklist in force for
+      each facility type you inspect (**Checklists**).
+- [ ] **6. Hand the testers the pilot testing guide**
+      ([`pilot-testing-guide.md`](pilot-testing-guide.md)), with three things
+      filled in: the console address, the app download link, and who to send
+      problems to.
+
+**Cost to expect.** Termii charges per SMS (each person who registers gets one
+code, plus one when approved). Resend's free tier covers 3,000 emails a
+month, which is plenty for a pilot. Render's paid instance is already in place.
 
 ---
 
@@ -127,6 +149,16 @@ invites (step 1c).
    |---|---|
    | `CONSOLE_URL` | the console's address, for example `https://console-agroassure.vercel.app`, with no slash at the end |
    | `CONSOLE_SESSION_SECRET` | the secret from step 1 |
+   | `FIRST_ADMIN_EMAIL` | **your own** work email: the one you'll sign in with |
+   | `FIRST_ADMIN_NAME` | your full name, as it should appear in the console |
+   | `FIRST_ADMIN_STATE` | the state you're starting with, for example `Katsina State` |
+
+   The last three make you the **first national administrator**. Every time the
+   gateway starts, it checks that this email has an account with that role,
+   and adds the state if it isn't there. It only fills in what's missing: it
+   never removes anyone or changes anyone else's role, so it's safe to leave
+   set. Once you're in, everyone else arrives through you, by invite or by
+   approving their registration.
 
 3. **If you are replacing your identity provider** (not keeping both), also
    delete `OIDC_ISSUER`, `OIDC_AUDIENCE` and any `AUTH_JWT_SECRET` from Render.
@@ -137,13 +169,18 @@ invites (step 1c).
    > must not remain as a back door. If the deploy fails, the Render log line
    > says exactly which setting to fix.
 4. Click **Save, rebuild, and deploy**.
-5. **Make sure every staff member has an email address.** In the console,
-   **Team → Add a colleague** records it. Only people on the Team page can
-   sign in.
+5. **Everyone else** either registers themselves (**Request access** on the
+   sign-in page, then you approve them on **Team**) or is added by you
+   (**Team → Add a colleague**). Only people on the Team page can sign in.
 
-**Check it:** open the console's sign-in page. It should say **"We'll email
-you a link — no password needed."** Enter your email, open the link, and click
-**Continue**.
+**Check it:**
+1. In Render → **Logs**, look for a line like
+   `first administrator you@…: added Katsina State, created the account, made national administrator`.
+   On later restarts it says `already set up`.
+2. Open the console's sign-in page. It should say **"We'll email you a link —
+   no password needed"**, with **New here? Request access** underneath.
+3. Enter your `FIRST_ADMIN_EMAIL`, open the link that arrives, and click
+   **Continue**. You should land on the dashboard, with **Team** in the menu.
 
 > Why a **Continue** button? Email security scanners open every link as soon
 > as a message arrives. If the link signed you in straight away, the scanner
