@@ -15,8 +15,8 @@ import { forgetIdentity, generateKeypair, identity, setDeviceId } from "../src/s
 import { inspectorId, inspectorName, setInspectorId, setInspectorName } from "../src/session";
 import { activate, ApiError } from "../src/transport";
 import { requestSync } from "../src/auto-sync";
-import { setPin } from "../src/pin";
-import { PinPad } from "../src/pin-pad";
+import { FinishSetup, Welcome } from "../src/finish-setup";
+import { loadTicket } from "../src/registration";
 import { useLanguage } from "../src/i18n";
 import { colors, styles } from "../src/theme";
 import { CODE_LENGTH, cleanCode, displayCode } from "../src/invite-code";
@@ -39,7 +39,7 @@ function phoneLabel(): string {
   return Platform.OS === "ios" ? "iPhone" : "Android phone";
 }
 
-type Step = "checking" | "enter" | "choosePin" | "confirmPin" | "done" | "alreadySetUp";
+type Step = "checking" | "enter" | "finish" | "alreadySetUp";
 
 export default function Activate() {
   const router = useRouter();
@@ -52,8 +52,6 @@ export default function Activate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
-  const [firstPin, setFirstPin] = useState<string | null>(null);
-  const [pinError, setPinError] = useState<string | null>(null);
   const input = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -62,6 +60,9 @@ export default function Activate() {
       if (id.deviceId && who) {
         setName(await inspectorName());
         setStep("alreadySetUp");
+      } else if (!params.code && (await loadTicket())) {
+        // A request to join is still open on this phone: go back to it.
+        router.replace("/register");
       } else {
         setStep("enter");
       }
@@ -99,10 +100,8 @@ export default function Activate() {
       await setInspectorId(result.userId);
       await setInspectorName(result.fullName);
       setName(result.fullName);
-      // Set a PIN before anything else: from this moment the phone holds a
-      // working session, and a phone that is lost before it has a PIN is a
-      // phone anyone can use.
-      setStep("choosePin");
+      // A PIN before anything else; FinishSetup says why.
+      setStep("finish");
       // Collect the day straight away, while the person is still looking.
       requestSync();
     } catch (err) {
@@ -124,60 +123,12 @@ export default function Activate() {
     );
   }
 
-  if (step === "choosePin" || step === "confirmPin") {
-    return (
-      <View style={[styles.screen, styles.content, { justifyContent: "center", paddingBottom: insets.bottom + 24 }]}>
-        <PinPad
-          title={step === "choosePin" ? t("choosePin") : t("confirmPin")}
-          subtitle={step === "choosePin" ? t("choosePinBody") : null}
-          error={pinError}
-          deleteLabel={t("deletePin")}
-          onComplete={async (pin) => {
-            if (step === "choosePin") {
-              setFirstPin(pin);
-              setPinError(null);
-              setStep("confirmPin");
-              return;
-            }
-            if (pin !== firstPin) {
-              setFirstPin(null);
-              setPinError(t("pinMismatch"));
-              setStep("choosePin");
-              return;
-            }
-            await setPin(pin);
-            setPinError(null);
-            setStep("done");
-          }}
-        />
-      </View>
-    );
+  if (step === "finish") {
+    return <FinishSetup name={name} onFinish={() => router.replace("/")} />;
   }
 
-  if (step === "done" || step === "alreadySetUp") {
-    const first = name?.trim().split(/\s+/)[0] ?? "";
-    return (
-      <View style={[styles.screen, styles.content, { justifyContent: "center", paddingBottom: insets.bottom + 24 }]}>
-        <View style={[styles.card, { alignItems: "center", paddingVertical: 28 }]}>
-          <View style={styles.successBadge}>
-            <Text style={styles.successTick}>✓</Text>
-          </View>
-          <Text style={[styles.h1, { textAlign: "center" }]}>
-            {step === "done" ? `${t("welcomeName")}, ${first}` : t("alreadySetUp")}
-          </Text>
-          <Text style={[styles.muted, { textAlign: "center" }]}>
-            {step === "done" ? t("deviceReadyBody") : t("alreadySetUpBody")}
-          </Text>
-        </View>
-        <Pressable
-          style={styles.button}
-          onPress={() => router.replace("/")}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>{t("seeVisits")}</Text>
-        </Pressable>
-      </View>
-    );
+  if (step === "alreadySetUp") {
+    return <Welcome title={t("alreadySetUp")} body={t("alreadySetUpBody")} onContinue={() => router.replace("/")} />;
   }
 
   return (
@@ -251,9 +202,18 @@ export default function Activate() {
           </Pressable>
         </View>
 
-        <Text style={[styles.muted, { textAlign: "center", paddingHorizontal: 12 }]}>
-          {t("noCode")}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+          <Text style={styles.faint}>{t("newHere")}</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+        </View>
+        <Pressable
+          style={[styles.button, styles.buttonQuiet]}
+          onPress={() => router.push("/register")}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.buttonText, styles.buttonQuietText]}>{t("registerInstead")}</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -114,6 +114,13 @@ export interface AppConfig {
   invites: InviteConfig;
   /** Email sign-in links for the console, when configured. */
   emailSignIn: EmailSignInConfig | null;
+  /**
+   * Whether people may ask to join on their own. Asking gives nothing: an
+   * administrator still approves every request and chooses the role. On unless
+   * SELF_REGISTRATION=off, and in practice only open when both an email and an
+   * SMS provider are configured, since both contacts must be proven.
+   */
+  selfRegistration: boolean;
   /** Base URL a certificate QR code points at. */
   publicVerifyBaseUrl: string;
   /** Lookups allowed per source address per minute on the public surface. */
@@ -154,6 +161,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     devSignIn: loadDevSignIn(env, oidc !== null),
     invites: loadInvites(env, oidc === null ? (authJwtSecret ?? null) : null),
     emailSignIn,
+    selfRegistration: env.SELF_REGISTRATION !== "off",
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
     evidenceStoreDir: env.EVIDENCE_STORE_DIR ?? "./evidence-store",

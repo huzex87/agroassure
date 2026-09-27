@@ -26,6 +26,8 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly reason: string | null,
+    /** Which codes were wrong, when the refusal was about codes. */
+    readonly wrong: string[] = [],
   ) {
     super(message);
   }
@@ -45,7 +47,7 @@ async function request<T>(
     // The gateway sends a sentence in `message`; anything else reaching an
     // inspector's error card would be a wall of JSON.
     const detail = await response.text();
-    let parsed: { message?: unknown; reason?: unknown } | undefined;
+    let parsed: { message?: unknown; reason?: unknown; wrong?: unknown } | undefined;
     try {
       parsed = JSON.parse(detail);
     } catch {
@@ -58,6 +60,7 @@ async function request<T>(
         : `${response.status} ${response.statusText}`.trim(),
       response.status,
       typeof parsed?.reason === "string" ? parsed.reason : null,
+      Array.isArray(parsed?.wrong) ? parsed.wrong.filter((w): w is string => typeof w === "string") : [],
     );
   }
   return (await response.json()) as T;
@@ -148,4 +151,72 @@ export function httpTransport(): SyncTransport {
 /** Signed out: the session token goes with the person it belonged to. */
 export async function clearToken(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN);
+}
+
+// -- asking to join --------------------------------------------------------
+//
+// For someone without an invite code. None of these carry a session: the
+// person has no account yet. After the first call they carry the ticket the
+// gateway handed back instead — an id and a secret only this phone holds.
+
+export interface RegisterOptions {
+  available: boolean;
+  jurisdictions: Array<{ id: string; name: string }>;
+}
+
+export interface RegistrationTicket {
+  registrationId: string;
+  token: string;
+}
+
+export interface RegistrationStatus {
+  status: "verifying" | "pending" | "approved" | "rejected" | "withdrawn";
+  fullName: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  rejectReason: string | null;
+  role: string | null;
+  /** Present once approved as an inspector: the session an invite code would have given. */
+  session?: { token: string; userId: string; deviceId: string; fullName: string };
+}
+
+export function registerOptions(): Promise<RegisterOptions> {
+  return callAnonymous<RegisterOptions>("/v1/register/options");
+}
+
+export function startRegistration(input: {
+  fullName: string;
+  phone: string;
+  email: string;
+  jurisdictionId: string;
+  publicKeyBase64: string;
+}): Promise<RegistrationTicket> {
+  return callAnonymous<RegistrationTicket>("/v1/register", {
+    method: "POST",
+    body: JSON.stringify({ ...input, source: "app" }),
+  });
+}
+
+export function verifyRegistration(
+  ticket: RegistrationTicket,
+  codes: { smsCode?: string; emailCode?: string },
+): Promise<RegistrationStatus> {
+  return callAnonymous<RegistrationStatus>("/v1/register/verify", {
+    method: "POST",
+    body: JSON.stringify({ ...ticket, ...codes }),
+  });
+}
+
+export function resendRegistrationCodes(ticket: RegistrationTicket): Promise<RegistrationStatus> {
+  return callAnonymous<RegistrationStatus>("/v1/register/resend", {
+    method: "POST",
+    body: JSON.stringify(ticket),
+  });
+}
+
+export function registrationStatus(ticket: RegistrationTicket): Promise<RegistrationStatus> {
+  return callAnonymous<RegistrationStatus>("/v1/register/status", {
+    method: "POST",
+    body: JSON.stringify(ticket),
+  });
 }

@@ -8,6 +8,7 @@ import { PublicVerifyModule } from "./public-verify/public-verify.module";
 import { WorkersModule } from "./workers/workers.module";
 import { InvitationsModule } from "./invitations/invitations.module";
 import { AuthModule } from "./auth/auth.module";
+import { RegistrationModule } from "./registration/registration.module";
 import { HealthController } from "./health/health.controller";
 import { MetricsService } from "./health/metrics.service";
 import { RequestContextMiddleware } from "./common/request-context";
@@ -32,6 +33,7 @@ class MetricsModule {}
     ConsoleModule,
     InvitationsModule,
     AuthModule,
+    RegistrationModule,
     PublicVerifyModule,
     WorkersModule,
   ],

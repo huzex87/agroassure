@@ -86,3 +86,30 @@ export async function addColleague(_prev: FormState, formData: FormData): Promis
     return { status: "error", message: refusal(err) };
   }
 }
+
+/** Let someone who asked to join in, in the role chosen here. */
+export async function approveRequest(registrationId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const role = String(formData.get("role") ?? "");
+  if (!role) return { status: "error", message: "Choose a role first." };
+  try {
+    await post(`/v1/registrations/${registrationId}/approve`, { role });
+    revalidatePath("/team");
+    revalidatePath("/");
+    return { status: "done" };
+  } catch (err) {
+    return { status: "error", message: refusal(err) };
+  }
+}
+
+/** Turn a request down. The reason, if given, is sent to them. */
+export async function rejectRequest(registrationId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const reason = String(formData.get("reason") ?? "").trim();
+  try {
+    await post(`/v1/registrations/${registrationId}/reject`, { reason: reason || undefined });
+    revalidatePath("/team");
+    revalidatePath("/");
+    return { status: "done" };
+  } catch (err) {
+    return { status: "error", message: refusal(err) };
+  }
+}

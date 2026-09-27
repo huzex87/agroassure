@@ -288,6 +288,26 @@ the screen said.
         the new code on the phone.
         *Expected:* it works, and the phone shows as a new active phone.
 
+**Someone registers without an invite code**
+20. [ ] On a second phone, open the app and tap **Register instead**. Fill in
+        a name, that phone's number, an email address you can read, and the
+        state. Tap **Send my codes**.
+        *Expected:* an SMS and an email, each with a 6-digit code.
+21. [ ] Type both codes and tap **Confirm**.
+        *Expected:* "Waiting for approval". The state administrator receives
+        an email saying someone asked to join.
+22. [ ] In the console, the dashboard says "1 person is waiting to join".
+        Click **Review**. The request shows ticks beside the email and phone.
+        Leave the role as **Inspector (phone app)** and click **Approve**.
+23. [ ] On the phone, wait up to 15 seconds (or tap **Check now**).
+        *Expected:* "Choose a 4-digit PIN", then "Welcome". No invite code was
+        needed, and the phone appears under **Team → Phones**.
+24. [ ] On a computer, open the console's sign-in page and click **Request
+        access**. Register with a different email, confirm both codes, and in
+        the Team page approve it as **Desk supervisor**.
+        *Expected:* the registration page says "Welcome aboard", and that
+        email can now sign in with a link.
+
 ### 4d. If something goes wrong
 
 | What you see | Likely cause | Fix |
@@ -302,5 +322,10 @@ the screen said.
 | "This code has expired" | Older than 3 days | **Send new code** |
 | Inspector forgot their PIN | — | They tap **Forgot PIN?** → **Sign out and reset PIN**. Send them a new code; their unsent work is kept and sends once they're back in |
 | Console: "This sign-in link has expired or has already been used" | Link older than 15 minutes, or already used | Request a new one on the sign-in page |
+| No **Register instead** / **Request access**, or "Registration isn't open" | Email or SMS provider not set, or `SELF_REGISTRATION=off` | Step 1d; both providers are needed, since both contacts are checked |
+| "Those codes have expired" while registering | More than 30 minutes since they were sent | Tap **Send new codes** |
+| "Too many requests to join from here" | The same phone or email asked more than 3 times in an hour | Wait an hour, or invite them from **Team** instead |
+| "An account with this email already exists" | They're already on the team | They sign in instead; an administrator can send an invite code for a phone |
+| Approved as a supervisor on the phone: "Your role works from the website" | Only inspectors use the app | They sign in to the console with their email |
 
 When everything is ticked, the pilot is ready for real inspectors.

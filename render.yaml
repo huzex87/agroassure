@@ -93,6 +93,12 @@ services:
         sync: false
       - key: SMS_ACCOUNT
         sync: false
+      # People asking to join (phone app and the console's Request access
+      # page). Open whenever both an email and an SMS provider are set; every
+      # request still waits for an administrator's approval. "off" to allow
+      # invitations only.
+      - key: SELF_REGISTRATION
+        value: "on"
 
       # -- evidence ------------------------------------------------------------
       - key: EVIDENCE_STORE
