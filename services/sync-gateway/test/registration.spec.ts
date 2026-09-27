@@ -4,6 +4,7 @@ import { hashCode, hashStatusToken, RegistrationService } from "../src/registrat
 import { RegisterController, Window } from "../src/registration/registration.controller";
 import type { PgService } from "../src/db/pg.service";
 import type { InviteDelivery } from "../src/invitations/delivery";
+import type { InvitationsService } from "../src/invitations/invitations.service";
 
 // Asking to join. The integration suite walks a request through a real
 // database; this covers what needs none: when the door is open at all, how the
@@ -26,7 +27,7 @@ function invites(email: string, sms: string): InviteConfig {
 }
 
 function service(config: Partial<AppConfig>, pg: Partial<PgService> = {}) {
-  return new RegistrationService(pg as PgService, {} as InviteDelivery, config as AppConfig);
+  return new RegistrationService(pg as PgService, {} as InviteDelivery, config as AppConfig, {} as InvitationsService);
 }
 
 describe("whether registration is open", () => {

@@ -364,7 +364,10 @@ and both stay available.
    inspector is already that inspector's active phone: the request carried the
    phone's public key, approval registers it, and the waiting screen's next
    check returns a session. They choose a PIN and see their visits — no invite
-   code. Office staff sign in to the console with the emailed link.
+   code. Someone who asked on the website and is approved as an inspector has
+   no phone on file yet, so approval sends them an invite code at once, to the
+   SMS and email they just proved. Office staff sign in to the console with the
+   emailed link.
 
 Nothing is granted before approval: a registration is a request, not an
 account. Only a national administrator can grant the national role, and a

@@ -138,7 +138,7 @@ export default async function RegisterPage() {
           <p>
             You&rsquo;ve been approved as <strong className="text-ink">{ROLE_LABEL[request.role ?? ""] ?? "a team member"}</strong>.
             {request.role === "inspector"
-              ? " Your administrator will send you a code to set up the AgroAssure phone app."
+              ? " We've sent you a code by SMS and email. Install the AgroAssure phone app and enter it to set up your phone."
               : " Sign in with your work email — we'll send you a link, no password needed."}
           </p>
         </Outcome>

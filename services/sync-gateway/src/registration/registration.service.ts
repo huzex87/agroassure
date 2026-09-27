@@ -19,6 +19,7 @@ import type { Principal } from "../common/principal";
 import { isUnscoped, jurisdictionFilter } from "../common/rbac";
 import { InviteDelivery, normalizePhone } from "../invitations/delivery";
 import { DEVICE_SESSION_TTL_SECONDS, signDeviceSession } from "../invitations/device-session";
+import { InvitationsService } from "../invitations/invitations.service";
 
 // People asking to join, and an administrator deciding.
 //
@@ -31,6 +32,11 @@ import { DEVICE_SESSION_TTL_SECONDS, signDeviceSession } from "../invitations/de
 // approval can make that exact phone an active, attributable device at once.
 // The phone learns it has been approved by asking with a status token only it
 // holds; the answer carries its session. No invite code is involved.
+//
+// Someone who asked on the website and is approved as an inspector has no
+// phone key on file yet, so approval sends them an invite code straight away
+// — by the same SMS and email they just proved — rather than leaving an
+// administrator to remember a second step.
 
 export const CODE_TTL_MINUTES = 30;
 const MAX_CODE_ATTEMPTS = 8;
@@ -127,6 +133,7 @@ export class RegistrationService {
     private readonly pg: PgService,
     private readonly delivery: InviteDelivery,
     @Inject(CONFIG) private readonly config: AppConfig,
+    private readonly invitations: InvitationsService,
   ) {}
 
   /**
@@ -452,8 +459,21 @@ export class RegistrationService {
       return { row, userId, deviceId };
     });
 
-    void this.tellRegistrant(done.row, true, role);
-    return { userId: done.userId, deviceId: done.deviceId };
+    // An inspector without a phone on file: send the code that sets one up.
+    // Approval has already happened; a code that cannot be sent (no device
+    // secret configured, say) is reported, and the Team page can resend it.
+    let inviteSent = false;
+    if (role === "inspector" && !done.deviceId) {
+      try {
+        await this.invitations.reinvite(principal, done.userId);
+        inviteSent = true;
+      } catch (err) {
+        this.logger.warn(`approved ${done.row.id} but could not send an invite code: ${String(err)}`);
+      }
+    }
+
+    void this.tellRegistrant(done.row, true, role, inviteSent);
+    return { userId: done.userId, deviceId: done.deviceId, inviteSent };
   }
 
   async reject(principal: Principal, registrationId: string, reason: string | null) {
@@ -471,26 +491,36 @@ export class RegistrationService {
 
   // ---- telling people -----------------------------------------------------
 
-  private async tellRegistrant(row: RegistrationRow, approved: boolean, role: string | null) {
+  private async tellRegistrant(row: RegistrationRow, approved: boolean, role: string | null, inviteSent = false) {
     const first = row.full_name.split(/\s+/)[0] ?? row.full_name;
     const consoleUrl = this.config.emailSignIn?.consoleUrl;
     try {
       if (approved) {
         const fromApp = row.source === "app" && role === "inspector";
+        const needsCode = role === "inspector" && !fromApp;
         const lines = fromApp
           ? ["Your request to join AgroAssure has been approved.", "Open the AgroAssure app on your phone to continue."]
-          : ["Your request to join AgroAssure has been approved.", "You can now sign in to the AgroAssure console with this email address."];
+          : needsCode
+            ? [
+                "Your request to join AgroAssure has been approved as an inspector.",
+                inviteSent
+                  ? "We've sent you a separate message with a code. Install the AgroAssure app and enter it to set up your phone."
+                  : "Your administrator will send you a code to set up the AgroAssure app on your phone.",
+              ]
+            : ["Your request to join AgroAssure has been approved.", "You can now sign in to the AgroAssure console with this email address."];
         await Promise.all([
           this.delivery.sendEmailContent(
             row.email,
             mail("You're approved on AgroAssure", `Welcome, ${first}`, lines,
-              !fromApp && consoleUrl ? { label: "Sign in", href: `${consoleUrl}/signin` } : undefined),
+              !fromApp && !needsCode && consoleUrl ? { label: "Sign in", href: `${consoleUrl}/signin` } : undefined),
           ),
           this.delivery.sendSmsText(
             row.phone,
             fromApp
               ? "AgroAssure: you're approved. Open the AgroAssure app to continue."
-              : "AgroAssure: you're approved. Sign in to the console with your email.",
+              : needsCode
+                ? "AgroAssure: you're approved as an inspector. Use the code we send you to set up the app."
+                : "AgroAssure: you're approved. Sign in to the console with your email.",
           ),
         ]);
       } else {

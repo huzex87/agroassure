@@ -3,7 +3,8 @@ import { bytesToBase64, derivePublicKey } from "@agroassure/domain";
 import type { AppConfig, InviteConfig } from "../../src/config/config";
 import { PgService } from "../../src/db/pg.service";
 import { UserDirectory } from "../../src/common/user-directory";
-import type { InviteDelivery } from "../../src/invitations/delivery";
+import type { InviteDelivery, InviteMessage } from "../../src/invitations/delivery";
+import { InvitationsService } from "../../src/invitations/invitations.service";
 import { verifyDeviceSession } from "../../src/invitations/device-session";
 import { RegistrationService } from "../../src/registration/registration.service";
 import type { Principal } from "../../src/common/principal";
@@ -36,6 +37,16 @@ class Outbox {
   async sendSmsText(to: string, text: string) {
     this.sms.push({ to, text });
     return { channel: "sms", status: "sent" };
+  }
+  /** The invite-code path, which approval uses for an inspector with no phone yet. */
+  invites: { to: string | null; code: string }[] = [];
+  async sendEmail(to: string | null, m: InviteMessage) {
+    this.invites.push({ to, code: m.code });
+    return { to, status: to ? "sent" : "skipped", detail: null };
+  }
+  async sendSms(to: string | null, m: InviteMessage) {
+    this.invites.push({ to, code: m.code });
+    return { to, status: to ? "sent" : "skipped", detail: null };
   }
   emailCodeFor(to: string): string {
     const m = [...this.emails].reverse().find((e) => e.to === to && /code is (\d{6})/.test(e.text));
@@ -81,7 +92,8 @@ runIf("asking to join, end to end", () => {
     } as AppConfig;
     pg = new PgService(config);
     outbox = new Outbox();
-    registrations = new RegistrationService(pg, outbox as unknown as InviteDelivery, config);
+    const delivery = outbox as unknown as InviteDelivery;
+    registrations = new RegistrationService(pg, delivery, config, new InvitationsService(pg, delivery, config));
     directory = new UserDirectory(pg);
 
     const code = `R${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
@@ -182,6 +194,8 @@ runIf("asking to join, end to end", () => {
   it("approves as inspector: the phone that asked is the phone that works", async () => {
     const approved = await registrations.approve(stateAdmin, fromPhone.registrationId, "inspector");
     expect(approved.deviceId).toBeTruthy();
+    // The phone that asked is already set up: no invite code goes out.
+    expect(approved.inviteSent).toBe(false);
 
     const s = (await registrations.status(fromPhone)) as {
       status: string;
@@ -298,5 +312,37 @@ runIf("asking to join, end to end", () => {
     expect(s).toMatchObject({ status: "approved", role: "desk_supervisor" });
     expect("session" in s).toBe(false);
     expect(await directory.resolveConsoleUser(approved.userId)).toMatchObject({ roles: ["desk_supervisor"] });
+    expect(approved.inviteSent).toBe(false);
+  });
+
+  it("sends an invite code at once to an inspector who asked on the website", async () => {
+    const email = `hauwa.${stamp}@example.org`;
+    const req = await registrations.start({
+      fullName: "Hauwa Sani",
+      email,
+      phone: "08093334444",
+      jurisdictionId,
+      source: "console",
+    });
+    await registrations.verify({
+      ...req,
+      emailCode: outbox.emailCodeFor(email),
+      smsCode: outbox.smsCodeFor("+2348093334444"),
+    });
+    const approved = await registrations.approve(stateAdmin, req.registrationId, "inspector");
+    expect(approved).toMatchObject({ deviceId: null, inviteSent: true });
+
+    // One live code, sent to both proven contacts, ready to type into the app.
+    const live = await pg.query<{ email_to: string; sms_to: string }>(
+      `SELECT email_to, sms_to FROM invitation WHERE user_id = $1 AND used_at IS NULL AND cancelled_at IS NULL`,
+      [approved.userId],
+    );
+    expect(live).toEqual([{ email_to: email, sms_to: "+2348093334444" }]);
+    const sent = outbox.invites.filter((i) => i.to === email || i.to === "+2348093334444");
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.code).toMatch(/^[A-Z2-9]{4}-?[A-Z2-9]{4}$/);
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(outbox.emails.some((e) => e.to === email && /separate message with a code/.test(e.text))).toBe(true);
   });
 });

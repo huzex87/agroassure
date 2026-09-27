@@ -132,7 +132,7 @@ export function RequestCard({ request, canGrantNational }: { request: Registrati
             ) : request.brings_phone ? (
               <p className="text-xs text-warning">Only inspectors use the phone app — they&rsquo;ll sign in to this console instead.</p>
             ) : role === "inspector" ? (
-              <p className="text-xs text-ink-muted">Send them an invite code afterwards to set up their phone.</p>
+              <p className="text-xs text-ink-muted">We&rsquo;ll text and email them a code to set up the phone app.</p>
             ) : (
               <p className="text-xs text-ink-muted">They&rsquo;ll sign in to this console with their email.</p>
             )}
