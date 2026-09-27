@@ -189,11 +189,11 @@ export default async function ExecutivePage() {
             icon={FileWarning}
           />
           <Stat
-            label="Devices awaiting approval"
+            label="Phones awaiting confirmation"
             value={promises.devicesAwaitingApproval}
-            hint="An inspector cannot sync until one is approved"
+            hint="Work from these phones is held until they are confirmed"
             tone={promises.devicesAwaitingApproval > 0 ? "warning" : "neutral"}
-            href="/admin"
+            href="/team"
           />
         </div>
       </section>

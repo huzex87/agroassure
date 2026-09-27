@@ -117,7 +117,7 @@ describe("the checklist screen", () => {
 
     await press(screen.getAllByText("No")[0]);
     fireEvent.changeText(
-      screen.getByPlaceholderText("Remark"),
+      screen.getByPlaceholderText("What did you see?"),
       "Bags stacked directly on a damp floor.",
     );
     await press(screen.getByText("Save"));
@@ -137,10 +137,10 @@ describe("the checklist screen", () => {
     await screen.findByText(/pallets/i);
 
     await press(screen.getAllByText("Yes")[0]);
-    expect(screen.queryByPlaceholderText("Remark")).toBeNull();
+    expect(screen.queryByPlaceholderText("What did you see?")).toBeNull();
 
     await press(screen.getAllByText("No")[0]);
-    expect(screen.getByPlaceholderText("Remark")).toBeTruthy();
+    expect(screen.getByPlaceholderText("What did you see?")).toBeTruthy();
   });
 
   it("writes every response onto the outbox, signed, with nothing sent", async () => {

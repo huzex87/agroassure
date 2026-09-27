@@ -13,6 +13,15 @@ import { UserDirectory } from "./user-directory";
 import { MetricsService } from "../health/metrics.service";
 import { attributeContext } from "./request-context";
 
+const KNOWN_ROLES = [
+  "inspector",
+  "desk_supervisor",
+  "authorising_officer",
+  "state_admin",
+  "national_admin",
+  "auditor",
+] as const;
+
 // Attaches a verified Principal to the request, or refuses it. The verification
 // itself — OIDC against the institution's provider, or a shared secret in
 // development — lives in TokenVerifier; this is only the plumbing that puts the
@@ -48,6 +57,53 @@ export class DeviceAuthGuard implements CanActivate {
     } catch (err) {
       this.metrics.increment("auth_failures");
       throw err;
+    }
+
+    // A phone session. It carries no roles of its own: a phone does field work
+    // and nothing else, so it is an inspector in the jurisdiction the register
+    // holds for that person — or it is refused, with a sentence the phone can
+    // show, because the fix is a new invite code and not a retry.
+    if (principal.via === "device") {
+      const inspector = await this.directory.resolvePhone(principal.userId, principal.deviceId!);
+      if (!inspector) {
+        this.metrics.increment("auth_failures");
+        throw new UnauthorizedException({
+          message: "This phone has been signed out. Ask your administrator for a new invite code.",
+          reason: "phone_signed_out",
+        });
+      }
+      principal = {
+        ...principal,
+        userId: inspector.id,
+        jurisdictionId: inspector.jurisdictionId,
+        roles: ["inspector"],
+      };
+      (req as Request & Record<string, unknown>)[PRINCIPAL_KEY] = principal;
+      attributeContext(principal.userId, principal.deviceId);
+      return true;
+    }
+
+    // A console session from an emailed link: the register says what they hold.
+    if (principal.via === "console") {
+      const person = await this.directory.resolveConsoleUser(principal.userId);
+      if (!person) {
+        this.metrics.increment("auth_failures");
+        throw new UnauthorizedException({
+          message: "Your account is no longer active. Please speak to your administrator.",
+          reason: "account_inactive",
+        });
+      }
+      const roles = person.roles.filter((r): r is Principal["roles"][number] => KNOWN_ROLES.includes(r as never));
+      const unscoped = roles.includes("national_admin") || roles.includes("auditor");
+      principal = {
+        ...principal,
+        userId: person.id,
+        jurisdictionId: unscoped ? null : person.jurisdictionId,
+        roles,
+      };
+      (req as Request & Record<string, unknown>)[PRINCIPAL_KEY] = principal;
+      attributeContext(principal.userId, null);
+      return true;
     }
 
     // The token said who the provider knows. This says who this platform

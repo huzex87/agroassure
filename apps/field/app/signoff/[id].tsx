@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FindingSeverity } from "@agroassure/domain";
 import type { FieldInspection } from "@agroassure/field-core";
 import { inspectionSession, inspectorId } from "../../src/session";
+import { requestSync } from "../../src/auto-sync";
 import { useLanguage } from "../../src/i18n";
 import { colors, styles } from "../../src/theme";
 
@@ -20,7 +21,7 @@ export default function Signoff() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useLanguage();
+  const { t, ratingBand } = useLanguage();
 
   const [inspection, setInspection] = useState<FieldInspection | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function Signoff() {
   useEffect(() => {
     (async () => {
       const who = await inspectorId();
-      if (!who) return router.replace("/enrol");
+      if (!who) return router.replace("/activate");
       setUserId(who);
       const session = await inspectionSession(who);
       setInspection(session.inspection);
@@ -75,6 +76,9 @@ export default function Signoff() {
         facilityRep: { name: repName.trim(), role: repRole.trim(), signedAt: repSignedAt },
       });
       setDone(true);
+      // The visit is over and the record is complete: the best moment to send
+      // it, while the inspector is still likely to be somewhere with a signal.
+      requestSync();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -83,13 +87,20 @@ export default function Signoff() {
   if (done) {
     return (
       <View style={[styles.screen, styles.content]}>
-        <View style={styles.card}>
-          <Text style={styles.h1}>{t("signOff")}</Text>
-          <Text style={styles.body}>{t("nothingLost")}</Text>
-          <Pressable style={styles.button} onPress={() => router.replace("/")}>
-            <Text style={styles.buttonText}>{t("todaysVisits")}</Text>
-          </Pressable>
+        <View style={[styles.card, { alignItems: "center", paddingVertical: 28 }]}>
+          <View style={styles.successBadge}>
+            <Text style={styles.successTick}>✓</Text>
+          </View>
+          <Text style={[styles.h1, { textAlign: "center" }]}>{t("submittedTitle")}</Text>
+          <Text style={[styles.muted, { textAlign: "center" }]}>{t("submittedBody")}</Text>
         </View>
+        <Pressable
+          style={styles.button}
+          onPress={() => router.replace("/")}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t("backToVisits")}</Text>
+        </Pressable>
       </View>
     );
   }
@@ -114,7 +125,7 @@ export default function Signoff() {
       <View style={styles.banner}>
         <Text style={styles.h1}>{rating ? `${rating.percent.toFixed(1)}%` : "…"}</Text>
         {/* Colour is never the only carrier: the band is written out. */}
-        <Text style={styles.h2}>{rating?.band.replace(/_/g, " ")}</Text>
+        <Text style={styles.h2}>{rating ? ratingBand(rating.band) : ""}</Text>
       </View>
 
       {!complete ? (

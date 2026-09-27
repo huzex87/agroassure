@@ -139,6 +139,25 @@ export function get<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
+/**
+ * A read the page can live without: the answer, or null on any failure,
+ * without the redirect to sign-in that get() makes on a 401. For what frames a
+ * page — the navigation, a setup checklist — rather than what the page is for.
+ */
+export async function tryGet<T>(path: string): Promise<T | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: { authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    return response.ok ? ((await response.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function post<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(path, {
     method: "POST",
@@ -242,6 +261,48 @@ export interface RiskSuggestion {
   leadingReason: string;
 }
 
+export interface InspectorOption {
+  id: string;
+  full_name: string;
+  has_phone: boolean;
+  open_visits: number;
+}
+
+export interface AssignmentRow {
+  id: string;
+  kind: "routine" | "risk_targeted" | "follow_up";
+  reason: string | null;
+  due_by: string | null;
+  status: "planned" | "in_progress" | "completed" | "cancelled";
+  created_at: string;
+  inspection_id: string | null;
+  facility_id: string;
+  facility_name: string;
+  licence_number: string;
+  facility_type: string;
+  lga: string | null;
+  assigned_to: string;
+}
+
+export interface SetupProgress {
+  facilities: number;
+  checklistsInForce: number;
+  inspectors: number;
+  inspectorsWithPhone: number;
+  invitesWaiting: number;
+  plannedVisits: number;
+  submittedInspections: number;
+}
+
+export interface Me {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  roles: string[];
+  jurisdictionId: string | null;
+  jurisdictionName: string | null;
+}
+
 export interface InspectionDetail {
   inspection: Record<string, unknown>;
   responses: Array<{
@@ -311,6 +372,40 @@ export interface UserRow {
   status: string;
   roles: string[];
   created_at: string;
+  /** Phones currently able to send this person's work. */
+  active_phones?: number;
+  phone_last_seen_at?: string | null;
+  /** An invitation sent and not yet used, if there is one. */
+  invitation_id?: string | null;
+  invitation_expires_at?: string | null;
+  invitation_email_status?: ChannelStatus | null;
+  invitation_sms_status?: ChannelStatus | null;
+}
+
+export type ChannelStatus = "sent" | "failed" | "skipped";
+
+export interface ChannelOutcome {
+  to: string | null;
+  status: ChannelStatus;
+  detail: string | null;
+}
+
+/** What the gateway hands back once, when an invite code is issued. */
+export interface IssuedInvitation {
+  invitationId: string;
+  userId: string;
+  fullName: string;
+  code: string;
+  link: string;
+  qrSvg: string;
+  expiresAt: string;
+  email: ChannelOutcome;
+  sms: ChannelOutcome;
+}
+
+export interface InviteChannels {
+  email: "resend" | "sendgrid" | "log" | "none";
+  sms: "termii" | "africastalking" | "twilio" | "log" | "none";
 }
 
 export interface DeviceRow {
@@ -322,4 +417,5 @@ export interface DeviceRow {
   assigned_to: string | null;
   public_key: string;
   events_authored: number;
+  last_seen_at?: string | null;
 }

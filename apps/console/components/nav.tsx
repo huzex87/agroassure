@@ -16,14 +16,27 @@ import type { ReactNode } from "react";
 // The icon is the component, not an element. Holding <IconGrid /> here would
 // build React elements at module load, which is work done before anyone asks
 // for it and makes this module impossible to import without a JSX runtime.
-type NavItem = { href: string; label: string; Icon: () => ReactNode };
+type NavItem = { href: string; label: string; Icon: () => ReactNode; roles?: string[] };
+
+// Who each destination is for. The roles are the gateway's own: a link is
+// shown only to someone the page will actually answer, so nobody lands on a
+// refusal from the menu. Hiding a link decides nothing — the gateway still
+// checks every request — it just stops the menu offering what will not open.
+const PLANNERS = ["desk_supervisor", "authorising_officer", "state_admin"];
+const OVERSIGHT = ["desk_supervisor", "authorising_officer", "state_admin", "national_admin", "auditor"];
 
 export const NAV: Array<{ heading: string; items: NavItem[] }> = [
   {
     heading: "Oversight",
     items: [
-      { href: "/", label: "Dashboard", Icon: IconGrid },
-      { href: "/executive", label: "Programme overview", Icon: IconTrend },
+      { href: "/", label: "Dashboard", Icon: IconGrid, roles: OVERSIGHT },
+      { href: "/plan", label: "Plan visits", Icon: IconCalendar, roles: PLANNERS },
+      {
+        href: "/executive",
+        label: "Programme overview",
+        Icon: IconTrend,
+        roles: ["state_admin", "national_admin", "auditor", "authorising_officer"],
+      },
     ],
   },
   {
@@ -31,15 +44,28 @@ export const NAV: Array<{ heading: string; items: NavItem[] }> = [
     items: [
       { href: "/facilities", label: "Facilities", Icon: IconBuilding },
       { href: "/inspections", label: "Inspections", Icon: IconClipboard },
-      { href: "/findings", label: "Corrective actions", Icon: IconFlag },
-      { href: "/instruments", label: "Instruments", Icon: IconLayers },
+      { href: "/findings", label: "Issues to fix", Icon: IconFlag },
+      { href: "/instruments", label: "Checklists", Icon: IconLayers },
     ],
   },
   {
     heading: "Administration",
-    items: [{ href: "/admin", label: "Users and devices", Icon: IconUsers }],
+    items: [{ href: "/team", label: "Team", Icon: IconUsers, roles: ["state_admin", "national_admin", "auditor"] }],
   },
 ];
+
+/**
+ * The menu for someone holding these roles. Unknown roles — the gateway could
+ * not be asked — show everything rather than nothing: a full menu with a
+ * refusal behind one link beats an empty one.
+ */
+export function navFor(roles: string[] | null): Array<{ heading: string; items: NavItem[] }> {
+  if (!roles) return NAV;
+  return NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.roles || item.roles.some((r) => roles.includes(r))),
+  })).filter((group) => group.items.length > 0);
+}
 
 /** Every destination, in rail order — for the small-screen row and for tests. */
 export const NAV_ITEMS = NAV.flatMap((group) => group.items);
@@ -53,12 +79,12 @@ export function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SideNav() {
+export function SideNav({ roles = null }: { roles?: string[] | null }) {
   const pathname = usePathname();
 
   return (
     <div className="flex flex-col gap-6">
-      {NAV.map((group) => (
+      {navFor(roles).map((group) => (
         <div key={group.heading}>
           <p className="px-3 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-faint">
             {group.heading}
@@ -100,7 +126,7 @@ export function SideNav() {
  * escape key and a scroll lock; seven links in a row need none of that and cost
  * one tap rather than two. Build the drawer when the nav outgrows a single row.
  */
-export function TopNav() {
+export function TopNav({ roles = null }: { roles?: string[] | null }) {
   const pathname = usePathname();
 
   return (
@@ -108,7 +134,7 @@ export function TopNav() {
       aria-label="Sections"
       className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface px-4 py-2.5 md:hidden"
     >
-      {NAV_ITEMS.map((item) => {
+      {navFor(roles).flatMap((g) => g.items).map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <Link
@@ -213,6 +239,15 @@ function IconLayers() {
       <path d="M8 1.75 14 5 8 8.25 2 5l6-3.25Z" />
       <path d="m2 8.5 6 3.25L14 8.5" />
       <path d="m2 11.75 6 3.25 6-3.25" />
+    </>,
+  );
+}
+
+function IconCalendar() {
+  return glyph(
+    <>
+      <rect x="2" y="3" width="12" height="11" rx="1.5" />
+      <path d="M2 6.5h12M5.5 1.75v2.5M10.5 1.75v2.5M6 10h4M8 8v4" />
     </>,
   );
 }

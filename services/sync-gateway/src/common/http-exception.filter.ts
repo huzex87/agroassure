@@ -30,10 +30,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(exception instanceof Error ? exception.stack : String(exception));
     }
 
+    // A machine-readable reason, where the thrower gave one, so a client can
+    // act on a refusal (the phone offers a fresh start on "device_signed_out")
+    // without matching on the wording of a sentence that is meant for people.
+    const reason =
+      exception instanceof HttpException ? reasonOf(exception.getResponse()) : undefined;
+
     res.status(status).json({
       error: true,
       status,
       message,
+      ...(reason ? { reason } : {}),
     });
   }
 }
@@ -47,4 +54,10 @@ function flatten(response: string | object): string {
   if (typeof message === "string") return message;
   if (Array.isArray(message)) return message.join(", ");
   return "request failed";
+}
+
+function reasonOf(response: string | object): string | undefined {
+  if (typeof response !== "object") return undefined;
+  const reason = (response as { reason?: unknown }).reason;
+  return typeof reason === "string" ? reason : undefined;
 }

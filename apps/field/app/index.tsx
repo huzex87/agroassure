@@ -1,21 +1,23 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { applyBootstrap, drain, type AssignedFacility } from "@agroassure/field-core";
+import { applyBootstrap, type AssignedFacility } from "@agroassure/field-core";
 import { getStore } from "../src/db";
-import { identity } from "../src/signer";
 import { inspectorId, inspectionSession } from "../src/session";
+import { identity } from "../src/signer";
 import { currentPosition } from "../src/capture";
-import { readFileBytes } from "../src/capture";
-import { fetchBootstrap, httpTransport } from "../src/transport";
-import { useLanguage } from "../src/i18n";
+import { refreshQueued, syncNow, useAutoSync, type SyncStatus } from "../src/auto-sync";
+import { useLanguage, type StringKey } from "../src/i18n";
 import { chipTone, colors, styles } from "../src/theme";
 
 // The day. Everything on this screen is read from the device's own database, so
-// it renders identically with a full signal and with none. Sync is a button the
-// inspector presses, not a thing that silently happens to their work: they are
-// told what is queued and told when it has landed.
+// it renders identically with a full signal and with none.
+//
+// Sending happens on its own (see auto-sync). What this screen owes the
+// inspector is the truth about it, in one line: everything is sent, or this
+// many things are waiting and they are safe. The one thing an inspector must
+// be able to trust here is that nothing they did has been lost.
 
 type Row = AssignedFacility & {
   open: { id: string; reference: string } | null;
@@ -26,12 +28,11 @@ type Row = AssignedFacility & {
 export default function Today() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t, language, setLanguage, facilityType, ratingBand } = useLanguage();
+  const { t, facilityType, ratingBand } = useLanguage();
+  const sync = useAutoSync();
   const [rows, setRows] = useState<Row[]>([]);
-  const [queued, setQueued] = useState(0);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const [enrolled, setEnrolled] = useState(true);
 
   const load = useCallback(() => {
     const store = getStore();
@@ -43,46 +44,25 @@ export default function Today() {
         priorOpen: store.priorFindings(f.id).length,
       })),
     );
-    setQueued(store.pendingCount());
+    refreshQueued();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      identity().then((id) => setEnrolled(Boolean(id.deviceId)));
       load();
+      // A phone that has not been set up has nothing to show here. Go straight
+      // to the one thing it can do: take an invite code.
+      Promise.all([identity(), inspectorId()]).then(([id, who]) => {
+        if (!id.deviceId || !who) router.replace("/activate");
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load]),
   );
 
-  async function sync() {
-    setBusy(true);
-    setNote(null);
-    try {
-      const store = getStore();
-      const id = await identity();
-      if (!id.deviceId) {
-        router.push("/enrol");
-        return;
-      }
-      // Push first. Work already done outranks work not yet collected: if the
-      // signal drops halfway, the inspection is safe on the server and the
-      // bundle can wait for the next attempt.
-      const result = await drain(store, id.deviceId, {
-        transport: httpTransport(),
-        readFile: readFileBytes,
-      });
-      applyBootstrap(store, await fetchBootstrap());
-      setNote(
-        result.blocked
-          ? result.blocked
-          : `Sent ${result.eventsPushed}, uploaded ${result.evidenceUploaded}.`,
-      );
-    } catch (err) {
-      setNote(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-      load();
-    }
-  }
+  // A finished send may have brought new visits with it.
+  useEffect(() => {
+    if (sync.phase === "sent") load();
+  }, [sync.phase, sync.lastSentAt, load]);
 
   function loadSampleDay() {
     setNote(null);
@@ -106,7 +86,7 @@ export default function Today() {
     try {
       const userId = await inspectorId();
       if (!userId) {
-        router.push("/enrol");
+        router.replace("/activate");
         return;
       }
       const { inspection } = await inspectionSession(userId);
@@ -130,71 +110,40 @@ export default function Today() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
-      {/* Work waiting to be sent is the one thing on this screen an inspector
-          must be able to trust, so it says the count and says it is safe. */}
-      <View style={[styles.banner, queued === 0 ? styles.bannerQuiet : null]}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.h2}>{queued > 0 ? t("workWaiting") : t("allSent")}</Text>
-          {queued > 0 ? (
-            <View style={[styles.chip, { backgroundColor: colors.surface }]}>
-              <View style={[styles.chipDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.chipText, { color: colors.primaryDark }]}>
-                {queued} {t("queued")}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={styles.muted}>{queued > 0 ? t("nothingLost") : t("upToDate")}</Text>
+      <View style={styles.rowBetween}>
+        <Text style={[styles.h1, { flexShrink: 1 }]}>{t("todaysVisits")}</Text>
         <Pressable
-          style={[styles.button, busy ? styles.buttonDisabled : null, { marginTop: 10 }]}
-          onPress={sync}
-          disabled={busy}
+          onPress={() => router.push("/account")}
+          style={styles.pill}
           accessibilityRole="button"
+          accessibilityLabel={t("account")}
         >
-          {busy ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>{t("syncNow")}</Text>
-          )}
+          <Text style={styles.pillText}>{t("account")}</Text>
         </Pressable>
       </View>
+
+      {sync.phase === "signedOut" ? (
+        <Pressable
+          style={[styles.card, { borderColor: colors.critical }]}
+          onPress={() => router.push("/activate")}
+          accessibilityRole="button"
+        >
+          <Text style={styles.h2}>{t("signedOutTitle")}</Text>
+          <Text style={styles.muted}>{t("signedOutBody")}</Text>
+          <View style={styles.actionRow}>
+            <Text style={styles.actionText}>{t("enterNewCode")}</Text>
+            <Text style={styles.actionChevron}>›</Text>
+          </View>
+        </Pressable>
+      ) : sync.phase === "notReady" ? null : (
+        <SendStatus sync={sync} t={t} />
+      )}
 
       {note ? (
         <View style={[styles.card, { borderColor: colors.primary }]}>
           <Text style={styles.body}>{note}</Text>
         </View>
       ) : null}
-
-      {!enrolled ? (
-        <Pressable style={styles.card} onPress={() => router.push("/enrol")}>
-          <Text style={styles.h2}>{t("enrolTitle")}</Text>
-          <Text style={styles.muted}>{t("enrolBody")}</Text>
-        </Pressable>
-      ) : null}
-
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={[styles.h1, { flexShrink: 1 }]}>{t("todaysVisits")}</Text>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {/* Always reachable. Enrolment is not a one-time wizard: a device gets
-              reassigned, a key gets revoked, an id gets typed wrong, and every
-              one of those needs this screen from a device that already has an
-              id stored. */}
-          <Pressable
-            onPress={() => router.push("/enrol")}
-            style={styles.pill}
-            accessibilityRole="button"
-          >
-            <Text style={styles.pillText}>{t("device")}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setLanguage(language === "en" ? "ha" : "en")}
-            style={styles.pill}
-            accessibilityRole="button"
-          >
-            <Text style={styles.pillText}>{t("language")}</Text>
-          </Pressable>
-        </View>
-      </View>
 
       {rows.length === 0 ? (
         <View style={styles.card}>
@@ -223,7 +172,7 @@ export default function Today() {
           key={row.id}
           style={[styles.card, row.submitted ? styles.cardAnswered : null]}
           onPress={() => open(row)}
-          disabled={Boolean(row.submitted)}
+          disabled={Boolean(row.submitted) || busy}
           accessibilityRole="button"
         >
           <Text style={styles.h2}>{row.name}</Text>
@@ -252,9 +201,6 @@ export default function Today() {
 
           <View style={styles.divider} />
 
-          {/* The action was a line of blue text, which reads as a caption
-              rather than as the thing to tap. A chevron and a settled state
-              that stops pretending to be tappable are the whole difference. */}
           {row.submitted ? (
             (() => {
               const band = row.submitted.ratingBand;
@@ -282,5 +228,56 @@ export default function Today() {
         </Pressable>
       ))}
     </ScrollView>
+  );
+}
+
+/**
+ * One line about sending, and a way to hurry it.
+ *
+ * Green when there is nothing waiting, blue while it goes, amber when work is
+ * waiting — and every state says in words that the work is safe, because the
+ * colour alone would leave an inspector guessing whether amber means lost.
+ */
+function SendStatus({ sync, t }: { sync: SyncStatus; t: (k: StringKey) => string }) {
+  const sending = sync.phase === "sending";
+  const waiting = sync.queued > 0;
+  const tone = sending ? colors.primary : waiting ? colors.caution : colors.good;
+
+  const title = sending
+    ? t("sending")
+    : waiting
+      ? `${sync.queued} ${t("waitingToSend")}`
+      : t("allSent");
+  const body = waiting
+    ? sync.phase === "offline"
+      ? t("noSignal")
+      : t("savedOnPhone")
+    : sync.lastSentAt
+      ? `${t("lastSent")} ${sync.lastSentAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+      : null;
+
+  return (
+    <View style={[styles.banner, waiting || sending ? null : styles.bannerQuiet]}>
+      <View style={styles.rowBetween}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
+          {sending ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <View style={[styles.statusDot, { backgroundColor: tone }]} />
+          )}
+          <Text style={styles.h2}>{title}</Text>
+        </View>
+        {waiting && !sending ? (
+          <Pressable
+            onPress={() => void syncNow()}
+            style={styles.pill}
+            accessibilityRole="button"
+          >
+            <Text style={styles.pillText}>{t("sendNow")}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {body ? <Text style={styles.muted}>{body}</Text> : null}
+    </View>
   );
 }

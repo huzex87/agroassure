@@ -111,7 +111,7 @@ export default async function InspectionPage({
           </dl>
         </Panel>
 
-        <Panel title="Instrument" className="lg:col-span-1">
+        <Panel title="Checklist" className="lg:col-span-1">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-ink-muted">Version</dt>

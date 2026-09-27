@@ -57,7 +57,7 @@ export default async function InstrumentVersionPage({
     <div className="space-y-6">
       <header>
         <Link href="/instruments" className="text-sm text-ink-muted hover:text-primary-700">
-          ← Instruments
+          ← Checklists
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-ink">{version.versionLabel}</h1>

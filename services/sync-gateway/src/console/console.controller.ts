@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -26,6 +27,7 @@ import { CertificatesService } from "./certificates.service";
 import { CertificateRenderService, type CertificateFields } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
 import { AuditService } from "./audit.service";
+import { SetupService } from "./setup.service";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "../common/validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
@@ -84,6 +86,24 @@ export class FacilitiesController {
         | undefined,
     });
     return { id };
+  }
+
+  /**
+   * A spreadsheet of facilities. dryRun: true answers with the row-by-row
+   * plan and writes nothing; without it, the rows that passed are registered.
+   */
+  @Post("import")
+  @Roles("desk_supervisor", "authorising_officer", "state_admin")
+  @HttpCode(200)
+  importFacilities(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    if (!Array.isArray(body.rows) || body.rows.some((r) => typeof r !== "object" || r === null)) {
+      throw new BadRequestException("rows must be a list of spreadsheet rows");
+    }
+    return this.registry.importFacilities(
+      getPrincipal(req),
+      body.rows as Record<string, unknown>[],
+      body.dryRun === true,
+    );
   }
 
   @Patch(":id")
@@ -295,6 +315,28 @@ export class PlanningController {
       dueBy: optionalIsoDate("dueBy", body.dueBy),
     });
     return { id };
+  }
+
+  /** Several facilities for one inspector, planned together. */
+  @Post("assignments/batch")
+  @Roles("desk_supervisor", "authorising_officer", "state_admin")
+  async createAssignments(@Req() req: Request, @Body() body: Record<string, unknown>) {
+    const ids = Array.isArray(body.facilityIds) ? body.facilityIds : [];
+    const created = await this.planning.createAssignments(getPrincipal(req), {
+      facilityIds: ids.map((id, i) => uuid(`facilityIds[${i}]`, id)),
+      assignedToUserId: uuid("assignedToUserId", body.assignedToUserId),
+      kind: oneOf("kind", body.kind, ASSIGNMENT_KINDS),
+      reason: optionalString("reason", body.reason, 500),
+      dueBy: optionalIsoDate("dueBy", body.dueBy),
+    });
+    return { ids: created };
+  }
+
+  /** The people a planner can send, with how much each already has on. */
+  @Get("inspectors")
+  @Roles("desk_supervisor", "authorising_officer", "state_admin", "national_admin")
+  inspectors(@Req() req: Request) {
+    return this.planning.inspectors(getPrincipal(req));
   }
 
   @Post("assignments/:id/cancel")
@@ -585,5 +627,24 @@ export class AuditController {
       getPrincipal(req),
       requiredString("name", name, 200),
     );
+  }
+}
+
+// Where a state has got to with setting up, and who the console is talking to.
+
+@Controller("v1")
+@UseGuards(DeviceAuthGuard, RolesGuard)
+export class SetupController {
+  constructor(private readonly setup: SetupService) {}
+
+  @Get("setup")
+  @Roles("desk_supervisor", "authorising_officer", "state_admin", "national_admin", "auditor")
+  progress(@Req() req: Request) {
+    return this.setup.progress(getPrincipal(req));
+  }
+
+  @Get("me")
+  me(@Req() req: Request) {
+    return this.setup.me(getPrincipal(req));
   }
 }

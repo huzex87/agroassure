@@ -278,6 +278,71 @@ The server-side spine is complete and tested. What remains:
 Also outstanding: certificate PDF rendering needs Playwright and its Chromium
 browser installed on the render host; the HTML route works without it.
 
+## Setting up a new state
+
+Until a state has run its first inspection, the dashboard shows a five-step
+checklist. Each step ticks itself off from the record (`GET /v1/setup`), not
+from anyone clicking "done":
+
+1. **Add your facilities.** Go to *Facilities → Add facility*, or *Import* the
+   spreadsheet the office already keeps. Save it as CSV (a template is
+   offered). Common headings such as "Business name" or "Licence No." are
+   recognised, "Agro dealer" is understood however it is spelled, and
+   coordinates can be two columns or one cell. Every row is checked on the
+   server before anything is saved, and the preview lists what is wrong with
+   each rejected row by its row number in the sheet. The rows that pass are
+   imported together in one transaction (`POST /v1/facilities/import`). A
+   licence number already in the registry is refused before any event is
+   written, both here and on the single-facility form.
+2. **Check your checklists.** Publish the questions inspectors answer on site.
+3. **Invite your inspectors.** Covered in the next section.
+4. **Plan the first visits.** *Plan visits* shows every inspector, whether
+   their phone is set up and how many visits they already have. Tick
+   facilities, sorted with never-inspected and overdue first, and add a reason
+   the inspector will see. A batch is all or nothing
+   (`POST /v1/assignments/batch`), and a facility that already has a visit
+   planned can't be planned twice. Risk suggestions sit alongside with their
+   reasons and a one-click *Send*.
+5. **Review the first inspection.**
+
+The menu shows each person only the pages their role can use
+(`GET /v1/me`). The gateway still authorises every request.
+
+## Getting an inspector working
+
+One form in the console, one code on the phone. Nothing waits on anybody.
+
+1. **Invite.** An administrator opens **Team** and enters the inspector's name
+   and phone number (email optional). The gateway creates them with the
+   inspector role and issues a one-time code, e.g. `K7PM-4XQ2`, sent by SMS and
+   email. The console shows the same code and a QR code, for someone standing
+   at the desk, and says which channel it went out on.
+2. **Enter the code.** The inspector installs the app, chooses a language and
+   types the code — or taps the link in the message, which opens the app with
+   the code already filled in.
+3. **Inspect.** The phone is active straight away. Assigned visits arrive on
+   their own, and finished work sends itself whenever there is a signal.
+
+Sending the invite *is* the approval. The phone still generates its own
+ed25519 key and registers only the public half, so every event stays
+attributable to one person on one phone. The only change is that the
+administrator's decision comes before the phone exists, not after.
+
+- **Codes** use 8 characters with no look-alikes, work once, expire after
+  `INVITE_TTL_HOURS` (72 by default), and are stored as an HMAC rather than in
+  plain text. Sending a new code cancels the old one. `POST /v1/auth/activate`
+  is rate limited per address.
+- **Phone sessions** are signed with `DEVICE_TOKEN_SECRET` and carry no roles.
+  On every request the guard checks that the phone is still active and the
+  person is still an active inspector. **Sign out remotely** on the Team page
+  therefore takes effect on the phone's next request.
+- **Delivery.** Email goes through Resend or SendGrid (`EMAIL_PROVIDER`). SMS
+  goes through Termii, Africa's Talking or Twilio (`SMS_PROVIDER`), using
+  Termii's DND route by default so numbers on the do-not-disturb list are still
+  reached. Local numbers such as `0803 123 4567` become `+2348031234567`. A
+  failed send never fails the invite; the console says what happened. See
+  `.env.example` for every setting.
+
 ## Authentication and evidence
 
 Both were development stand-ins and are now real, though only the gateway side
@@ -303,6 +368,23 @@ officer's browser. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and
 `OIDC_REDIRECT_URI` (`.../signin/callback`); leave any of them unset and the
 console keeps the development token box, because half-configured has to mean not
 configured rather than a partly built redirect nobody can get back out of.
+
+**Email sign-in.** With `CONSOLE_URL` and `CONSOLE_SESSION_SECRET` set, staff
+can sign in by entering their work email and receiving a one-time link that
+works for 15 minutes. The request gets the same response whether or not the
+address has an account, only a hash of each link is stored, and the link is
+used up only when the person taps **Continue** (email scanners open links on
+arrival). A console session carries no roles; the gateway reads the person's
+roles from the database on every request, just as it does for phone sessions.
+A pilot can run on this instead of OIDC. In that case it refuses to start if
+`AUTH_JWT_SECRET` is still set, because that secret can mint a token for any
+role.
+
+**Phone PIN.** The field app asks for a 4-digit PIN when it opens and when it
+returns after 5 minutes away. The PIN is stored salted and hashed in the
+phone's secure storage. Forgetting it, or getting it wrong 5 times, signs the
+person out but keeps the phone's key and any unsent inspections, so a new
+invite code for the same person brings everything back.
 
 **Evidence.** `EVIDENCE_STORE=s3` puts exhibits in a bucket under object-lock in
 COMPLIANCE mode with a per-object retention, which no one can shorten — not the

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FileSpreadsheet, Plus } from "lucide-react";
 import { get, type FacilityRow } from "../../lib/api";
 import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
@@ -39,6 +40,22 @@ export default async function FacilitiesPage({
           {facilities.length} in this jurisdiction · {counts.valid ?? 0} valid ·{" "}
           {counts.due_soon ?? 0} due soon · {counts.overdue ?? 0} overdue ·{" "}
           {counts.never_inspected ?? 0} not yet inspected
+          </>
+        }
+        actions={
+          <>
+            <Link
+              href="/facilities/new?tab=import"
+              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line bg-card px-3 text-sm font-medium shadow-xs transition-colors hover:bg-surface-sunk"
+            >
+              <FileSpreadsheet className="size-4" aria-hidden /> Import
+            </Link>
+            <Link
+              href="/facilities/new"
+              className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600"
+            >
+              <Plus className="size-4" aria-hidden /> Add facility
+            </Link>
           </>
         }
       />
@@ -88,7 +105,22 @@ export default async function FacilitiesPage({
           head={["Business", "Type", "LGA", "Last inspected", "Rating", "Certificate"]}
           empty={
             facilities.length === 0 ? (
-              <Empty>No facility matches this search.</Empty>
+              params.q || params.type || params.lga ? (
+                <Empty>No facility matches this search.</Empty>
+              ) : (
+                <Empty
+                  action={
+                    <Link
+                      href="/facilities/new?tab=import"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised hover:bg-primary-600"
+                    >
+                      <FileSpreadsheet className="size-4" aria-hidden /> Import your registry
+                    </Link>
+                  }
+                >
+                  No facilities yet. Import the spreadsheet you already keep, or add them one at a time.
+                </Empty>
+              )
             ) : undefined
           }
         >

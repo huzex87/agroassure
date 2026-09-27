@@ -41,3 +41,21 @@ export async function setInspectorId(userId: string): Promise<void> {
 export async function inspectorId(): Promise<string | null> {
   return SecureStore.getItemAsync(USER_ID);
 }
+
+const USER_NAME = "agroassure.user.name";
+
+/** The name the inspector signed in as, for the one place it is shown back. */
+export async function setInspectorName(name: string): Promise<void> {
+  await SecureStore.setItemAsync(USER_NAME, name);
+}
+
+export async function inspectorName(): Promise<string | null> {
+  return SecureStore.getItemAsync(USER_NAME);
+}
+
+/** Forget who is signed in on this phone. The device key is the signer's to forget. */
+export async function clearInspector(): Promise<void> {
+  await SecureStore.deleteItemAsync(USER_ID);
+  await SecureStore.deleteItemAsync(USER_NAME);
+  resetSession();
+}

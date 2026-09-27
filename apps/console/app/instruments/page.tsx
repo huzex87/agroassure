@@ -27,18 +27,18 @@ export default async function InstrumentsPage() {
   return (
     <>
       <PageHeader
-        title="Instruments"
+        title="Checklists"
         summary={
           <>
-          One instrument per regulated operator class, each versioned. The four classes are the
-          Act&rsquo;s own taxonomy, not this platform&rsquo;s.
+          The questions inspectors answer on site — one checklist for each type of facility.
+          Publishing a change creates a new version; past inspections keep the version they used.
           </>
         }
       />
 
       {instruments.length === 0 && (
         <Panel>
-          <Empty>No instrument has been authored for this jurisdiction yet.</Empty>
+          <Empty>No checklist has been set up yet.</Empty>
         </Panel>
       )}
 

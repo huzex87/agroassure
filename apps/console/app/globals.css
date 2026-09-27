@@ -194,6 +194,38 @@
   }
 }
 
+/* Form controls. Every input, select and textarea in the console carries
+   "field"; it was referenced from every form and defined nowhere, so they were
+   rendering with the browser's defaults. */
+@layer components {
+  .field {
+    min-width: 0;
+    min-height: 2.25rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--input);
+    background: var(--card);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--foreground);
+    box-shadow: 0 1px 2px rgb(7 36 53 / 0.04);
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  /* Faint enough that an example is never mistaken for something typed. */
+  .field::placeholder {
+    color: var(--ink-faint);
+    opacity: 1;
+  }
+  .field:hover {
+    border-color: var(--color-primary-200);
+  }
+  .field:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+}
+
 /* Focus is always visible: this console is used with a keyboard all day, and
    the ring sits outside the element so it never shifts layout. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {

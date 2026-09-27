@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { uuidv7, type FacilityRegisteredPayload, type GeoPoint } from "@agroassure/domain";
 import { PgService } from "../db/pg.service";
 import { EventAppender } from "../events/event-appender.service";
 import type { Principal } from "../common/principal";
 import { jurisdictionFilter } from "../common/rbac";
+import { MAX_IMPORT_ROWS, planImport, type ImportPlan, type RawFacilityRow } from "./facility-import";
 
 // The facility registry is console-owned and edited online by a single writer,
 // so it never takes offline edits and never diverges. Every edit is an event;
@@ -43,6 +44,14 @@ export class RegistryService {
     if (!payload.jurisdictionId) {
       throw new NotFoundException("principal has no jurisdiction to register into");
     }
+    // Checked before the event is written, not left to the projection's unique
+    // key. The event store cannot take an event back: a duplicate that reached
+    // it would fail every time the projector tried to apply it, and hold up
+    // every event queued behind it.
+    const taken = await this.registeredLicences(payload.jurisdictionId, [input.licenceNumber]);
+    if (taken.size > 0) {
+      throw new ConflictException(`A facility with licence number ${input.licenceNumber} is already registered.`);
+    }
     await this.events.append({
       aggregateType: "facility",
       aggregateId: facilityId,
@@ -51,6 +60,64 @@ export class RegistryService {
       actorUserId: principal.userId,
     });
     return facilityId;
+  }
+
+  /**
+   * Register many facilities from a spreadsheet.
+   *
+   * With dryRun, nothing is written: the plan comes back row by row so the
+   * console can show what will be imported and what needs fixing first. Without
+   * it, the rows that passed are registered together — one transaction, so a
+   * sheet is either in or not — and the ones that did not are left out and
+   * reported. Nobody has to fix every row of a five-hundred-row sheet before
+   * the good four hundred and ninety can go in.
+   */
+  async importFacilities(
+    principal: Principal,
+    rows: RawFacilityRow[],
+    dryRun: boolean,
+  ): Promise<ImportPlan & { imported: number }> {
+    const jurisdictionId = principal.jurisdictionId;
+    if (!jurisdictionId) {
+      throw new BadRequestException("Your account has no state to register facilities into.");
+    }
+    if (rows.length === 0) throw new BadRequestException("The sheet has no rows.");
+    if (rows.length > MAX_IMPORT_ROWS) {
+      throw new BadRequestException(`Import at most ${MAX_IMPORT_ROWS} rows at a time.`);
+    }
+
+    const licences = rows
+      .map((r) => Object.entries(r).find(([k]) => /licen[cs]e|registration/i.test(k))?.[1])
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .map((v) => v.trim());
+    const plan = planImport(rows, await this.registeredLicences(jurisdictionId, licences));
+    if (dryRun || plan.valid === 0) return { ...plan, imported: 0 };
+
+    const ready = plan.rows.filter((r) => r.facility);
+    await this.events.appendAll(
+      ready.map((r) => {
+        const payload: FacilityRegisteredPayload = { jurisdictionId, ...r.facility! };
+        return {
+          aggregateType: "facility" as const,
+          aggregateId: uuidv7(),
+          eventType: "FacilityRegistered" as const,
+          payload,
+          actorUserId: principal.userId,
+        };
+      }),
+    );
+    return { ...plan, imported: ready.length };
+  }
+
+  /** Which of these licence numbers this state already holds, compared without case. */
+  private async registeredLicences(jurisdictionId: string, licences: string[]): Promise<Set<string>> {
+    if (licences.length === 0) return new Set();
+    const rows = await this.pg.query<{ licence: string }>(
+      `SELECT upper(licence_number) AS licence FROM facility
+        WHERE jurisdiction_id = $1 AND upper(licence_number) = ANY($2::text[])`,
+      [jurisdictionId, licences.map((l) => l.toUpperCase())],
+    );
+    return new Set(rows.map((r) => r.licence));
   }
 
   async update(

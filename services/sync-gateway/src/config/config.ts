@@ -31,6 +31,53 @@ export interface OidcConfig {
   jurisdictionClaim: string;
 }
 
+/** Where invitation emails go out from. "log" writes them to the service log. */
+export interface EmailConfig {
+  provider: "resend" | "sendgrid" | "log" | "none";
+  apiKey: string | null;
+  from: string | null;
+}
+
+/** Where invitation texts go out from. Termii and Africa's Talking both reach Nigerian networks. */
+export interface SmsConfig {
+  provider: "termii" | "africastalking" | "twilio" | "log" | "none";
+  apiKey: string | null;
+  /** The sender name or number the text appears to come from. */
+  senderId: string | null;
+  /** Africa's Talking username, or the Twilio account SID. */
+  account: string | null;
+  /** Termii route: "dnd" reaches numbers on the do-not-disturb list, which "generic" does not. */
+  channel: string;
+  /** Country calling code assumed for a number written locally, e.g. 0803... */
+  defaultCountryCode: string;
+}
+
+export interface InviteConfig {
+  /**
+   * Signs the session a phone receives when an invitation is spent. Separate
+   * from the identity provider on purpose: a phone is not a person signing in
+   * to a website, and its session is only worth anything while the phone it
+   * names is active — the guard checks that on every request.
+   */
+  deviceTokenSecret: string | null;
+  /** How long a code stays usable. */
+  ttlHours: number;
+  /** Where the field app can be downloaded, quoted in every invitation. */
+  appDownloadUrl: string | null;
+  email: EmailConfig;
+  sms: SmsConfig;
+}
+
+/** Console sign-in by a one-time link sent to a person's work email. */
+export interface EmailSignInConfig {
+  /** Signs the console session a spent link is exchanged for. */
+  sessionSecret: string;
+  /** Where the console is, so the emailed link can point at it. */
+  consoleUrl: string;
+  /** How long a link works. Short: it is a password sent over email. */
+  linkTtlMinutes: number;
+}
+
 export interface AppConfig {
   port: number;
   databaseUrl: string;
@@ -63,6 +110,10 @@ export interface AppConfig {
    * forgetting to set a variable.
    */
   devSignIn: boolean;
+  /** Invitations, and the phone sessions they create. */
+  invites: InviteConfig;
+  /** Email sign-in links for the console, when configured. */
+  emailSignIn: EmailSignInConfig | null;
   /** Base URL a certificate QR code points at. */
   publicVerifyBaseUrl: string;
   /** Lookups allowed per source address per minute on the public surface. */
@@ -75,12 +126,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const oidc = loadOidc(env);
 
-  // One of the two must be able to verify a token. With OIDC configured the
-  // shared secret is not needed at all, and requiring it would leave a second
-  // way in that nobody was watching.
+  // Something must be able to verify a token: the institution's provider, the
+  // console's own email sign-in, or — in development — a shared secret. With a
+  // provider configured the shared secret is not needed at all, and requiring
+  // it would leave a second way in that nobody was watching.
   const authJwtSecret = env.AUTH_JWT_SECRET;
-  if (!oidc && !authJwtSecret) {
-    throw new Error("either OIDC_ISSUER (with OIDC_AUDIENCE) or AUTH_JWT_SECRET is required");
+  const emailSignIn = loadEmailSignIn(
+    env,
+    !oidc && env.APP_ENV !== "pilot" ? (authJwtSecret ?? null) : null,
+  );
+  if (!oidc && !authJwtSecret && !emailSignIn) {
+    throw new Error(
+      "no way to sign in: set OIDC_ISSUER (with OIDC_AUDIENCE), or CONSOLE_URL and CONSOLE_SESSION_SECRET for email sign-in, or AUTH_JWT_SECRET in development",
+    );
   }
 
   const publicVerifyDatabaseUrl = env.PUBLIC_VERIFY_DATABASE_URL;
@@ -94,6 +152,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authJwtSecret: authJwtSecret ?? "",
     oidc,
     devSignIn: loadDevSignIn(env, oidc !== null),
+    invites: loadInvites(env, oidc === null ? (authJwtSecret ?? null) : null),
+    emailSignIn,
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
     evidenceStoreDir: env.EVIDENCE_STORE_DIR ?? "./evidence-store",
@@ -129,9 +189,19 @@ function assertFitForPilot(env: NodeJS.ProcessEnv, config: AppConfig): void {
       "DEV_SIGNIN is on. It verifies no password and asks for no proof, so naming a user is enough to become them.",
     );
   }
-  if (!config.oidc) {
+  if (!config.oidc && !config.emailSignIn) {
     refusals.push(
-      "no OIDC_ISSUER. Tokens would be signed and verified with a shared secret, which is a development stand-in for an identity provider.",
+      "no way for staff to sign in. Set OIDC_ISSUER for the institution's identity provider, or CONSOLE_URL and CONSOLE_SESSION_SECRET for email sign-in links.",
+    );
+  }
+  if (!config.oidc && config.authJwtSecret) {
+    refusals.push(
+      "AUTH_JWT_SECRET is set without an identity provider. Anyone holding it can mint a token for any role; it is a development stand-in and must be removed.",
+    );
+  }
+  if (config.emailSignIn && ["none", "log"].includes(config.invites.email.provider)) {
+    refusals.push(
+      "email sign-in is on but EMAIL_PROVIDER is not a real provider, so nobody would ever receive a sign-in link.",
     );
   }
   if (config.evidenceStore !== "s3") {
@@ -198,6 +268,98 @@ function loadDevSignIn(env: NodeJS.ProcessEnv, hasProvider: boolean): boolean {
     );
   }
   return asked;
+}
+
+/**
+ * Invitation delivery and phone sessions.
+ *
+ * Nothing here is required to boot. A deployment with no provider still
+ * issues codes — the console shows each one for the administrator to pass on
+ * by hand — so a missing SMS account slows onboarding down rather than
+ * stopping the service. What is refused is a provider named without the
+ * credentials it needs, because that is a deployment that believes it is
+ * sending messages and is not.
+ */
+export function loadInvites(
+  env: NodeJS.ProcessEnv,
+  developmentSecret: string | null,
+): InviteConfig {
+  const explicit = env.DEVICE_TOKEN_SECRET;
+  if (explicit !== undefined && explicit.length < 32) {
+    throw new Error("DEVICE_TOKEN_SECRET must be at least 32 characters");
+  }
+
+  const ttlHours = Number(env.INVITE_TTL_HOURS ?? 72);
+  if (!Number.isFinite(ttlHours) || ttlHours < 1 || ttlHours > 24 * 30) {
+    throw new Error("INVITE_TTL_HOURS must be between 1 and 720");
+  }
+
+  // Printing a live code into a log is handing it to whoever reads the log. A
+  // development machine may; a pilot may not, so its default is to send nothing.
+  const quiet = env.APP_ENV === "pilot" ? "none" : "log";
+
+  const emailProvider = (env.EMAIL_PROVIDER ?? quiet) as EmailConfig["provider"];
+  if (!["resend", "sendgrid", "log", "none"].includes(emailProvider)) {
+    throw new Error("EMAIL_PROVIDER must be one of: resend, sendgrid, log, none");
+  }
+  if ((emailProvider === "resend" || emailProvider === "sendgrid") && (!env.EMAIL_API_KEY || !env.EMAIL_FROM)) {
+    throw new Error(`EMAIL_PROVIDER=${emailProvider} needs EMAIL_API_KEY and EMAIL_FROM`);
+  }
+
+  const smsProvider = (env.SMS_PROVIDER ?? quiet) as SmsConfig["provider"];
+  if (!["termii", "africastalking", "twilio", "log", "none"].includes(smsProvider)) {
+    throw new Error("SMS_PROVIDER must be one of: termii, africastalking, twilio, log, none");
+  }
+  if (["termii", "africastalking", "twilio"].includes(smsProvider)) {
+    if (!env.SMS_API_KEY || !env.SMS_SENDER_ID) {
+      throw new Error(`SMS_PROVIDER=${smsProvider} needs SMS_API_KEY and SMS_SENDER_ID`);
+    }
+    if ((smsProvider === "africastalking" || smsProvider === "twilio") && !env.SMS_ACCOUNT) {
+      throw new Error(`SMS_PROVIDER=${smsProvider} needs SMS_ACCOUNT (username or account SID)`);
+    }
+  }
+
+  return {
+    deviceTokenSecret: explicit ?? developmentSecret,
+    ttlHours,
+    appDownloadUrl: env.FIELD_APP_DOWNLOAD_URL ?? null,
+    email: {
+      provider: emailProvider,
+      apiKey: env.EMAIL_API_KEY ?? null,
+      from: env.EMAIL_FROM ?? null,
+    },
+    sms: {
+      provider: smsProvider,
+      apiKey: env.SMS_API_KEY ?? null,
+      senderId: env.SMS_SENDER_ID ?? null,
+      account: env.SMS_ACCOUNT ?? null,
+      channel: env.SMS_CHANNEL ?? "dnd",
+      defaultCountryCode: (env.SMS_DEFAULT_COUNTRY_CODE ?? "234").replace(/^\+/, ""),
+    },
+  };
+}
+
+/**
+ * Email sign-in, on when CONSOLE_URL says where the console is. The session
+ * secret must be given explicitly outside development: it signs every console
+ * session, and a default would be a secret nobody chose.
+ */
+export function loadEmailSignIn(
+  env: NodeJS.ProcessEnv,
+  developmentSecret: string | null,
+): EmailSignInConfig | null {
+  const consoleUrl = env.CONSOLE_URL?.trim();
+  if (!consoleUrl) return null;
+  if (!/^https?:\/\//.test(consoleUrl)) throw new Error("CONSOLE_URL must start with https://");
+
+  const explicit = env.CONSOLE_SESSION_SECRET;
+  if (explicit !== undefined && explicit.length < 32) {
+    throw new Error("CONSOLE_SESSION_SECRET must be at least 32 characters");
+  }
+  const sessionSecret = explicit ?? developmentSecret;
+  if (!sessionSecret) throw new Error("CONSOLE_URL is set, so CONSOLE_SESSION_SECRET is required");
+
+  return { sessionSecret, consoleUrl: consoleUrl.replace(/\/$/, ""), linkTtlMinutes: 15 };
 }
 
 function loadS3(env: NodeJS.ProcessEnv): S3Config {

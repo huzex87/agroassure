@@ -94,7 +94,7 @@ describe("the sign-off screen", () => {
     // Colour is never the only channel: the band is written out.
     // A critical failure caps the band regardless of the percentage, which is
     // the point of scoring severity separately from weight.
-    expect(screen.getByText("critical issues")).toBeTruthy();
+    expect(screen.getByText("Critical issues")).toBeTruthy();
   });
 
   it("requires both signatures, not just the inspector's", async () => {
@@ -126,7 +126,7 @@ describe("the sign-off screen", () => {
     renderSignoff();
     // Unanswered checkpoints come first: nothing else matters until the record
     // is complete.
-    expect(await screen.findByText("Answer every checkpoint first.")).toBeTruthy();
+    expect(await screen.findByText("Answer every question first.")).toBeTruthy();
   });
 
   it("moves the guidance on as each blocker is cleared", async () => {
@@ -137,7 +137,7 @@ describe("the sign-off screen", () => {
     expect(screen.getByText("You have not signed yet.")).toBeTruthy();
 
     fireEvent.press(screen.getAllByText("Sign")[0]);
-    expect(screen.getByText("Name the facility representative.")).toBeTruthy();
+    expect(screen.getByText("Add the facility representative's name and role.")).toBeTruthy();
 
     fireEvent.changeText(screen.getByPlaceholderText("Full name"), "Musa Danjuma");
     fireEvent.changeText(screen.getByPlaceholderText("Role"), "Store manager");
@@ -163,6 +163,22 @@ describe("the sign-off screen", () => {
     const row = mockBench.store.inspection(mockInspectionId)!;
     expect(row.facility_rep_name).toBe("Musa Danjuma");
     expect(Number(row.rating_percent)).toBeCloseTo(60, 1);
+  });
+
+  it("confirms the submission in words and offers the way back", async () => {
+    await answerEverything();
+    renderSignoff();
+    await screen.findByText("60.0%");
+
+    signBoth();
+    fireEvent.press(screen.getByText("Submit inspection"));
+
+    // Saved on the phone and sent without being asked: the inspector is told
+    // both, rather than being left to wonder whether to press something.
+    expect(await screen.findByText("Inspection submitted")).toBeTruthy();
+    expect(screen.getByText(/sent to your office automatically/)).toBeTruthy();
+    fireEvent.press(screen.getByText("Back to today's visits"));
+    expect(mockRouter.replace).toHaveBeenCalledWith("/");
   });
 
   it("raises a finding for the adverse response, onto the same device chain", async () => {

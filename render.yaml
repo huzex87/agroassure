@@ -55,6 +55,45 @@ services:
       - key: OIDC_AUDIENCE
         sync: false
 
+      # -- staff sign-in by email link -----------------------------------------
+      # Instead of (or beside) OIDC: staff type their work email and receive a
+      # one-time link. CONSOLE_URL is the console's address; the secret signs
+      # console sessions (32+ characters). Using email instead of OIDC also
+      # means leaving AUTH_JWT_SECRET unset — the pilot refuses to start with it.
+      - key: CONSOLE_URL
+        sync: false
+      - key: CONSOLE_SESSION_SECRET
+        sync: false
+
+      # -- inspectors' phones -------------------------------------------------
+      # Signs the session a phone gets when it spends an invite code. At least
+      # 32 characters; without it the console can still list the team, but no
+      # phone can be set up. Rotating it signs every phone out.
+      - key: DEVICE_TOKEN_SECRET
+        sync: false
+      # Where the field app is downloaded from, quoted in every invitation.
+      - key: FIELD_APP_DOWNLOAD_URL
+        sync: false
+      # Invite codes go out by email and SMS. Unset, a pilot sends nothing and
+      # the console shows each code for the administrator to pass on.
+      #   EMAIL_PROVIDER: resend | sendgrid     (+ EMAIL_API_KEY, EMAIL_FROM)
+      #   SMS_PROVIDER:   termii | africastalking | twilio
+      #                   (+ SMS_API_KEY, SMS_SENDER_ID; SMS_ACCOUNT for the last two)
+      - key: EMAIL_PROVIDER
+        sync: false
+      - key: EMAIL_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: SMS_PROVIDER
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_SENDER_ID
+        sync: false
+      - key: SMS_ACCOUNT
+        sync: false
+
       # -- evidence ------------------------------------------------------------
       - key: EVIDENCE_STORE
         value: s3

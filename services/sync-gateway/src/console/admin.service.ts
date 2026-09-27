@@ -49,14 +49,27 @@ export class AdminService {
 
   async listUsers(principal: Principal) {
     return this.pg.query(
+      // With each person, where their phone stands: how many are active and
+      // when one was last heard from, and any invitation still waiting. That
+      // is the whole of "is this inspector set up?", answered in one row.
       `SELECT u.id, u.full_name, u.email, u.phone, u.status, u.jurisdiction_id,
               u.created_at,
               coalesce(array_agg(ur.role_code) FILTER (WHERE ur.role_code IS NOT NULL),
-                       ARRAY[]::text[]) AS roles
+                       ARRAY[]::text[]) AS roles,
+              (SELECT count(*) FROM device d
+                WHERE d.assigned_user_id = u.id AND d.status = 'active')::int AS active_phones,
+              (SELECT max(d.last_seen_at) FROM device d
+                WHERE d.assigned_user_id = u.id AND d.status = 'active') AS phone_last_seen_at,
+              inv.id AS invitation_id,
+              inv.expires_at AS invitation_expires_at,
+              inv.email_status AS invitation_email_status,
+              inv.sms_status AS invitation_sms_status
        FROM app_user u
        LEFT JOIN user_role ur ON ur.user_id = u.id
+       LEFT JOIN invitation inv
+              ON inv.user_id = u.id AND inv.used_at IS NULL AND inv.cancelled_at IS NULL
        WHERE ($1::uuid IS NULL OR u.jurisdiction_id = $1)
-       GROUP BY u.id
+       GROUP BY u.id, inv.id
        ORDER BY u.full_name`,
       [jurisdictionFilter(principal)],
     );
@@ -118,7 +131,7 @@ export class AdminService {
 
   async listDevices(principal: Principal) {
     return this.pg.query(
-      `SELECT d.id, d.label, d.status, d.enrolled_at, d.revoked_at, d.jurisdiction_id,
+      `SELECT d.id, d.label, d.status, d.enrolled_at, d.revoked_at, d.jurisdiction_id, d.last_seen_at,
               d.assigned_user_id, u.full_name AS assigned_to,
               encode(d.public_key, 'base64') AS public_key,
               (SELECT count(*) FROM event_store e WHERE e.device_id = d.id)::int AS events_authored

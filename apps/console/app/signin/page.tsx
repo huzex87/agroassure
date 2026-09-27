@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { Button, Panel } from "../../components/ui";
 import { authorizeUrl, challengeFor, newState, newVerifier, oidcSettings } from "../../lib/oidc";
 import { isWellFormedToken } from "../../lib/api";
+import { Mail } from "lucide-react";
+import { SubmitButton } from "../../components/forms";
+import { sendSignInLink } from "./email-actions";
 
 // Sign-in, in whichever of the two modes the deployment is configured for.
 //
@@ -42,6 +45,21 @@ async function startOidc() {
   jar.set(STATE, state, options);
 
   redirect(await authorizeUrl(settings, state, challengeFor(verifier)));
+}
+
+/**
+ * The ways in this gateway offers. Asked rather than configured twice, so the
+ * page cannot offer email sign-in to a gateway that would refuse it.
+ */
+async function signInMethods(): Promise<{ oidc: boolean; email: boolean; dev: boolean }> {
+  const base = process.env.AGROASSURE_API_URL ?? "http://localhost:3001";
+  try {
+    const res = await fetch(`${base}/v1/auth/methods`, { cache: "no-store" });
+    if (res.ok) return (await res.json()) as { oidc: boolean; email: boolean; dev: boolean };
+  } catch {
+    /* an unreachable gateway offers nothing; the page says so below */
+  }
+  return { oidc: false, email: false, dev: false };
 }
 
 /** Two letters for the avatar. A single-word name still gets one. */
@@ -130,29 +148,103 @@ async function signInWithToken(formData: FormData) {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; demo?: string }>;
 }) {
   const settings = oidcSettings();
-  const users = settings ? [] : await devUsers();
-  const { error } = await searchParams;
+  const [methods, users] = await Promise.all([signInMethods(), settings ? [] : devUsers()]);
+  const { error, sent, demo } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
       {error}
     </p>
   ) : null;
 
+  // Email sign-in: the way in for a deployment without an identity provider.
+  // The institution's provider, when there is one, is offered beside it.
+  if (methods.email && !demo) {
+    if (sent) {
+      return (
+        <div className="w-full">
+          <Panel>
+            <div className="flex flex-col items-center gap-3 py-2 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary ring-1 ring-inset ring-primary-100">
+                <Mail className="size-6" aria-hidden />
+              </span>
+              <h1 className="text-lg font-semibold text-ink">Check your email</h1>
+              <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
+                If <strong className="text-ink">{sent}</strong> has an account, a sign-in link is on its way.
+                It works once and expires in 15 minutes.
+              </p>
+            </div>
+            <p className="mt-6 border-t border-line pt-4 text-center text-sm text-ink-muted">
+              Nothing arrived? Check spam, or{" "}
+              <a href="/signin" className="font-semibold text-primary-700 underline underline-offset-2">
+                try again
+              </a>
+              .
+            </p>
+          </Panel>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
+        <Panel title="Sign in" subtitle="We'll email you a link — no password needed.">
+          {notice}
+          <form action={sendSignInLink} className="space-y-3">
+            <label className="block text-sm">
+              <span className="font-medium text-ink">Work email</span>
+              <input
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                autoFocus
+                placeholder="you@agency.gov.ng"
+                className="field mt-1.5 w-full"
+              />
+            </label>
+            <SubmitButton pendingText="Sending…">Email me a sign-in link</SubmitButton>
+          </form>
+
+          {settings ? (
+            <>
+              <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
+                <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
+              </div>
+              <form action={startOidc}>
+                <Button variant="outline" className="w-full" size="lg">Continue with work account</Button>
+              </form>
+            </>
+          ) : null}
+
+          <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
+            Only people your administrator has added can sign in.
+            {methods.dev && users.length > 0 ? (
+              <>
+                {" "}
+                <a href="/signin?demo=1" className="text-xs text-ink-faint underline underline-offset-2">
+                  Demo sign-in
+                </a>
+              </>
+            ) : null}
+          </p>
+        </Panel>
+      </div>
+    );
+  }
+
   if (settings) {
     return (
       <div className="w-full">
-        <Panel title="Sign in" subtitle="Continue with your institutional account.">
+        <Panel title="Sign in" subtitle="Use your work account to continue.">
           {notice}
           <form action={startOidc}>
-            <Button>Continue</Button>
+            <Button className="w-full" size="lg">Continue with work account</Button>
           </form>
           <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
-            You will be sent to your organisation&rsquo;s identity provider. This console never
-            sees your password, and your role and jurisdiction come from the provider rather
-            than from anything you can set here.
+            You&rsquo;ll sign in on your organisation&rsquo;s page and come straight back here.
           </p>
         </Panel>
       </div>
@@ -163,12 +255,13 @@ export default async function SignInPage({
     <div className="w-full">
       <Panel
         title="Sign in"
-        subtitle={
-          users.length > 0
-            ? "Development sign-in. Choose who to continue as."
-            : "Development sign-in. Paste an API token to continue."
-        }
+        subtitle={users.length > 0 ? "Choose who to continue as." : undefined}
       >
+        {/* Said once, plainly, so nobody mistakes a demo for the real thing. */}
+        <p className="mb-4 flex items-center gap-2 rounded-control border border-warning-border bg-warning-muted px-3 py-2 text-xs font-medium text-warning">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-warning" />
+          Demo mode — no password is needed on this server.
+        </p>
         {notice}
 
         {/* Names, not tokens. Copying a 296-character string between a terminal
@@ -212,10 +305,15 @@ export default async function SignInPage({
           </div>
         ) : null}
 
-        <details className={users.length > 0 ? "mt-6" : ""}>
-          <summary className="cursor-pointer text-sm text-ink-muted">
-            {users.length > 0 ? "Or paste an API token" : "API token"}
-          </summary>
+        {users.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            Sign-in isn&rsquo;t set up on this server yet. Ask your administrator for access.
+          </p>
+        ) : null}
+
+        {/* For the people who build and support the platform, not for its users. */}
+        <details className="mt-6 border-t border-line pt-4">
+          <summary className="cursor-pointer text-xs text-ink-faint">Developer options</summary>
           <form action={signInWithToken} className="mt-3 space-y-3">
           <label className="block text-sm">
             <span className="text-ink-muted">API token</span>
@@ -230,12 +328,6 @@ export default async function SignInPage({
           </form>
         </details>
 
-        <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
-          No identity provider is configured, so this page stands in for one. It verifies
-          nothing; the API validates the token on every request and derives the role and
-          jurisdiction from it. Set OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET and
-          OIDC_REDIRECT_URI to replace this with the OpenID Connect redirect.
-        </p>
       </Panel>
     </div>
   );
