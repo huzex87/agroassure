@@ -419,3 +419,40 @@ export interface DeviceRow {
   events_authored: number;
   last_seen_at?: string | null;
 }
+
+/** Someone who asked to join, as the Team page's queue lists them. */
+export interface RegistrationRow {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  kind: "inspector" | "office";
+  source: "app" | "console";
+  status: "pending" | "approved" | "rejected";
+  brings_phone: boolean;
+  email_verified_at: string | null;
+  phone_verified_at: string | null;
+  created_at: string;
+  decided_at: string | null;
+  decided_role: string | null;
+  reject_reason: string | null;
+  jurisdiction_name: string;
+}
+
+/** What the public registration form needs before anyone has an account. */
+export interface RegisterOptions {
+  available: boolean;
+  jurisdictions: Array<{ id: string; name: string }>;
+  consoleSignIn: boolean;
+}
+
+/** Where a request to join stands, as its registrant sees it. */
+export interface RegistrationStatus {
+  status: "verifying" | "pending" | "approved" | "rejected" | "withdrawn";
+  kind: "inspector" | "office";
+  fullName: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  rejectReason: string | null;
+  role: string | null;
+}

@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { get, tryGet, type DashboardSummary, type Me, type RiskSuggestion, type SetupProgress } from "../lib/api";
+import { UserPlus, ArrowRight } from "lucide-react";
+import {
+  get,
+  tryGet,
+  type DashboardSummary,
+  type Me,
+  type RegistrationRow,
+  type RiskSuggestion,
+  type SetupProgress,
+} from "../lib/api";
 import { SetupChecklist } from "../components/setup-checklist";
 import { Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
@@ -20,11 +29,14 @@ export default async function DashboardPage() {
   const me = await tryGet<Me>("/v1/me");
   if (me && !me.roles.some((r) => DASHBOARD_ROLES.includes(r))) redirect("/inspections");
 
-  const [summary, suggestions, setup] = await Promise.all([
+  const [summary, suggestions, setup, requests] = await Promise.all([
     get<DashboardSummary>("/v1/dashboard"),
     get<RiskSuggestion[]>("/v1/risk-suggestions?limit=8"),
     tryGet<SetupProgress>("/v1/setup"),
+    // Administrators only; anyone else gets null and sees no notice.
+    tryGet<RegistrationRow[]>("/v1/registrations"),
   ]);
+  const waitingToJoin = requests?.length ?? 0;
 
   const { tiles, decisionsWithin30Days: clock } = summary;
 
@@ -34,6 +46,29 @@ export default async function DashboardPage() {
         title="Compliance overview"
         summary="Live from the inspection record. Figures update as inspections sync."
       />
+
+      {waitingToJoin > 0 ? (
+        <Link
+          href="/team#requests"
+          className="group flex items-center gap-3 rounded-card border border-primary-100 bg-primary-50 px-4 py-3 transition-colors hover:border-primary-200"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-raised">
+            <UserPlus className="size-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-ink">
+              {waitingToJoin === 1 ? "1 person is" : `${waitingToJoin} people are`} waiting to join
+            </span>
+            <span className="block text-sm text-ink-muted">
+              Their email and phone are confirmed. Choose a role and approve them.
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700">
+            Review
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+          </span>
+        </Link>
+      ) : null}
 
       {setup ? <SetupChecklist progress={setup} /> : null}
 

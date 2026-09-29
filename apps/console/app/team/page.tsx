@@ -1,8 +1,9 @@
 import { Mail, MessageSquare } from "lucide-react";
-import { get, type DeviceRow, type InviteChannels, type UserRow } from "../../lib/api";
+import { get, tryGet, type DeviceRow, type InviteChannels, type Me, type RegistrationRow, type UserRow } from "../../lib/api";
 import { Badge, Button, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { AddColleagueForm, InviteInspectorForm, ResendCodeButton } from "../../components/team/invite-form";
+import { RequestCard } from "../../components/team/request-card";
 import { approveDevice, cancelInvitation, revokeDevice } from "./actions";
 
 // The team: who works here, in what role, and the phones inspectors use.
@@ -93,12 +94,16 @@ const STEPS: Array<[string, string]> = [
 ];
 
 export default async function TeamPage() {
-  const [users, devices, channels] = await Promise.all([
+  const [users, devices, channels, requests, me] = await Promise.all([
     get<UserRow[]>("/v1/users"),
     get<DeviceRow[]>("/v1/devices"),
     // Only administrators may ask; anyone else simply gets the generic wording.
     get<InviteChannels>("/v1/invitations/channels").catch(() => null),
+    // Likewise the queue of people asking to join: administrators only.
+    tryGet<RegistrationRow[]>("/v1/registrations"),
+    tryGet<Me>("/v1/me"),
   ]);
+  const waitingToJoin = requests ?? [];
 
   const inspectors = users.filter((u) => u.roles.includes("inspector"));
   const ready = inspectors.filter((u) => (u.active_phones ?? 0) > 0).length;
@@ -115,6 +120,21 @@ export default async function TeamPage() {
           </>
         }
       />
+
+      {waitingToJoin.length > 0 ? (
+        <div id="requests" className="scroll-mt-20">
+        <Panel
+          title={`Requests to join · ${waitingToJoin.length}`}
+          subtitle="These people confirmed their email and phone. Choose a role and approve, or reject."
+        >
+          <ul className="space-y-3">
+            {waitingToJoin.map((r) => (
+              <RequestCard key={r.id} request={r} canGrantNational={me?.roles.includes("national_admin") ?? false} />
+            ))}
+          </ul>
+        </Panel>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Panel

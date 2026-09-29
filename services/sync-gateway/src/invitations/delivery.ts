@@ -232,6 +232,11 @@ export class InviteDelivery {
   }
 
   async sendSms(rawTo: string | null, m: InviteMessage): Promise<ChannelOutcome> {
+    return this.sendSmsText(rawTo, smsText(m));
+  }
+
+  /** Any text message, through whichever provider this deployment uses. */
+  async sendSmsText(rawTo: string | null, text: string): Promise<ChannelOutcome> {
     const cfg = this.config.invites.sms;
     if (!rawTo) return { to: null, status: "skipped", detail: "no phone number" };
     const to = normalizePhone(rawTo, cfg.defaultCountryCode);
@@ -240,7 +245,6 @@ export class InviteDelivery {
       return { to, status: "skipped", detail: "SMS sending is not set up" };
     }
 
-    const text = smsText(m);
     try {
       switch (cfg.provider) {
         case "log":

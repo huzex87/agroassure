@@ -6,6 +6,7 @@ import { isWellFormedToken } from "../../lib/api";
 import { Mail } from "lucide-react";
 import { SubmitButton } from "../../components/forms";
 import { sendSignInLink } from "./email-actions";
+import { registerOptions } from "../register/actions";
 
 // Sign-in, in whichever of the two modes the deployment is configured for.
 //
@@ -151,7 +152,20 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string; sent?: string; demo?: string }>;
 }) {
   const settings = oidcSettings();
-  const [methods, users] = await Promise.all([signInMethods(), settings ? [] : devUsers()]);
+  const [methods, users, registration] = await Promise.all([
+    signInMethods(),
+    settings ? [] : devUsers(),
+    registerOptions(),
+  ]);
+  const canRegister = registration?.available === true;
+  const requestAccess = canRegister ? (
+    <p className="mt-4 text-center text-sm text-ink-muted">
+      New here?{" "}
+      <a href="/register" className="font-semibold text-primary-700 underline underline-offset-2">
+        Request access
+      </a>
+    </p>
+  ) : null;
   const { error, sent, demo } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
@@ -220,7 +234,9 @@ export default async function SignInPage({
           ) : null}
 
           <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
-            Only people your administrator has added can sign in.
+            {canRegister
+              ? "Only approved team members can sign in."
+              : "Only people your administrator has added can sign in."}
             {methods.dev && users.length > 0 ? (
               <>
                 {" "}
@@ -231,6 +247,7 @@ export default async function SignInPage({
             ) : null}
           </p>
         </Panel>
+        {requestAccess}
       </div>
     );
   }
@@ -247,6 +264,7 @@ export default async function SignInPage({
             You&rsquo;ll sign in on your organisation&rsquo;s page and come straight back here.
           </p>
         </Panel>
+        {requestAccess}
       </div>
     );
   }

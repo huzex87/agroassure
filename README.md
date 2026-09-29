@@ -343,6 +343,53 @@ administrator's decision comes before the phone exists, not after.
   failed send never fails the invite; the console says what happened. See
   `.env.example` for every setting.
 
+## Testing with real people
+
+Two guides in `docs/`:
+
+- [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list
+  (SMS and email accounts, Render settings, naming yourself the first
+  administrator, building the app) and a full walk-through on a real phone.
+- [`pilot-testing-guide.md`](docs/pilot-testing-guide.md), for the testers
+  themselves: what inspectors, office staff and administrators should each try,
+  what should happen, and how to report what didn't.
+
+## People asking to join
+
+Invitations start with the administrator. Registration starts with the person,
+and both stay available.
+
+1. **Ask.** An inspector taps **Register instead** on the app's first screen; a
+   supervisor, officer or administrator uses **Request access** on the console's
+   sign-in page. They give their name, phone, email and state.
+2. **Prove it.** A 6-digit code goes to the phone by SMS and another to the
+   email. Both must be typed back, so an administrator never sees a request
+   with an unproven contact. Codes expire after 30 minutes; a wrong one is
+   named, and a right one entered beside it still counts.
+3. **Approve.** The state's administrators are emailed, the dashboard shows
+   "N people are waiting to join", and **Team → Requests to join** lists each
+   person with a tick against each proven contact. The administrator picks the
+   role — it starts at *Inspector* for app requests and *Desk supervisor* for
+   website ones — and approves, or rejects with a reason that is sent on.
+4. **In.** The person is told by email and SMS. A phone request approved as an
+   inspector is already that inspector's active phone: the request carried the
+   phone's public key, approval registers it, and the waiting screen's next
+   check returns a session. They choose a PIN and see their visits — no invite
+   code. Someone who asked on the website and is approved as an inspector has
+   no phone on file yet, so approval sends them an invite code at once, to the
+   SMS and email they just proved. Office staff sign in to the console with the
+   emailed link.
+
+Nothing is granted before approval: a registration is a request, not an
+account. Only a national administrator can grant the national role, and a
+state administrator only sees and decides requests for their own state. Codes
+and the registrant's status token are stored only as hashes. The open
+endpoints (`/v1/register/*`) are rate limited per phone number and per email
+address — what stops the form being used to flood a stranger with codes — with
+a looser ceiling per source address, since every website request reaches the
+gateway from the console's own server. Registration is open when both an email
+and an SMS provider are configured; `SELF_REGISTRATION=off` turns it off.
+
 ## Authentication and evidence
 
 Both were development stand-ins and are now real, though only the gateway side

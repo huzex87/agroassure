@@ -47,6 +47,16 @@ describe("application wiring", () => {
     expect(app.get(StorageService, { strict: false }).describeStore()).toContain("local:");
   });
 
+  it("resolves self-registration, which borrows the invitation delivery", async () => {
+    const { RegistrationService } = await import("../src/registration/registration.service");
+    const { RegisterController, RegistrationsController } = await import(
+      "../src/registration/registration.controller"
+    );
+    expect(app.get(RegistrationService, { strict: false })).toBeDefined();
+    expect(app.get(RegisterController, { strict: false })).toBeDefined();
+    expect(app.get(RegistrationsController, { strict: false })).toBeDefined();
+  });
+
   it("shares one metrics registry across modules", async () => {
     const { MetricsService } = await import("../src/health/metrics.service");
     const { IngestService } = await import("../src/sync/ingest.service");
