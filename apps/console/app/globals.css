@@ -226,6 +226,32 @@
   }
 }
 
+/* A quiet entrance for page content. 180ms and four pixels: enough that a page
+   arriving reads as a page arriving, not enough to be noticed on the tenth
+   visit. Switched off entirely for people who ask for less motion. */
+@layer utilities {
+  .page-enter {
+    animation: page-enter 180ms ease-out both;
+  }
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* A faint survey grid, for the places that show position rather than data:
+     the registry map and the sign-in backdrop. */
+  .survey-grid {
+    background-image: radial-gradient(circle at 1px 1px, rgb(7 36 53 / 0.09) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+}
+
 /* Focus is always visible: this console is used with a keyboard all day, and
    the ring sits outside the element so it never shifts layout. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
@@ -235,6 +261,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
   *,
   *::before,
   *::after {

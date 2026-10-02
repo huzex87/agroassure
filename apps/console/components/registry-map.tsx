@@ -16,7 +16,7 @@ import { CERTIFICATE_STATUS_LABEL, label } from "../lib/format";
 
 const MARGIN = 16;
 const WIDTH = 720;
-const HEIGHT = 320;
+const HEIGHT = 300;
 
 type Plotted = FacilityRow & { lat: number; lng: number };
 
@@ -100,12 +100,16 @@ export function RegistryMap({ facilities }: { facilities: FacilityRow[] }) {
   if (plotted.length === 0) return null;
 
   const markers = project(plotted);
+  const counts = plotted.reduce<Record<string, number>>((acc, f) => {
+    acc[f.certificate_status] = (acc[f.certificate_status] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <figure className="space-y-3">
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="w-full rounded-[12px] border border-line bg-canvas"
+        className="survey-grid h-auto max-h-[19rem] w-full rounded-[12px] border border-line bg-canvas"
         role="img"
         aria-label={`Relative positions of ${plotted.length} ${
           plotted.length === 1 ? "facility" : "facilities"
@@ -114,6 +118,10 @@ export function RegistryMap({ facilities }: { facilities: FacilityRow[] }) {
         {markers.map((f) => {
           const { x, y } = f;
           const { fill, radius, ring } = marker(f.certificate_status);
+          // The ones that need a visit are named on the map; naming all of them
+          // would turn a cluster into a smear. The table has every name.
+          const named = f.certificate_status === "overdue" || f.certificate_status === "due_soon";
+          const flip = x > WIDTH - 190;
           return (
             // The name goes on the group as an accessible label rather than in
             // an SVG <title>: React 19 treats <title> as document metadata and
@@ -125,9 +133,25 @@ export function RegistryMap({ facilities }: { facilities: FacilityRow[] }) {
               aria-label={`${f.name} — ${label(CERTIFICATE_STATUS_LABEL, f.certificate_status)}${f.lga ? ` — ${f.lga}` : ""}`}
             >
               {ring && (
-                <circle cx={x} cy={y} r={radius + 4} fill="none" stroke={fill} strokeWidth={1.5} />
+                <circle cx={x} cy={y} r={radius + 4} fill="none" stroke={fill} strokeWidth={1.5} opacity={0.55} />
               )}
-              <circle cx={x} cy={y} r={radius} fill={fill} />
+              <circle cx={x} cy={y} r={radius} fill={fill} stroke="white" strokeWidth={1.5} />
+              {named ? (
+                <text
+                  x={flip ? x - radius - 9 : x + radius + 9}
+                  y={y + 4}
+                  textAnchor={flip ? "end" : "start"}
+                  fontSize={11.5}
+                  fontWeight={500}
+                  fill="var(--color-ink)"
+                  stroke="var(--color-canvas)"
+                  strokeWidth={3.5}
+                  paintOrder="stroke"
+                  strokeLinejoin="round"
+                >
+                  {f.name.length > 26 ? `${f.name.slice(0, 25)}…` : f.name}
+                </text>
+              ) : null}
             </g>
           );
         })}
@@ -142,11 +166,12 @@ export function RegistryMap({ facilities }: { facilities: FacilityRow[] }) {
                 <circle cx={8} cy={8} r={radius} fill={fill} />
               </svg>
               {label(CERTIFICATE_STATUS_LABEL, status)}
+              <span className="text-ink-faint tabular">{counts[status] ?? 0}</span>
             </span>
           );
         })}
-        <span className="ml-auto">
-          Relative position only, from registered coordinates. No basemap.
+        <span className="ml-auto text-ink-faint">
+          Relative position from registered coordinates. No basemap.
           {missing > 0 &&
             ` ${missing} ${missing === 1 ? "facility has" : "facilities have"} no recorded point.`}
         </span>

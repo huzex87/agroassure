@@ -14,10 +14,25 @@ export const dynamic = "force-dynamic";
 
 const TYPES = Object.entries(FACILITY_TYPE_LABEL);
 
+const STATUSES: Array<[string, string]> = [
+  ["valid", "Valid"],
+  ["due_soon", "Due soon"],
+  ["overdue", "Overdue"],
+  ["never_inspected", "Not yet inspected"],
+];
+
+const CHIP_DOT: Record<string, string> = {
+  "": "bg-primary",
+  valid: "bg-success",
+  due_soon: "bg-warning",
+  overdue: "bg-destructive",
+  never_inspected: "bg-ink-faint",
+};
+
 export default async function FacilitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; lga?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; lga?: string; status?: string }>;
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
@@ -25,23 +40,28 @@ export default async function FacilitiesPage({
   if (params.type) query.set("type", params.type);
   if (params.lga) query.set("lga", params.lga);
 
-  const facilities = await get<FacilityRow[]>(`/v1/facilities?${query}`);
-  const counts = facilities.reduce<Record<string, number>>((acc, f) => {
+  const everyone = await get<FacilityRow[]>(`/v1/facilities?${query}`);
+  const counts = everyone.reduce<Record<string, number>>((acc, f) => {
     acc[f.certificate_status] = (acc[f.certificate_status] ?? 0) + 1;
     return acc;
   }, {});
+  // The status chips narrow what is already fetched, so the counts on them stay
+  // the whole picture for this search rather than collapsing to the chosen one.
+  const status = params.status && STATUSES.some(([value]) => value === params.status) ? params.status : "";
+  const facilities = status ? everyone.filter((f) => f.certificate_status === status) : everyone;
+
+  const chipHref = (value: string) => {
+    const next = new URLSearchParams(query);
+    if (value) next.set("status", value);
+    const qs = next.toString();
+    return qs ? `/facilities?${qs}` : "/facilities";
+  };
 
   return (
     <>
       <PageHeader
         title="Facilities"
-        summary={
-          <>
-          {facilities.length} in this jurisdiction · {counts.valid ?? 0} valid ·{" "}
-          {counts.due_soon ?? 0} due soon · {counts.overdue ?? 0} overdue ·{" "}
-          {counts.never_inspected ?? 0} not yet inspected
-          </>
-        }
+        summary={`Every regulated site in this jurisdiction, with the standing of its certificate.`}
         actions={
           <>
             <Link
@@ -60,18 +80,42 @@ export default async function FacilitiesPage({
         }
       />
 
+      <nav aria-label="Filter by certificate status" className="flex flex-wrap gap-2">
+        {([["", "All"], ...STATUSES] as Array<[string, string]>).map(([value, text]) => {
+          const on = status === value;
+          const n = value ? (counts[value] ?? 0) : everyone.length;
+          return (
+            <Link
+              key={value || "all"}
+              href={chipHref(value)}
+              aria-current={on ? "true" : undefined}
+              className={`inline-flex h-9 items-center gap-2 rounded-pill border px-3.5 text-sm transition-colors ${
+                on
+                  ? "border-primary-200 bg-primary-50 font-semibold text-primary-700"
+                  : "border-line bg-card text-ink-muted hover:bg-surface-sunk hover:text-ink"
+              }`}
+            >
+              <span aria-hidden className={`size-2 rounded-full ${CHIP_DOT[value]}`} />
+              {text}
+              <span className={`tabular text-xs ${on ? "text-primary-700" : "text-ink-faint"}`}>{n}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
       <Panel>
         <RegistryMap facilities={facilities} />
       </Panel>
 
       <Panel>
-        <form className="mb-4 flex flex-wrap gap-3" action="/facilities">
+        <form className="mb-5 flex flex-wrap gap-3" action="/facilities">
+          {status ? <input type="hidden" name="status" value={status} /> : null}
           <input
             name="q"
             defaultValue={params.q ?? ""}
-            placeholder="Business name or licence number"
+            placeholder="Search by name or licence number"
             aria-label="Search by business name or licence number"
-            className="field"
+            className="field min-w-[15rem] flex-1"
           />
           <select
             name="type"
@@ -91,7 +135,7 @@ export default async function FacilitiesPage({
             defaultValue={params.lga ?? ""}
             placeholder="LGA"
             aria-label="Local government area"
-            className="field"
+            className="field w-36"
           />
           <button
             type="submit"
@@ -105,7 +149,7 @@ export default async function FacilitiesPage({
           head={["Business", "Type", "LGA", "Last inspected", "Rating", "Certificate"]}
           empty={
             facilities.length === 0 ? (
-              params.q || params.type || params.lga ? (
+              params.q || params.type || params.lga || status ? (
                 <Empty>No facility matches this search.</Empty>
               ) : (
                 <Empty

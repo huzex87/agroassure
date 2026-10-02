@@ -84,7 +84,7 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
     <div className="flex flex-col gap-6">
       {navFor(roles).map((group) => (
         <div key={group.heading}>
-          <p className="px-3 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+          <p className="px-3 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-ink-faint">
             {group.heading}
           </p>
           <ul className="flex flex-col gap-0.5">
@@ -95,12 +95,15 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-2.5 rounded-control px-3 py-2 text-sm transition-colors ${
+                    className={`relative flex items-center gap-2.5 rounded-control px-3 py-2 text-sm transition-colors ${
                       active
-                        ? "bg-primary-50 font-semibold text-primary-700 ring-1 ring-inset ring-primary-100"
+                        ? "bg-primary-50 font-semibold text-primary-700"
                         : "text-ink-muted hover:bg-surface-sunk hover:text-ink"
                     }`}
                   >
+                    {active ? (
+                      <span aria-hidden className="absolute top-2 bottom-2 -left-3 w-[3px] rounded-r-full bg-primary" />
+                    ) : null}
                     <span className={active ? "text-primary" : "text-ink-faint"}>
                       <item.Icon />
                     </span>
@@ -130,7 +133,7 @@ export function TopNav({ roles = null }: { roles?: string[] | null }) {
   return (
     <nav
       aria-label="Sections"
-      className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface px-4 py-2.5 md:hidden"
+      className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] md:hidden"
     >
       {navFor(roles).flatMap((g) => g.items).map((item) => {
         const active = isActive(pathname, item.href, item.also);

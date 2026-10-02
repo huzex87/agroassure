@@ -106,7 +106,7 @@ export default async function FindingsPage({
         >
           {findings.map((f) => (
             <Row key={f.id}>
-              <Cell>
+              <Cell className="whitespace-nowrap">
                 <Link
                   href={`/inspections/${f.inspection_id}`}
                   className="font-mono text-xs text-ink hover:text-primary-700"
@@ -137,7 +137,7 @@ export default async function FindingsPage({
               <Cell>
                 <Severity severity={f.severity} />
               </Cell>
-              <Cell className="text-ink-muted">{formatDate(f.due_date)}</Cell>
+              <Cell className="text-ink-muted whitespace-nowrap">{formatDate(f.due_date)}</Cell>
               <Cell>
                 <FindingStatus status={f.status} daysPastDue={f.days_past_due} />
               </Cell>

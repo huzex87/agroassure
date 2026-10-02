@@ -204,9 +204,15 @@ export default async function SignInPage({
 
     return (
       <div className="w-full">
-        <Panel title="Sign in" subtitle="We'll email you a link — no password needed.">
+        <Panel className="shadow-lifted">
+          <div className="mb-6 pt-1">
+            <h1 className="text-xl font-semibold tracking-tight text-ink">Welcome back</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+              Enter your work email and we'll send you a sign-in link. No password to remember.
+            </p>
+          </div>
           {notice}
-          <form action={sendSignInLink} className="space-y-3">
+          <form action={sendSignInLink} className="space-y-4">
             <label className="block text-sm">
               <span className="font-medium text-ink">Work email</span>
               <input

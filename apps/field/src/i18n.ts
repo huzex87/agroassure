@@ -11,6 +11,13 @@ export type Language = "en" | "ha";
 
 const STRINGS = {
   todaysVisits: { en: "Today's visits", ha: "Ziyarce-ziyarcen yau" },
+  greetMorning: { en: "Good morning", ha: "Barka da safiya" },
+  greetAfternoon: { en: "Good afternoon", ha: "Barka da rana" },
+  greetEvening: { en: "Good evening", ha: "Barka da yamma" },
+  visitsDone: { en: "done", ha: "an kammala" },
+  visitsOne: { en: "visit", ha: "ziyara" },
+  visitsMany: { en: "visits", ha: "ziyarce-ziyarce" },
+  allVisitsDone: { en: "All visits done. Well done.", ha: "An kammala dukkan ziyarce-ziyarce. Madalla." },
   noVisits: {
     en: "No visits yet. Your supervisor's assignments appear here as soon as your phone has a signal.",
     ha: "Babu ziyara tukuna. Ayyukan da shugabanka ya ba ka za su bayyana a nan da zarar wayarka ta sami sigina.",

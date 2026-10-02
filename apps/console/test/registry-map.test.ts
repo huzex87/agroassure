@@ -8,7 +8,7 @@ type Point = { lat: number; lng: number; x: number; y: number };
 // the projection is checked rather than eyeballed.
 
 const WIDTH = 720;
-const HEIGHT = 320;
+const HEIGHT = 300;
 const MARGIN = 16;
 
 // Roughly Katsina.
