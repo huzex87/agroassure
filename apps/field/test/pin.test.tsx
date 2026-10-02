@@ -120,14 +120,13 @@ describe("the lock screen", () => {
     expect(screen.queryByText("Enter your PIN")).toBeNull();
   });
 
-  it("asks a phone set up before PINs existed to choose one", async () => {
+  it("leaves a phone with no PIN alone: it is offered, never forced", async () => {
     await signedInPhone();
     renderGate();
-    expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
-    await typePin("2468");
-    await typePin("2468");
-    expect(screen.queryByText("Enter the same PIN again")).toBeNull();
-    expect(await hasPin()).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText("Choose a 4-digit PIN")).toBeNull();
+    expect(screen.queryByText("Enter your PIN")).toBeNull();
+    expect(await hasPin()).toBe(false);
   });
 
   it("sends someone who forgot their PIN to enter a new code, keeping their work", async () => {

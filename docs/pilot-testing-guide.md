@@ -31,6 +31,22 @@ shows who did it, where and when. Nothing can be quietly changed afterwards.
 
 ---
 
+## Getting started in 60 seconds
+
+You don't set anything up yourself. Your administrator adds you, and a message
+arrives.
+
+| You are | What arrives | What you do |
+|---|---|---|
+| An **inspector** | An **SMS** (and email) with a link and a code like `K7PM-4XQ2` | Install the app, tap the link in the message, tap **Continue**. Your visits appear by themselves. |
+| **Office staff** | An **email** saying you've been added | Open the console, type your work email, click the link that arrives. |
+
+That's all. There's no password, no language question (the app uses your
+phone's language), and no PIN to choose before you can start. If you didn't
+get a message, ask your supervisor to send it again.
+
+---
+
 ## Who tests what
 
 Find your role, then go to your section. You don't need to read the others.
@@ -60,20 +76,35 @@ Find your role, then go to your section. You don't need to read the others.
    your browser, then tap **Install**.
 3. Open **AgroAssure**.
 
-- [ ] *Expected:* it asks you to choose **English** or **Hausa**. Pick one. You
-      can change it later under **Account**.
+- [ ] *Expected:* it opens straight to a code box, in your phone's language
+      (Hausa if your phone is set to Hausa, otherwise English). Tap **Hausa**
+      or **English** at the top right to switch. You can also change it later
+      under **Account**.
 
-### A2. Get into the app — choose ONE way
+### A2. Get into the app
 
-**Way 1: you were sent an invite code** (by SMS or email, like `K7PM-4XQ2`)
+You were sent an invite code (by SMS or email, like `K7PM-4XQ2`).
 
 1. Type the code into the box, or just tap the link in the message.
 2. Tap **Continue**.
-3. Choose a **4-digit PIN**, then enter it again.
 
 - [ ] *Expected:* **"Welcome, [your name]"**, then **See today's visits**.
+      Nothing asks you for a PIN first.
+- [ ] *Expected:* under the code box it says **"No code? Ask your supervisor to
+      invite you."** There is no other way in, unless your administrator has
+      switched on self-registration (see below).
 
-**Way 2: you have no code, so you register yourself**
+**Adding a PIN (optional).** Under **See today's visits** there's a quieter
+**Add a PIN** button. A PIN is an extra lock for phones that are shared or get
+borrowed. You can skip it now and add one later: **Account → App PIN → Set a
+PIN**.
+
+- [ ] *Try this:* tap **Add a PIN**, type one, then type a *different* one to
+      confirm. *Expected:* "Those didn't match", and you start again.
+
+**Only if registration is switched on: you have no code, so you register
+yourself.** You'll only see **Register instead** on the first screen if your
+administrator turned this on. Most pilots leave it off.
 
 1. On the first screen, tap **Register instead**.
 2. Fill in your **full name, phone number, email** and **state**. Tap
@@ -86,8 +117,8 @@ Find your role, then go to your section. You don't need to read the others.
    administrator has been told.
 5. When they approve you, you'll get an SMS. Open the app.
 
-- [ ] *Expected:* it goes straight to **"Choose a 4-digit PIN"**, with **no
-      invite code needed**, then **"Welcome"**.
+- [ ] *Expected:* it goes straight to **"Welcome"**, with **no invite code and
+      no PIN needed**.
 - [ ] If you were **not** approved, it shows the reason your administrator gave.
 
 ### A3. Do an inspection
@@ -116,9 +147,9 @@ Find your role, then go to your section. You don't need to read the others.
       than the facility's address. *Expected:* a calm note that you seem to be
       some distance away. It's recorded for your supervisor, and you can carry
       on.
-- [ ] **PIN.** Close the app, leave it for 5+ minutes, and reopen it.
-      *Expected:* it asks for your PIN. Enter a wrong PIN: it tells you how many
-      tries are left.
+- [ ] **PIN.** Add a PIN first (**Account → App PIN → Set a PIN**). Then close
+      the app, leave it for 5+ minutes, and reopen it. *Expected:* it asks for
+      your PIN. Enter a wrong PIN: it tells you how many tries are left.
 - [ ] **Forgot PIN.** Tap **Forgot PIN?** (only if you're happy to be sent a
       new code). *Expected:* your unsent work is kept and sends once you're back
       in with a new code.
@@ -129,17 +160,20 @@ Find your role, then go to your section. You don't need to read the others.
 
 ## B. Office staff
 
-### B1. Get into the console — choose ONE way
+### B1. Get into the console
 
-**Way 1: your administrator added you**
+Your administrator added you with your work email.
 
 1. Open the **console address** (at the top of this guide).
 2. Enter your **work email** and click **Email me a sign-in link**.
 3. Open the email and click the link, then click **Continue**.
 
 - [ ] *Expected:* you land on the console. There is no password, ever.
+- [ ] *Expected:* the sign-in page is just the email box. There's no **Request
+      access** link, unless your administrator switched on self-registration.
 
-**Way 2: you ask to join**
+**Only if registration is switched on: you ask to join.** You'll only see
+**New here? Request access** if your administrator turned this on.
 
 1. Open the console address and click **New here? Request access**.
 2. Fill in your name, work email, phone and state. Click **Continue**.
@@ -195,6 +229,10 @@ Do section B first, then these.
 
 ### C1. Approve people who asked to join
 
+*Skip this section unless you switched on self-registration
+(`SELF_REGISTRATION=on`). By default nobody can ask to join, so there is nothing
+to approve: you invite people directly (section C2).*
+
 1. When someone registers, you get an **email**, and the **Dashboard** shows
    **"N people are waiting to join"**. Click **Review**, or open **Team**.
 2. Each request shows their name, email and phone. A **green tick** means they
@@ -215,6 +253,8 @@ Do section B first, then these.
       administrator sees all states.
 
 ### C2. Invite someone directly
+
+This is the normal way people join.
 
 1. **Team → Invite an inspector.** Enter a name and phone number (and email if
    you have it).
@@ -238,7 +278,7 @@ Do section B first, then these.
 ### C4. A lost phone
 
 1. **Team → Phones**. Next to a test phone, type a reason (e.g. "lost") and
-   click **Sign out remotely**.
+   click **Sign out this phone**.
 
 - [ ] *Expected:* the phone stops working on its next connection and shows
       **"This phone was signed out"**. Work it already sent stays on record.
@@ -274,15 +314,15 @@ No. Only to receive your visits the first time and to send finished work. Both
 happen by themselves when there's a signal.
 
 **I didn't get my code.**
-Check your spam folder for the email. For SMS, wait a minute, then use **Send
-new codes** (registration) or ask your administrator to **Send new code**
-(invites). If your number is on the do-not-disturb list, tell us.
+Check your spam folder for the email. For SMS, wait a minute, then ask your
+administrator to **Send new code**. If your number is on the do-not-disturb
+list, tell us.
 
 **My code "has expired".**
-Registration codes last **30 minutes**, invite codes **3 days**. Ask for new
-ones.
+Invite codes last **3 days** (registration codes, where registration is on,
+last 30 minutes). Ask your administrator for a new one.
 
-**"Too many requests to join from here."**
+**"Too many requests to join from here."** *(only where registration is on)*
 The same phone number or email can only ask 3 times an hour. Wait an hour, or
 ask your administrator to invite you instead.
 
@@ -290,9 +330,14 @@ ask your administrator to invite you instead.
 You're already on the team. Sign in instead, or ask your administrator to send
 a code for the phone app.
 
+**Do I have to choose a PIN?**
+No. It's optional. Add one any time from **Account → App PIN** if the phone is
+shared or might be borrowed.
+
 **Can I use AgroAssure on an iPhone?**
 Not in this pilot. The test app is Android only.
 
 **Is my data safe if I lose the phone?**
-The app is locked with your PIN. Tell your administrator: they can sign the
-phone out remotely, and anything it already sent stays safely on record.
+Tell your administrator straight away: they can sign the phone out, and it
+stops working on its next connection. Anything it already sent stays safely on
+record. If you added an app PIN, the app was also locked behind it.

@@ -211,7 +211,7 @@ export default async function InspectionPage({
                             {e.locked ? (
                               <span>checksummed at capture, stored write-once</span>
                             ) : (
-                              <span>awaiting upload from the device</span>
+                              <span>awaiting upload from the phone</span>
                             )}
                           </li>
                         ))}

@@ -273,7 +273,7 @@ export default async function TeamPage() {
                       aria-label={`Reason for signing out ${d.label ?? "this phone"}`}
                       className="field w-36 py-1.5 text-xs"
                     />
-                    <Button variant="outline" size="sm">Sign out remotely</Button>
+                    <Button variant="outline" size="sm">Sign out this phone</Button>
                   </form>
                 )}
               </Cell>
@@ -281,7 +281,7 @@ export default async function TeamPage() {
           ))}
         </DataTable>
         <p className="px-5 py-4 text-xs text-ink-muted">
-          Lost or replaced a phone? Sign it out remotely and it stops working straight away. Work it
+          Lost or replaced a phone? Sign it out and it stops working straight away. Work it
           already sent stays on record and stays credited to the inspector.
         </p>
       </Panel>

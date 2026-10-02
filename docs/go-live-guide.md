@@ -29,8 +29,8 @@ Tick these off in order. Each links to the detailed steps below.
       filled in: the console address, the app download link, and who to send
       problems to.
 
-**Cost to expect.** Termii charges per SMS (each person who registers gets one
-code, plus one when approved). Resend's free tier covers 3,000 emails a
+**Cost to expect.** Termii charges per SMS (each person you invite gets one
+message, plus one more each time you send a new code). Resend's free tier covers 3,000 emails a
 month, which is plenty for a pilot. Render's paid instance is already in place.
 
 ---
@@ -113,6 +113,11 @@ Optional settings:
 - `INVITE_TTL_HOURS`: how long a code works. The default is `72` (3 days).
 - `SMS_CHANNEL`: set to `generic` only if Termii hasn't enabled DND yet.
   Codes will then not reach numbers on the DND list.
+- `SELF_REGISTRATION`: **leave this unset.** Your administrators invite their
+  own staff, so the app shows one way in: a code box. Set it to `on` only if
+  you want strangers to be able to ask to join (inspectors in the app, office
+  staff on the sign-in page), with an administrator approving each one. It
+  then needs both the SMS and email settings above.
 
 4. Click **Save, rebuild, and deploy**. The deploy takes a few minutes.
 
@@ -169,16 +174,18 @@ invites (step 1c).
    > must not remain as a back door. If the deploy fails, the Render log line
    > says exactly which setting to fix.
 4. Click **Save, rebuild, and deploy**.
-5. **Everyone else** either registers themselves (**Request access** on the
-   sign-in page, then you approve them on **Team**) or is added by you
-   (**Team → Add a colleague**). Only people on the Team page can sign in.
+5. **Everyone else** is added by you (**Team → Add a colleague** for office
+   staff, **Team → Invite an inspector** for the field). Only people on the
+   Team page can sign in. If you later turn on `SELF_REGISTRATION`, people can
+   also ask to join from the sign-in page and you approve them on **Team**.
 
 **Check it:**
 1. In Render → **Logs**, look for a line like
    `first administrator you@…: added Katsina State, created the account, made national administrator`.
    On later restarts it says `already set up`.
 2. Open the console's sign-in page. It should say **"We'll email you a link —
-   no password needed"**, with **New here? Request access** underneath.
+   no password needed"**. (**New here? Request access** appears underneath
+   only if you turned on `SELF_REGISTRATION`.)
 3. Enter your `FIRST_ADMIN_EMAIL`, open the link that arrives, and click
    **Continue**. You should land on the dashboard, with **Team** in the menu.
 
@@ -259,21 +266,33 @@ Tick each step as you go. If something doesn't match what's expected, note what
 the screen said.
 
 **First launch**
-1. [ ] Open the app. It asks **English / Hausa**. Pick one.
-2. [ ] It shows **"Welcome to AgroAssure"** and a code box.
+1. [ ] Open the app.
+       *Expected:* **"Welcome to AgroAssure"** and a code box. There is no
+       language question: the app uses the phone's language (Hausa if the
+       phone is set to Hausa, English otherwise).
+2. [ ] Tap **Hausa** (or **English**) at the top right.
+       *Expected:* the screen changes language at once. Under the code box it
+       says **"No code? Ask your supervisor to invite you."** There is **no
+       Register instead** button, unless you turned on `SELF_REGISTRATION`.
 
 **Invite code**
 3. [ ] Type a wrong code (for example `AAAA-BBBB`).
        *Expected:* "That code isn't right…"
 4. [ ] Type the real code from the SMS. Lowercase and spaces are fine.
        Tap **Continue**.
-       *Expected:* "Choose a 4-digit PIN".
-4a. [ ] Enter a PIN, then enter it again. Try entering a different second
-       PIN first: it should say "Those didn't match".
-       *Expected:* "Welcome, [first name]" with a green tick.
+       *Expected:* **"Welcome, [first name]"** with a green tick, and two
+       buttons: **See today's visits** and a quieter **Add a PIN**. Nothing
+       asks for a PIN first.
+4a. [ ] Tap **Add a PIN**. Enter a PIN, then enter it again. Try entering a
+       different second PIN first: it should say "Those didn't match".
+       *Expected:* it takes you to the visits.
 4b. [ ] Press the Home button, wait more than 5 minutes, and reopen the app.
        *Expected:* "Enter your PIN". A wrong PIN shows "Tries left: 4";
        the right one returns you to exactly where you were.
+4c. [ ] On another phone (or after signing out), skip the PIN with **See
+       today's visits**. Then open **Account**.
+       *Expected:* **App PIN** says it is not set, with a **Set a PIN**
+       button. After setting one it says it is on, with **Change PIN**.
 5. [ ] Other way in: on the phone, open the invite **email** and tap
        **Open on this phone**.
        *Expected:* the app opens with the code already filled in. This only
@@ -317,7 +336,7 @@ the screen said.
         *Expected:* **Review the first inspection** is ticked.
 
 **Lost phone**
-17. [ ] Open **Team → Phones** and click **Sign out remotely**, with the
+17. [ ] Open **Team → Phones** and click **Sign out this phone**, with the
         reason "test".
 18. [ ] On the phone, open **Account** → **Send now**.
         *Expected:* "This phone was signed out… Enter a new code".
@@ -325,7 +344,12 @@ the screen said.
         the new code on the phone.
         *Expected:* it works, and the phone shows as a new active phone.
 
-**Someone registers without an invite code**
+**Someone registers without an invite code** *(only if you turned on
+`SELF_REGISTRATION`; skip this block otherwise)*
+
+By default, check the opposite: the app's first screen has no **Register
+instead** button and the console sign-in page has no **Request access** link.
+
 20. [ ] On a second phone, open the app and tap **Register instead**. Fill in
         a name, that phone's number, an email address you can read, and the
         state. Tap **Send my codes**.
@@ -337,7 +361,7 @@ the screen said.
         Click **Review**. The request shows ticks beside the email and phone.
         Leave the role as **Inspector (phone app)** and click **Approve**.
 23. [ ] On the phone, wait up to 15 seconds (or tap **Check now**).
-        *Expected:* "Choose a 4-digit PIN", then "Welcome". No invite code was
+        *Expected:* "Welcome, [first name]". No invite code and no PIN were
         needed, and the phone appears under **Team → Phones**.
 24. [ ] On a computer, open the console's sign-in page and click **Request
         access**. Register with a different email, confirm both codes, and in
@@ -357,9 +381,10 @@ the screen said.
 | Visit never appears on the phone | Visit planned for a different inspector, or the phone hasn't synced | Check **Plan visits → Upcoming**, then **Account → Send now** |
 | Tapping a visit gives an error about the checklist | No checklist in force for that facility type | Publish one under **Checklists** |
 | "This code has expired" | Older than 3 days | **Send new code** |
-| Inspector forgot their PIN | — | They tap **Forgot PIN?** → **Sign out and reset PIN**. Send them a new code; their unsent work is kept and sends once they're back in |
+| Inspector forgot their PIN (only if they added one) | — | They tap **Forgot PIN?** → **Sign out and reset PIN**. Send them a new code; their unsent work is kept and sends once they're back in |
 | Console: "This sign-in link has expired or has already been used" | Link older than 15 minutes, or already used | Request a new one on the sign-in page |
-| No **Register instead** / **Request access**, or "Registration isn't open" | Email or SMS provider not set, or `SELF_REGISTRATION=off` | Step 1d; both providers are needed, since both contacts are checked |
+| No **Register instead** / **Request access** | Normal: registration is off unless `SELF_REGISTRATION=on` | If you want it, set `on` in step 1d. Both the SMS and email providers are needed, since both contacts are checked |
+| "Registration isn't open" | `SELF_REGISTRATION=on` but the email or SMS provider isn't set | Step 1d |
 | "Those codes have expired" while registering | More than 30 minutes since they were sent | Tap **Send new codes** |
 | "Too many requests to join from here" | The same phone or email asked more than 3 times in an hour | Wait an hour, or invite them from **Team** instead |
 | "An account with this email already exists" | They're already on the team | They sign in instead; an administrator can send an invite code for a phone |

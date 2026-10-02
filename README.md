@@ -317,9 +317,10 @@ One form in the console, one code on the phone. Nothing waits on anybody.
    inspector role and issues a one-time code, e.g. `K7PM-4XQ2`, sent by SMS and
    email. The console shows the same code and a QR code, for someone standing
    at the desk, and says which channel it went out on.
-2. **Enter the code.** The inspector installs the app, chooses a language and
-   types the code — or taps the link in the message, which opens the app with
-   the code already filled in.
+2. **Enter the code.** The inspector installs the app and types the code — or
+   taps the link in the message, which opens the app with the code already
+   filled in. The app uses the phone's language (one tap switches it), and
+   asks nothing else first.
 3. **Inspect.** The phone is active straight away. Assigned visits arrive on
    their own, and finished work sends itself whenever there is a signal.
 
@@ -356,8 +357,9 @@ Two guides in `docs/`:
 
 ## People asking to join
 
-Invitations start with the administrator. Registration starts with the person,
-and both stay available.
+Invitations start with the administrator and are the normal way in. Registration
+starts with the person; it is built and tested but switched off unless
+`SELF_REGISTRATION=on`, so the apps show one way in by default.
 
 1. **Ask.** An inspector taps **Register instead** on the app's first screen; a
    supervisor, officer or administrator uses **Request access** on the console's
@@ -374,8 +376,8 @@ and both stay available.
 4. **In.** The person is told by email and SMS. A phone request approved as an
    inspector is already that inspector's active phone: the request carried the
    phone's public key, approval registers it, and the waiting screen's next
-   check returns a session. They choose a PIN and see their visits — no invite
-   code. Someone who asked on the website and is approved as an inspector has
+   check returns a session. They see their visits — no invite code, and no
+   PIN to choose first. Someone who asked on the website and is approved as an inspector has
    no phone on file yet, so approval sends them an invite code at once, to the
    SMS and email they just proved. Office staff sign in to the console with the
    emailed link.
@@ -387,8 +389,9 @@ and the registrant's status token are stored only as hashes. The open
 endpoints (`/v1/register/*`) are rate limited per phone number and per email
 address — what stops the form being used to flood a stranger with codes — with
 a looser ceiling per source address, since every website request reaches the
-gateway from the console's own server. Registration is open when both an email
-and an SMS provider are configured; `SELF_REGISTRATION=off` turns it off.
+gateway from the console's own server. Registration is **off by default** — administrators invite their
+own staff, which is one form and one code. Set `SELF_REGISTRATION=on` to open it;
+it then runs whenever both an email and an SMS provider are configured.
 
 ## Authentication and evidence
 
@@ -427,7 +430,10 @@ A pilot can run on this instead of OIDC. In that case it refuses to start if
 `AUTH_JWT_SECRET` is still set, because that secret can mint a token for any
 role.
 
-**Phone PIN.** The field app asks for a 4-digit PIN when it opens and when it
+**Phone PIN.** Optional. After setup the welcome screen offers **Add a PIN**, and
+**Account → App PIN** adds or changes one at any time; a phone without one opens
+straight to the app and relies on the handset's own screen lock plus remote
+sign-out. Once set, the app asks for the 4-digit PIN when it opens and when it
 returns after 5 minutes away. The PIN is stored salted and hashed in the
 phone's secure storage. Forgetting it, or getting it wrong 5 times, signs the
 person out but keeps the phone's key and any unsent inspections, so a new

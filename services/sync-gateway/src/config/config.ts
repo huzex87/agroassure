@@ -117,9 +117,10 @@ export interface AppConfig {
   emailSignIn: EmailSignInConfig | null;
   /**
    * Whether people may ask to join on their own. Asking gives nothing: an
-   * administrator still approves every request and chooses the role. On unless
-   * SELF_REGISTRATION=off, and in practice only open when both an email and an
-   * SMS provider are configured, since both contacts must be proven.
+   * administrator still approves every request and chooses the role. Off
+   * unless SELF_REGISTRATION=on, because the usual client already knows its
+   * staff and invites them; and even when on, only open when both an email and
+   * an SMS provider are configured, since both contacts must be proven.
    */
   selfRegistration: boolean;
   /** The deployment owner, made a national administrator on start. */
@@ -164,7 +165,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     devSignIn: loadDevSignIn(env, oidc !== null),
     invites: loadInvites(env, oidc === null ? (authJwtSecret ?? null) : null),
     emailSignIn,
-    selfRegistration: env.SELF_REGISTRATION !== "off",
+    selfRegistration: env.SELF_REGISTRATION === "on",
     firstAdmin: loadFirstAdmin(env),
     evidenceStore,
     evidenceS3: evidenceStore === "s3" ? loadS3(env) : null,
