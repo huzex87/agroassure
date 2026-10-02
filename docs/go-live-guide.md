@@ -204,6 +204,12 @@ Vercel's serverless platform can't do. The `sync-gateway` project on Vercel
 fails on every change and should be switched off. **Keep the `console`
 project**, which is the regulator website.
 
+> **Already done for this repository.** The `sync-gateway` project's *Ignored
+> Build Step* is set to `exit 0` (Option B below), so Vercel skips its builds.
+> Check that the *Vercel – sync-gateway* check on your next pull request shows
+> *Skipped* or is gone. If it still fails, use Option A. Nothing here touches
+> the `console` project.
+
 **Option A: disconnect it (recommended)**
 1. Go to **vercel.com** and open the **sync-gateway** project. Make sure it is
    *not* `console`.
