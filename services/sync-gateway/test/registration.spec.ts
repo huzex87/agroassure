@@ -32,9 +32,10 @@ function service(config: Partial<AppConfig>, pg: Partial<PgService> = {}) {
 }
 
 describe("whether registration is open", () => {
-  it("is on unless switched off", () => {
-    expect(loadConfig(DEV).selfRegistration).toBe(true);
+  it("is off unless switched on", () => {
+    expect(loadConfig(DEV).selfRegistration).toBe(false);
     expect(loadConfig({ ...DEV, SELF_REGISTRATION: "off" }).selfRegistration).toBe(false);
+    expect(loadConfig({ ...DEV, SELF_REGISTRATION: "on" }).selfRegistration).toBe(true);
   });
 
   it("needs both an email and an SMS provider, since both contacts must be proven", () => {

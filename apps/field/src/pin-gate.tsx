@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { identity } from "./signer";
 import { inspectorId } from "./session";
-import { checkPin, hasPin, RELOCK_AFTER_MS, setPin, signOutKeepingWork } from "./pin";
+import { checkPin, hasPin, RELOCK_AFTER_MS, signOutKeepingWork } from "./pin";
 import { PinPad } from "./pin-pad";
 import { useLanguage } from "./i18n";
 import { colors, styles } from "./theme";
@@ -16,15 +16,14 @@ import { colors, styles } from "./theme";
 // unlocked — the screen underneath never unmounts. It appears when the app
 // starts, and when it returns to the foreground after five minutes away.
 //
-// A phone set up before PINs existed is asked to choose one the first time it
-// opens; nothing else about it changes.
+// A PIN is optional. A phone without one opens straight to the app; the PIN is
+// offered after setup and can be added from Account at any time.
 
 type Gate =
   | { kind: "open" }
   | { kind: "locked"; error: string | null }
   | { kind: "forgot" }
-  | { kind: "lockedOut" }
-  | { kind: "choose"; first: string | null; error: string | null };
+  | { kind: "lockedOut" };
 
 async function signedIn(): Promise<boolean> {
   const [id, who] = await Promise.all([identity(), inspectorId()]);
@@ -39,7 +38,7 @@ export function PinGate() {
   useEffect(() => {
     (async () => {
       if (!(await signedIn())) return;
-      setGate((await hasPin()) ? { kind: "locked", error: null } : { kind: "choose", first: null, error: null });
+      if (await hasPin()) setGate({ kind: "locked", error: null });
     })().catch(() => undefined);
 
     const sub = AppState.addEventListener("change", (state) => {
@@ -88,21 +87,6 @@ export function PinGate() {
             <Text style={[styles.actionText, { textAlign: "center" }]}>{t("forgotPin")}</Text>
           </Pressable>
         }
-      />
-    );
-  } else if (gate.kind === "choose") {
-    body = (
-      <PinPad
-        title={gate.first === null ? t("choosePin") : t("confirmPin")}
-        subtitle={gate.first === null ? t("choosePinBody") : null}
-        error={gate.error}
-        deleteLabel={t("deletePin")}
-        onComplete={async (pin) => {
-          if (gate.first === null) return setGate({ kind: "choose", first: pin, error: null });
-          if (pin !== gate.first) return setGate({ kind: "choose", first: null, error: t("pinMismatch") });
-          await setPin(pin);
-          setGate({ kind: "open" });
-        }}
       />
     );
   } else {

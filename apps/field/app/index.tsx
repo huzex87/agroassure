@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { applyBootstrap, type AssignedFacility } from "@agroassure/field-core";
 import { getStore } from "../src/db";
-import { inspectorId, inspectionSession } from "../src/session";
+import { inspectorId, inspectorName, inspectionSession } from "../src/session";
 import { identity } from "../src/signer";
 import { currentPosition } from "../src/capture";
 import { refreshQueued, syncNow, useAutoSync, type SyncStatus } from "../src/auto-sync";
@@ -33,6 +33,7 @@ export default function Today() {
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
 
   const load = useCallback(() => {
     const store = getStore();
@@ -50,6 +51,7 @@ export default function Today() {
   useFocusEffect(
     useCallback(() => {
       load();
+      inspectorName().then(setName).catch(() => undefined);
       // A phone that has not been set up has nothing to show here. Go straight
       // to the one thing it can do: take an invite code.
       Promise.all([identity(), inspectorId()]).then(([id, who]) => {
@@ -108,10 +110,22 @@ export default function Today() {
     }
   }
 
+  // The day at a glance: who this is for, and how far through it they are. The
+  // first thing an inspector wants on opening the app is "what is left", and a
+  // list of cards makes them count.
+  const total = rows.length;
+  const finished = rows.filter((r) => r.submitted).length;
+  const hour = new Date().getHours();
+  const greeting = t(hour < 12 ? "greetMorning" : hour < 17 ? "greetAfternoon" : "greetEvening");
+  const first = name?.trim().split(/\s+/)[0] ?? "";
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
       <View style={styles.rowBetween}>
-        <Text style={[styles.h1, { flexShrink: 1 }]}>{t("todaysVisits")}</Text>
+        <View style={{ flexShrink: 1, gap: 2 }}>
+          <Text style={styles.overline}>{first ? `${greeting}, ${first}` : greeting}</Text>
+          <Text style={[styles.h1, { flexShrink: 1 }]}>{t("todaysVisits")}</Text>
+        </View>
         <Pressable
           onPress={() => router.push("/account")}
           style={styles.pill}
@@ -121,6 +135,23 @@ export default function Today() {
           <Text style={styles.pillText}>{t("account")}</Text>
         </Pressable>
       </View>
+
+      {total > 0 ? (
+        <View style={[styles.card, { gap: 10 }]}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.h2}>
+              {total} {t(total === 1 ? "visitsOne" : "visitsMany")}
+            </Text>
+            <Text style={styles.muted}>
+              {finished} {t("visitsDone")}
+            </Text>
+          </View>
+          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: finished }}>
+            <View style={[styles.progressFill, { width: `${(finished / total) * 100}%` }]} />
+          </View>
+          {finished === total ? <Text style={[styles.muted, { color: colors.good }]}>{t("allVisitsDone")}</Text> : null}
+        </View>
+      ) : null}
 
       {sync.phase === "signedOut" ? (
         <Pressable

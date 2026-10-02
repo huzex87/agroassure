@@ -34,17 +34,33 @@ export const metadata: Metadata = {
     "Compliance and inspection oversight for the fertilizer and agro-input value chain.",
 };
 
+/**
+ * The mark: a leaf with a check through it. Agriculture and assurance in one
+ * glyph, drawn in the product blue on a rounded tile so it reads at 32px and
+ * still reads in a browser tab.
+ */
+function Mark({ className }: { className: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`grid ${className} shrink-0 place-items-center rounded-[10px] bg-primary text-white shadow-raised ring-1 ring-inset ring-white/20`}
+    >
+      <svg viewBox="0 0 20 20" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16.5 3.5c-6.5 0-11 3-11 8 0 1.6.5 3 1.5 4 5 0 9.5-3.5 9.5-12Z" />
+        <path d="M3.5 17c1.5-3 3.5-5.5 6-7.5" />
+        <path d="m9.2 11.4 1.6 1.6 3-3.4" />
+      </svg>
+    </span>
+  );
+}
+
 function Wordmark({ size = "sm" }: { size?: "sm" | "md" }) {
-  const box = size === "md" ? "h-9 w-9 text-base" : "h-8 w-8 text-sm";
   return (
     <>
-      <span
-        aria-hidden
-        className={`grid ${box} shrink-0 place-items-center rounded-[10px] bg-primary font-bold text-white shadow-raised`}
-      >
-        A
+      <Mark className={size === "md" ? "size-10" : "size-8"} />
+      <span className={`${size === "md" ? "text-lg" : "text-[0.9375rem]"} font-semibold tracking-tight text-ink`}>
+        AgroAssure
       </span>
-      <span className="text-[0.9375rem] font-semibold tracking-tight text-ink">AgroAssure</span>
     </>
   );
 }
@@ -59,13 +75,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (!signedIn) {
     return (
       <html lang="en" className={fonts}>
-        <body className="grid min-h-screen place-items-center px-5 py-10">
-          <div className="w-full max-w-md">
-            <div className="mb-7 flex items-center justify-center gap-2.5">
-              <Wordmark size="md" />
+        <body className="survey-grid grid min-h-screen place-items-center px-5 py-10">
+          <div className="page-enter w-full max-w-[26rem]">
+            <div className="mb-8 flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center gap-2.5">
+                <Wordmark size="md" />
+              </div>
+              <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
+                Inspections, findings and certificates for fertilizer and agro-input businesses.
+              </p>
             </div>
             {children}
-            <p className="mx-auto mt-6 max-w-sm text-center text-xs leading-relaxed text-ink-faint">
+            <p className="mx-auto mt-8 max-w-sm text-center text-xs leading-relaxed text-ink-faint">
               Records and renders compliance certificates on behalf of the mandated
               regulator. It does not issue them.
             </p>
@@ -157,7 +178,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </button>
               </form>
 
-              <p className="mt-5 px-3 text-xs leading-relaxed text-ink-faint">
+              <p className="mt-4 border-t border-line px-3 pt-4 text-[0.6875rem] leading-relaxed text-ink-faint">
                 Records and renders compliance certificates on behalf of the mandated
                 regulator. It does not issue them.
               </p>
@@ -169,7 +190,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <TopNav roles={roles} />
             </div>
             <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 md:px-8 md:py-8">
-              <div className="mx-auto flex w-full max-w-[80rem] flex-col gap-7">{children}</div>
+              <div className="page-enter mx-auto flex w-full max-w-[80rem] flex-col gap-7">{children}</div>
             </main>
           </div>
         </div>

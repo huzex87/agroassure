@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowUpRight, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "./card";
+import { Spark } from "./spark";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
 
 // The pieces this product needs that the shadcn registry does not ship: a page
@@ -21,18 +22,24 @@ export function PageHeader({
   title,
   summary,
   actions,
+  eyebrow,
 }: {
   title: string;
   summary?: ReactNode;
   actions?: ReactNode;
+  /** A line above the title: where this sits, or what day it is. */
+  eyebrow?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {summary && <div className="text-muted-foreground mt-1.5 text-sm">{summary}</div>}
+        {eyebrow && (
+          <p className="text-primary-700 mb-1.5 text-xs font-semibold tracking-[0.08em] uppercase">{eyebrow}</p>
+        )}
+        <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{title}</h1>
+        {summary && <div className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed">{summary}</div>}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }
@@ -58,12 +65,31 @@ const TONE_RULE: Record<Tone, string> = {
   destructive: "bg-destructive",
 };
 
+const TONE_CHIP: Record<Tone, string> = {
+  neutral: "bg-primary-50 text-primary-700 ring-primary-100",
+  primary: "bg-primary-50 text-primary-700 ring-primary-100",
+  success: "bg-success-muted text-success ring-success-border",
+  warning: "bg-warning-muted text-warning ring-warning-border",
+  destructive: "bg-destructive-muted text-destructive ring-destructive-border",
+};
+
+const TONE_STROKE: Record<Tone, string> = {
+  neutral: "var(--primary)",
+  primary: "var(--primary)",
+  success: "var(--success)",
+  warning: "var(--warning)",
+  destructive: "var(--destructive)",
+};
+
 /**
  * A single number and what it means.
  *
  * The label sits above the figure rather than below it: a reader scanning a row
  * of these needs to know what they are looking at before they read the value,
- * and a caption underneath makes them read it twice.
+ * and a caption underneath makes them read it twice. The chip beside the label
+ * takes the tone, so the figure that needs attention is found by colour before
+ * a single word is read, and the word is still there for anyone who cannot see
+ * the colour.
  */
 export function Stat({
   label,
@@ -72,6 +98,7 @@ export function Stat({
   tone = "neutral",
   href,
   icon: Icon,
+  trend,
 }: {
   label: string;
   value: ReactNode;
@@ -80,36 +107,40 @@ export function Stat({
   /** When the figure is worth drilling into, the whole tile becomes the target. */
   href?: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /** Recent readings, oldest first, drawn as a small line under the figure. */
+  trend?: number[];
 }) {
   const body = (
     <>
-      {/* A hairline of the tone along the top edge. It is the cheapest way to
-          make a row of tiles scannable: the eye finds the figure that needs
-          attention before it has read a single label. */}
-      {tone !== "neutral" && (
-        <span
-          aria-hidden
-          className={cn("absolute inset-x-0 top-0 h-[3px] rounded-t-card", TONE_RULE[tone])}
-        />
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-muted-foreground text-[0.8125rem] font-medium">{label}</p>
+      {/* The label row holds two lines whether or not the label needs them, so
+          the figures in a row of tiles sit on the same line. */}
+      <div className="flex min-h-9 items-start gap-2.5">
         {Icon ? (
-          <Icon className="text-muted-foreground/60 size-4 shrink-0" />
-        ) : href ? (
-          <ArrowUpRight className="text-border size-4 shrink-0 transition-colors group-hover:text-primary" />
+          <span
+            aria-hidden
+            className={cn("grid size-8 shrink-0 place-items-center rounded-[10px] ring-1 ring-inset", TONE_CHIP[tone])}
+          >
+            <Icon className="size-4" />
+          </span>
+        ) : null}
+        <p className="text-muted-foreground min-w-0 flex-1 self-center text-[0.8125rem] leading-snug font-medium">{label}</p>
+        {href ? (
+          <ArrowUpRight className="text-border group-hover:text-primary size-4 shrink-0 transition-colors" aria-hidden />
         ) : null}
       </div>
-      <p className={cn("mt-2.5 text-[2rem] leading-none font-semibold tracking-tight tabular", TONE_TEXT[tone])}>
-        {value}
-      </p>
-      {hint && <p className="text-muted-foreground mt-2.5 text-xs leading-relaxed">{hint}</p>}
+      <div className="mt-3 flex h-9 items-end justify-between gap-3">
+        <p className={cn("text-[1.875rem] leading-none font-semibold tracking-tight tabular", TONE_TEXT[tone])}>
+          {value}
+        </p>
+        {trend && trend.length > 1 ? <Spark values={trend} stroke={TONE_STROKE[tone]} className="mb-0.5 -mr-1" /> : null}
+      </div>
+      {hint && <p className="text-muted-foreground mt-3 text-xs leading-relaxed">{hint}</p>}
     </>
   );
 
   const shell = cn(
-    "group relative overflow-hidden px-4 py-4 transition-shadow",
-    href && "hover:shadow-lifted",
+    "group relative overflow-hidden px-4 py-4 transition-all",
+    href && "hover:-translate-y-px hover:shadow-lifted",
   );
 
   // Not an <a> wrapping a block for style's sake: these tiles genuinely lead

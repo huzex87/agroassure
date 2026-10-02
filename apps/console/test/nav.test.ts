@@ -25,6 +25,14 @@ describe("isActive", () => {
     }
   });
 
+  it("keeps Settings lit on the pages that live behind it", () => {
+    const settings = NAV_ITEMS.find((i) => i.href === "/settings")!;
+    for (const page of ["/settings", "/team", "/instruments", "/instruments/abc", "/executive"]) {
+      expect(isActive(page, settings.href, settings.also)).toBe(true);
+    }
+    expect(isActive("/facilities", settings.href, settings.also)).toBe(false);
+  });
+
   it("groups every destination exactly once", () => {
     const hrefs = NAV.flatMap((group) => group.items.map((i) => i.href));
     expect(new Set(hrefs).size).toBe(hrefs.length);
@@ -35,30 +43,42 @@ describe("isActive", () => {
 describe("the menu for each role", () => {
   const hrefs = (roles: string[] | null) => navFor(roles).flatMap((g) => g.items.map((i) => i.href));
 
-  it("gives a supervisor planning and the record, not administration", () => {
-    const menu = hrefs(["desk_supervisor"]);
-    expect(menu).toContain("/plan");
-    expect(menu).toContain("/facilities");
-    expect(menu).not.toContain("/team");
-    expect(menu).not.toContain("/executive");
+  it("is five everyday links and one Settings, however many roles", () => {
+    expect(hrefs(["state_admin"])).toEqual(["/", "/plan", "/inspections", "/findings", "/facilities", "/settings"]);
   });
 
-  it("gives an administrator the team page", () => {
-    expect(hrefs(["state_admin"])).toEqual(expect.arrayContaining(["/", "/plan", "/executive", "/team"]));
+  it("gives a supervisor visits and the record", () => {
+    const menu = hrefs(["desk_supervisor"]);
+    expect(menu).toEqual(expect.arrayContaining(["/plan", "/inspections", "/facilities", "/settings"]));
   });
 
   it("does not offer an auditor planning, which it could not do", () => {
-    const menu = hrefs(["auditor"]);
-    expect(menu).not.toContain("/plan");
-    expect(menu).toContain("/team");
+    expect(hrefs(["auditor"])).not.toContain("/plan");
+  });
+
+  it("no longer lists the occasional pages in the menu itself", () => {
+    const menu = hrefs(["state_admin"]);
+    for (const href of ["/team", "/instruments", "/executive"]) expect(menu).not.toContain(href);
   });
 
   it("drops a heading left with nothing under it", () => {
     const headings = navFor(["inspector"]).map((g) => g.heading);
-    expect(headings).toEqual(["The record"]);
+    expect(headings).toEqual(["Your work", "Manage"]);
+    expect(hrefs(["inspector"])).not.toContain("/plan");
   });
 
   it("shows everything when the roles could not be read, rather than nothing", () => {
     expect(hrefs(null)).toEqual(NAV_ITEMS.map((i) => i.href));
+  });
+});
+
+describe("who sees what on the Settings page", () => {
+  it("shows Team to administrators and auditors only, and Checklists to everyone", async () => {
+    const { canSee, TEAM_ROLES } = await import("../lib/roles");
+    expect(canSee(["state_admin"], TEAM_ROLES)).toBe(true);
+    expect(canSee(["desk_supervisor"], TEAM_ROLES)).toBe(false);
+    expect(canSee(["desk_supervisor"], undefined)).toBe(true);
+    // The roles could not be read: show it all rather than an empty page.
+    expect(canSee(null, TEAM_ROLES)).toBe(true);
   });
 });

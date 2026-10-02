@@ -73,10 +73,6 @@ function renderRegister() {
   return renderScreen(<Register />);
 }
 
-async function typePin(pin: string) {
-  for (const digit of pin) await press(screen.getByLabelText(digit));
-}
-
 beforeEach(async () => {
   jest.useRealTimers();
   mockRouter.replace.mockClear();
@@ -180,16 +176,15 @@ describe("asking to join from the phone", () => {
     expect(await screen.findByText("Waiting for approval")).toBeTruthy();
 
     await press(screen.getByText("Check now"));
-    expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
+    // Approval brings the phone straight in: a welcome, and no PIN demanded.
+    expect(await screen.findByText("Welcome, Musa")).toBeTruthy();
+    expect(screen.queryByText("Choose a 4-digit PIN")).toBeNull();
     expect(await SecureStore.getItemAsync("agroassure.session.token")).toBe("d.e.f");
     expect(await SecureStore.getItemAsync("agroassure.device.id")).toBe(approved.session.deviceId);
     expect(await SecureStore.getItemAsync("agroassure.user.id")).toBe(approved.session.userId);
     expect(await SecureStore.getItemAsync("agroassure.registration")).toBeNull();
+    expect(await SecureStore.getItemAsync("agroassure.pin.hash")).toBeNull();
 
-    await typePin("2580");
-    expect(await screen.findByText("Enter the same PIN again")).toBeTruthy();
-    await typePin("2580");
-    expect(await screen.findByText("Welcome, Musa")).toBeTruthy();
     await press(screen.getByText("See today's visits"));
     expect(mockRouter.replace).toHaveBeenCalledWith("/");
   });
@@ -251,7 +246,8 @@ describe("asking to join from the phone", () => {
 });
 
 describe("the way in", () => {
-  it("offers registration beside the invite code", async () => {
+  it("offers registration beside the invite code when the server has it on", async () => {
+    gateway({ "/v1/register/options": [[200, { available: true, jurisdictions: [KATSINA] }]] });
     const Activate = require("../app/activate").default;
     renderScreen(<Activate />);
     await press(await screen.findByText("Register instead"));

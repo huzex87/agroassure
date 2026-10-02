@@ -12,6 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
+  Inject,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { DeviceAuthGuard, getPrincipal } from "../common/device-auth.guard";
@@ -28,11 +29,24 @@ import { CertificateRenderService, type CertificateFields } from "../certificate
 import { AdminService } from "./admin.service";
 import { AuditService } from "./audit.service";
 import { SetupService } from "./setup.service";
+import { InviteDelivery } from "../invitations/delivery";
+import { CONFIG, type AppConfig } from "../config/config";
+import { staffSignInUrl, staffWelcomeEmail } from "./staff-welcome";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "../common/validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
 // the role checks are evaluated here on the server from the verified principal;
 // the console enforces the same rules only so the UI behaves sensibly.
+
+/** A role as a sentence names it, for the welcome email. */
+const ROLE_WORDS: Record<string, string> = {
+  inspector: "an inspector",
+  desk_supervisor: "a desk supervisor",
+  authorising_officer: "an authorising officer",
+  state_admin: "a state administrator",
+  national_admin: "a national administrator",
+  auditor: "an auditor",
+};
 
 const FACILITY_TYPES = ["agro_dealer", "blending_plant", "manufacturing", "importer"] as const;
 const DECISION_TYPES = [
@@ -448,7 +462,11 @@ function toFields(row: Record<string, unknown>): CertificateFields {
 @Controller("v1/users")
 @UseGuards(DeviceAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly delivery: InviteDelivery,
+    @Inject(CONFIG) private readonly config: AppConfig,
+  ) {}
 
   @Get()
   @Roles("state_admin", "national_admin", "auditor")
@@ -470,7 +488,25 @@ export class UsersController {
       roles,
       jurisdictionId: body.jurisdictionId ? uuid("jurisdictionId", body.jurisdictionId) : undefined,
     });
-    return { id };
+
+    // Tell them they are in, with a link that gets them to the sign-in page.
+    // A failed or skipped send never undoes adding them; the console says which.
+    const email = optionalString("email", body.email, 200);
+    const console_ = this.config.emailSignIn?.consoleUrl;
+    const welcome =
+      email && console_
+        ? (
+            await this.delivery.sendEmailContent(
+              email,
+              staffWelcomeEmail(
+                requiredString("fullName", body.fullName, 200),
+                roles.map((r) => ROLE_WORDS[r] ?? r).join(" and "),
+                staffSignInUrl(console_, email),
+              ),
+            )
+          ).status
+        : "skipped";
+    return { id, welcome };
   }
 
   @Post(":id/roles")

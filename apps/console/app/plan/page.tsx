@@ -48,7 +48,7 @@ export default async function PlanPage() {
   return (
     <>
       <PageHeader
-        title="Plan visits"
+        title="Visits"
         summary={
           <>
             {planned.length} {planned.length === 1 ? "visit" : "visits"} planned

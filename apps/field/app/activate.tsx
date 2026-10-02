@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { forgetIdentity, generateKeypair, identity, setDeviceId } from "../src/signer";
 import { inspectorId, inspectorName, setInspectorId, setInspectorName } from "../src/session";
-import { activate, ApiError } from "../src/transport";
+import { activate, ApiError, registerOptions } from "../src/transport";
 import { requestSync } from "../src/auto-sync";
 import { FinishSetup, Welcome } from "../src/finish-setup";
 import { loadTicket } from "../src/registration";
@@ -44,7 +44,7 @@ type Step = "checking" | "enter" | "finish" | "alreadySetUp";
 export default function Activate() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const params = useLocalSearchParams<{ code?: string }>();
 
   const [step, setStep] = useState<Step>("checking");
@@ -53,6 +53,16 @@ export default function Activate() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const input = useRef<TextInput>(null);
+  // Asking to join is only offered when this server has it switched on. The
+  // normal way in is the code, and a screen that offers two ways in asks the
+  // person to choose before they know the difference.
+  const [canRegister, setCanRegister] = useState(false);
+
+  useEffect(() => {
+    registerOptions()
+      .then((o) => setCanRegister(o.available))
+      .catch(() => setCanRegister(false));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -143,6 +153,15 @@ export default function Activate() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        <Pressable
+          onPress={() => setLanguage(language === "en" ? "ha" : "en")}
+          style={{ alignSelf: "flex-end", padding: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("language")}
+        >
+          <Text style={styles.actionText}>{t("switchLanguage")}</Text>
+        </Pressable>
+
         <View style={{ alignItems: "center", gap: 10 }}>
           <View style={styles.brandMark}>
             <Text style={styles.brandMarkText}>A</Text>
@@ -202,18 +221,24 @@ export default function Activate() {
           </Pressable>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-          <Text style={styles.faint}>{t("newHere")}</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-        </View>
-        <Pressable
-          style={[styles.button, styles.buttonQuiet]}
-          onPress={() => router.push("/register")}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.buttonText, styles.buttonQuietText]}>{t("registerInstead")}</Text>
-        </Pressable>
+        <Text style={[styles.faint, { textAlign: "center" }]}>{t("noCode")}</Text>
+
+        {canRegister ? (
+          <>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+              <Text style={styles.faint}>{t("newHere")}</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+            </View>
+            <Pressable
+              style={[styles.button, styles.buttonQuiet]}
+              onPress={() => router.push("/register")}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.buttonText, styles.buttonQuietText]}>{t("registerInstead")}</Text>
+            </Pressable>
+          </>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -162,7 +162,7 @@ export function AddColleagueForm() {
       {state.status === "error" ? <ErrorNote message={state.message} /> : null}
       {state.status === "done" ? (
         <p role="status" className="rounded-control border border-success-border bg-success-muted px-3 py-2 text-sm text-success">
-          Added. They can sign in to this console with that email address.
+          {state.message ?? "Added. They can sign in to this console with that email address."}
         </p>
       ) : null}
 

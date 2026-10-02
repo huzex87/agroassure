@@ -87,7 +87,7 @@ export function ComplianceTrend({
 
   return (
     <div className="flex flex-col gap-3">
-      <ChartContainer config={trendConfig} className="aspect-[16/7] w-full">
+      <ChartContainer config={trendConfig} className="aspect-auto h-60 w-full">
         <AreaChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
           <defs>
             <linearGradient id="fill-rating" x1="0" y1="0" x2="0" y2="1">
@@ -308,7 +308,7 @@ export function FindingsBySection({
     <ChartContainer
       config={sectionConfig}
       className="w-full"
-      style={{ aspectRatio: "auto", height: `${Math.max(140, rows.length * 42)}px` }}
+      style={{ aspectRatio: "auto", height: `${Math.max(240, rows.length * 56)}px` }}
     >
       <BarChart data={rows} layout="vertical" margin={{ left: 4, right: 28, top: 4, bottom: 4 }}>
         <CartesianGrid horizontal={false} strokeDasharray="3 4" />
@@ -325,8 +325,8 @@ export function FindingsBySection({
         <Bar
           dataKey="findings"
           fill="var(--color-findings)"
-          radius={[0, 4, 4, 0]}
-          maxBarSize={18}
+          radius={[0, 6, 6, 0]}
+          maxBarSize={22}
           isAnimationActive={false}
         >
           <LabelList

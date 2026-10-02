@@ -149,7 +149,7 @@ async function signInWithToken(formData: FormData) {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string; demo?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; demo?: string; email?: string }>;
 }) {
   const settings = oidcSettings();
   const [methods, users, registration] = await Promise.all([
@@ -166,7 +166,7 @@ export default async function SignInPage({
       </a>
     </p>
   ) : null;
-  const { error, sent, demo } = await searchParams;
+  const { error, sent, demo, email: prefill } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
       {error}
@@ -204,9 +204,15 @@ export default async function SignInPage({
 
     return (
       <div className="w-full">
-        <Panel title="Sign in" subtitle="We'll email you a link — no password needed.">
+        <Panel className="shadow-lifted">
+          <div className="mb-6 pt-1">
+            <h1 className="text-xl font-semibold tracking-tight text-ink">Welcome back</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+              Enter your work email and we'll send you a sign-in link. No password to remember.
+            </p>
+          </div>
           {notice}
-          <form action={sendSignInLink} className="space-y-3">
+          <form action={sendSignInLink} className="space-y-4">
             <label className="block text-sm">
               <span className="font-medium text-ink">Work email</span>
               <input
@@ -215,6 +221,7 @@ export default async function SignInPage({
                 required
                 autoComplete="email"
                 autoFocus
+                defaultValue={prefill}
                 placeholder="you@agency.gov.ng"
                 className="field mt-1.5 w-full"
               />

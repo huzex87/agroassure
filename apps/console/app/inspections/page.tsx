@@ -110,8 +110,8 @@ export default async function InspectionsPage({
                   {i.lga ? ` · ${i.lga}` : ""}
                 </p>
               </Cell>
-              <Cell className="text-ink-muted">{i.inspector}</Cell>
-              <Cell className="text-ink-muted">{formatDate(i.submitted_at)}</Cell>
+              <Cell className="text-ink-muted whitespace-nowrap">{i.inspector}</Cell>
+              <Cell className="text-ink-muted whitespace-nowrap">{formatDate(i.submitted_at)}</Cell>
               <Cell>
                 <Rating band={i.rating_band} percent={i.rating_percent} />
               </Cell>
