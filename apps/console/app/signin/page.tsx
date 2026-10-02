@@ -149,7 +149,7 @@ async function signInWithToken(formData: FormData) {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string; demo?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; demo?: string; email?: string }>;
 }) {
   const settings = oidcSettings();
   const [methods, users, registration] = await Promise.all([
@@ -166,7 +166,7 @@ export default async function SignInPage({
       </a>
     </p>
   ) : null;
-  const { error, sent, demo } = await searchParams;
+  const { error, sent, demo, email: prefill } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
       {error}
@@ -215,6 +215,7 @@ export default async function SignInPage({
                 required
                 autoComplete="email"
                 autoFocus
+                defaultValue={prefill}
                 placeholder="you@agency.gov.ng"
                 className="field mt-1.5 w-full"
               />

@@ -3,54 +3,51 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { OVERSIGHT, PLANNERS } from "../lib/roles";
 
 // Where you are, and what kind of thing you are looking at.
 //
-// The links are grouped because they are not one list: four of them are the
-// record, two are how the programme is measured, and one is administration. A
-// flat list of seven made a supervisor read all seven every time to find the
-// two they use. The icons are here to make a familiar destination findable
-// without reading — they carry no meaning the label does not, and every one is
-// aria-hidden.
+// Five things people do every day, and one place for everything else. The menu
+// used to list nine destinations; a supervisor read all nine every time to find
+// the three they use. Checklists, the team and the programme overview are
+// occasional jobs, so they live behind Settings, which still lights up while
+// you are on any of them. The icons are here to make a familiar destination
+// findable without reading — they carry no meaning the label does not, and
+// every one is aria-hidden.
 
 // The icon is the component, not an element. Holding <IconGrid /> here would
 // build React elements at module load, which is work done before anyone asks
 // for it and makes this module impossible to import without a JSX runtime.
-type NavItem = { href: string; label: string; Icon: () => ReactNode; roles?: string[] };
-
-// Who each destination is for. The roles are the gateway's own: a link is
-// shown only to someone the page will actually answer, so nobody lands on a
-// refusal from the menu. Hiding a link decides nothing — the gateway still
-// checks every request — it just stops the menu offering what will not open.
-const PLANNERS = ["desk_supervisor", "authorising_officer", "state_admin"];
-const OVERSIGHT = ["desk_supervisor", "authorising_officer", "state_admin", "national_admin", "auditor"];
+type NavItem = {
+  href: string;
+  label: string;
+  Icon: () => ReactNode;
+  roles?: string[];
+  /** Pages that belong to this destination without being in the menu. */
+  also?: string[];
+};
 
 export const NAV: Array<{ heading: string; items: NavItem[] }> = [
   {
-    heading: "Oversight",
+    heading: "Your work",
     items: [
-      { href: "/", label: "Dashboard", Icon: IconGrid, roles: OVERSIGHT },
-      { href: "/plan", label: "Plan visits", Icon: IconCalendar, roles: PLANNERS },
-      {
-        href: "/executive",
-        label: "Programme overview",
-        Icon: IconTrend,
-        roles: ["state_admin", "national_admin", "auditor", "authorising_officer"],
-      },
-    ],
-  },
-  {
-    heading: "The record",
-    items: [
-      { href: "/facilities", label: "Facilities", Icon: IconBuilding },
+      { href: "/", label: "Home", Icon: IconGrid, roles: OVERSIGHT },
+      { href: "/plan", label: "Visits", Icon: IconCalendar, roles: PLANNERS },
       { href: "/inspections", label: "Inspections", Icon: IconClipboard },
       { href: "/findings", label: "Issues to fix", Icon: IconFlag },
-      { href: "/instruments", label: "Checklists", Icon: IconLayers },
+      { href: "/facilities", label: "Facilities", Icon: IconBuilding },
     ],
   },
   {
-    heading: "Administration",
-    items: [{ href: "/team", label: "Team", Icon: IconUsers, roles: ["state_admin", "national_admin", "auditor"] }],
+    heading: "Manage",
+    items: [
+      {
+        href: "/settings",
+        label: "Settings",
+        Icon: IconSettings,
+        also: ["/team", "/instruments", "/executive"],
+      },
+    ],
   },
 ];
 
@@ -75,8 +72,9 @@ export const NAV_ITEMS = NAV.flatMap((group) => group.items);
  * page. Every other section owns its subtree: an inspection detail page should
  * still light up "Inspections".
  */
-export function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+export function isActive(pathname: string, href: string, also: string[] = []): boolean {
+  if (href === "/") return pathname === "/";
+  return [href, ...also].some((h) => pathname === h || pathname.startsWith(`${h}/`));
 }
 
 export function SideNav({ roles = null }: { roles?: string[] | null }) {
@@ -91,7 +89,7 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
           </p>
           <ul className="flex flex-col gap-0.5">
             {group.items.map((item) => {
-              const active = isActive(pathname, item.href);
+              const active = isActive(pathname, item.href, item.also);
               return (
                 <li key={item.href}>
                   <Link
@@ -123,7 +121,7 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
  * a scrolling row of pills.
  *
  * ponytail: a row, not a drawer. A drawer needs open state, a focus trap, an
- * escape key and a scroll lock; seven links in a row need none of that and cost
+ * escape key and a scroll lock; six links in a row need none of that and cost
  * one tap rather than two. Build the drawer when the nav outgrows a single row.
  */
 export function TopNav({ roles = null }: { roles?: string[] | null }) {
@@ -135,7 +133,7 @@ export function TopNav({ roles = null }: { roles?: string[] | null }) {
       className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface px-4 py-2.5 md:hidden"
     >
       {navFor(roles).flatMap((g) => g.items).map((item) => {
-        const active = isActive(pathname, item.href);
+        const active = isActive(pathname, item.href, item.also);
         return (
           <Link
             key={item.href}
@@ -159,7 +157,7 @@ export function TopNav({ roles = null }: { roles?: string[] | null }) {
 }
 
 /* ---------------------------------------------------------------------------
-   Icons. Drawn here rather than pulled from a set: seven glyphs at one weight
+   Icons. Drawn here rather than pulled from a set: a handful of glyphs at one weight
    is less code than a dependency, and they can share the stroke the rest of the
    interface uses. */
 
@@ -189,16 +187,6 @@ function IconGrid() {
       <rect x="9" y="2" width="5" height="5" rx="1.2" />
       <rect x="2" y="9" width="5" height="5" rx="1.2" />
       <rect x="9" y="9" width="5" height="5" rx="1.2" />
-    </>,
-  );
-}
-
-function IconTrend() {
-  return glyph(
-    <>
-      <path d="M2 13V3" />
-      <path d="M2 13h12" />
-      <path d="M4.5 10.5 7 7.5l2.5 2 3-4.5" />
     </>,
   );
 }
@@ -233,16 +221,6 @@ function IconFlag() {
   );
 }
 
-function IconLayers() {
-  return glyph(
-    <>
-      <path d="M8 1.75 14 5 8 8.25 2 5l6-3.25Z" />
-      <path d="m2 8.5 6 3.25L14 8.5" />
-      <path d="m2 11.75 6 3.25 6-3.25" />
-    </>,
-  );
-}
-
 function IconCalendar() {
   return glyph(
     <>
@@ -252,13 +230,11 @@ function IconCalendar() {
   );
 }
 
-function IconUsers() {
+function IconSettings() {
   return glyph(
     <>
-      <circle cx="6" cy="5.5" r="2.5" />
-      <path d="M1.75 14a4.25 4.25 0 0 1 8.5 0" />
-      <path d="M11 3.4a2.5 2.5 0 0 1 0 4.2" />
-      <path d="M12 10.2a4.25 4.25 0 0 1 2.25 3.8" />
+      <circle cx="8" cy="8" r="2.25" />
+      <path d="M8 1.5v1.75M8 12.75v1.75M1.5 8h1.75M12.75 8h1.75M3.4 3.4l1.25 1.25M11.35 11.35l1.25 1.25M12.6 3.4l-1.25 1.25M4.65 11.35 3.4 12.6" />
     </>,
   );
 }

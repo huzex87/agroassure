@@ -23,7 +23,7 @@ Tick these off in order. Each links to the detailed steps below.
       ([step 4](#4-test-on-a-real-android-phone)). About 45 minutes.
 - [ ] **5. Load your real data**: your facilities spreadsheet
       (**Facilities → Add facility → Import**) and a checklist in force for
-      each facility type you inspect (**Checklists**).
+      each facility type you inspect (**Settings → Checklists**).
 - [ ] **6. Hand the testers the pilot testing guide**
       ([`pilot-testing-guide.md`](pilot-testing-guide.md)), with three things
       filled in: the console address, the app download link, and who to send
@@ -128,7 +128,7 @@ Optional settings:
    `"status":"ok"`.
 2. **Check the logs.** In Render, open **Logs**. There should be no line
    beginning `refusing to start` or `SMS_PROVIDER=... needs`.
-3. **Check the console.** Open **Team**. Under the **Send invite** button it
+3. **Check the console.** Open **Settings → Team**. Under the **Send invite** button it
    should now say **"We'll send them a code by SMS and email."**
 4. **Send yourself a test invite.** Use your own name and phone number. The
    dialog shows **SMS · Sent** and **Email · Sent**, and the text should
@@ -174,10 +174,12 @@ invites (step 1c).
    > must not remain as a back door. If the deploy fails, the Render log line
    > says exactly which setting to fix.
 4. Click **Save, rebuild, and deploy**.
-5. **Everyone else** is added by you (**Team → Add a colleague** for office
-   staff, **Team → Invite an inspector** for the field). Only people on the
+5. **Everyone else** is added by you (**Settings → Team → Add a colleague** for
+   office staff, **Settings → Team → Invite an inspector** for the field). A
+   colleague gets an email with a button straight to the sign-in page, with
+   their address already filled in. Only people on the
    Team page can sign in. If you later turn on `SELF_REGISTRATION`, people can
-   also ask to join from the sign-in page and you approve them on **Team**.
+   also ask to join from the sign-in page and you approve them on **Settings → Team**.
 
 **Check it:**
 1. In Render → **Logs**, look for a line like
@@ -187,7 +189,7 @@ invites (step 1c).
    no password needed"**. (**New here? Request access** appears underneath
    only if you turned on `SELF_REGISTRATION`.)
 3. Enter your `FIRST_ADMIN_EMAIL`, open the link that arrives, and click
-   **Continue**. You should land on the dashboard, with **Team** in the menu.
+   **Continue**. You should land on **Home**, with **Settings** in the menu (Team is inside it).
 
 > Why a **Continue** button? Email security scanners open every link as soon
 > as a message arrives. If the link signed you in straight away, the scanner
@@ -230,10 +232,10 @@ Sign in to the console as an administrator and make sure you have:
 - [ ] **A facility.** Use **Facilities → Add facility**, or import your
       spreadsheet. For the test, use a place you can stand in or near.
       Adding GPS coordinates is optional.
-- [ ] **A checklist in force for that facility type.** Open **Checklists** and
+- [ ] **A checklist in force for that facility type.** Open **Settings → Checklists** and
       publish one if the type shows no version *in force*. Without one, the
       phone cannot start the inspection.
-- [ ] **An inspector.** Use **Team → Invite an inspector** with the test phone
+- [ ] **An inspector.** Use **Settings → Team → Invite an inspector** with the test phone
       number. Keep the code handy.
 
 ### 4b. Build and install the app
@@ -298,12 +300,12 @@ the screen said.
        *Expected:* the app opens with the code already filled in. This only
        works if the code hasn't been used yet, so send a new code first if
        needed.
-6. [ ] In the console, open **Team**.
+6. [ ] In the console, open **Settings → Team**.
        *Expected:* the inspector shows **Phone active · Last seen just now**,
        and the phone appears under **Phones**.
 
 **Planned visit**
-7. [ ] In the console, open **Plan visits**. Choose the inspector, tick the
+7. [ ] In the console, open **Visits**. Choose the inspector, tick the
        facility, type a reason, and click **Plan visit**.
 8. [ ] On the phone, open **Account** → **Send now**, or close and reopen the
        app.
@@ -328,15 +330,25 @@ the screen said.
         *Expected:* within about a minute (or when you reopen the app) it
         changes to **"Everything is sent"**.
 
+**A new colleague**
+14a. [ ] In the console, **Settings → Team → Add a colleague**: your second
+        email address, role **Desk supervisor**.
+        *Expected:* "Added. We've emailed … a link to sign in." The email says
+        they've been added and has a **Sign in to AgroAssure** button.
+14b. [ ] Click the button.
+        *Expected:* the sign-in page opens with the email already filled in.
+        Click **Email me a sign-in link**, then the link in the second email.
+
 **Console**
 15. [ ] Open **Inspections**.
         *Expected:* the inspection appears with its score, the "No" answer,
         and the photo.
-16. [ ] Open the **Dashboard**.
-        *Expected:* **Review the first inspection** is ticked.
+16. [ ] Open **Home**.
+        *Expected:* the **Set up your state** list is gone, or its last step
+        (**Plan the first visits**) is ticked.
 
 **Lost phone**
-17. [ ] Open **Team → Phones** and click **Sign out this phone**, with the
+17. [ ] Open **Settings → Team → Phones** and click **Sign out this phone**, with the
         reason "test".
 18. [ ] On the phone, open **Account** → **Send now**.
         *Expected:* "This phone was signed out… Enter a new code".
@@ -362,7 +374,7 @@ instead** button and the console sign-in page has no **Request access** link.
         Leave the role as **Inspector (phone app)** and click **Approve**.
 23. [ ] On the phone, wait up to 15 seconds (or tap **Check now**).
         *Expected:* "Welcome, [first name]". No invite code and no PIN were
-        needed, and the phone appears under **Team → Phones**.
+        needed, and the phone appears under **Settings → Team → Phones**.
 24. [ ] On a computer, open the console's sign-in page and click **Request
         access**. Register with a different email, confirm both codes, and in
         the Team page approve it as **Desk supervisor**.
@@ -378,15 +390,15 @@ instead** button and the console sign-in page has no **Request access** link.
 | Invite dialog: SMS **Not delivered** | Sender ID not approved, no DND route, or empty wallet | The detail line says which. Fix it in Termii, then **Send new code** |
 | Invite dialog: SMS **Not sent · SMS sending is not set up** | `SMS_PROVIDER` not set | Step 1d |
 | SMS says **Sent** but never arrives | Number is on DND and the DND route isn't active | Ask Termii to enable DND (step 1b.3) |
-| Visit never appears on the phone | Visit planned for a different inspector, or the phone hasn't synced | Check **Plan visits → Upcoming**, then **Account → Send now** |
-| Tapping a visit gives an error about the checklist | No checklist in force for that facility type | Publish one under **Checklists** |
+| Visit never appears on the phone | Visit planned for a different inspector, or the phone hasn't synced | Check **Visits → Upcoming**, then **Account → Send now** |
+| Tapping a visit gives an error about the checklist | No checklist in force for that facility type | Publish one under **Settings → Checklists** |
 | "This code has expired" | Older than 3 days | **Send new code** |
 | Inspector forgot their PIN (only if they added one) | — | They tap **Forgot PIN?** → **Sign out and reset PIN**. Send them a new code; their unsent work is kept and sends once they're back in |
 | Console: "This sign-in link has expired or has already been used" | Link older than 15 minutes, or already used | Request a new one on the sign-in page |
 | No **Register instead** / **Request access** | Normal: registration is off unless `SELF_REGISTRATION=on` | If you want it, set `on` in step 1d. Both the SMS and email providers are needed, since both contacts are checked |
 | "Registration isn't open" | `SELF_REGISTRATION=on` but the email or SMS provider isn't set | Step 1d |
 | "Those codes have expired" while registering | More than 30 minutes since they were sent | Tap **Send new codes** |
-| "Too many requests to join from here" | The same phone or email asked more than 3 times in an hour | Wait an hour, or invite them from **Team** instead |
+| "Too many requests to join from here" | The same phone or email asked more than 3 times in an hour | Wait an hour, or invite them from **Settings → Team** instead |
 | "An account with this email already exists" | They're already on the team | They sign in instead; an administrator can send an invite code for a phone |
 | Approved as a supervisor on the phone: "Your role works from the website" | Only inspectors use the app | They sign in to the console with their email |
 

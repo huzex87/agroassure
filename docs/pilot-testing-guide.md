@@ -39,7 +39,7 @@ arrives.
 | You are | What arrives | What you do |
 |---|---|---|
 | An **inspector** | An **SMS** (and email) with a link and a code like `K7PM-4XQ2` | Install the app, tap the link in the message, tap **Continue**. Your visits appear by themselves. |
-| **Office staff** | An **email** saying you've been added | Open the console, type your work email, click the link that arrives. |
+| **Office staff** | An **email** saying you've been added, with a **Sign in** button | Click the button (your email is already filled in), press **Email me a sign-in link**, then click the link that arrives. |
 
 That's all. There's no password, no language question (the app uses your
 phone's language), and no PIN to choose before you can start. If you didn't
@@ -195,7 +195,7 @@ Your administrator added you with your work email.
 
 You'll only see the pages your role can use.
 
-- [ ] **Dashboard.** A summary of facilities, inspections, open issues and
+- [ ] **Home.** A summary of facilities, inspections, open issues and
       certificates.
 - [ ] **Facilities.** Search for a facility and open it.
 - [ ] **Inspections.** Open an inspection an inspector has submitted. Check you
@@ -206,7 +206,7 @@ You'll only see the pages your role can use.
 
 ### B3. If you plan visits (supervisors)
 
-1. Open **Plan visits**.
+1. Open **Visits**.
 2. Choose an inspector and one or more facilities, and a date. Save.
 
 - [ ] *Expected:* within a few minutes, the visits appear on the inspector's
@@ -233,8 +233,9 @@ Do section B first, then these.
 (`SELF_REGISTRATION=on`). By default nobody can ask to join, so there is nothing
 to approve: you invite people directly (section C2).*
 
-1. When someone registers, you get an **email**, and the **Dashboard** shows
-   **"N people are waiting to join"**. Click **Review**, or open **Team**.
+1. When someone registers, you get an **email**, and **Home** shows
+   **"N people are waiting to join"**. Click **Review**, or open **Settings →
+   Team**.
 2. Each request shows their name, email and phone. A **green tick** means they
    proved it's theirs with a code, and it shows where they registered (phone
    app or website).
@@ -243,7 +244,7 @@ to approve: you invite people directly (section C2).*
 
 - [ ] Approve an inspector who registered **in the app**. *Expected:* their
       phone works straight away, with no code, and it appears under
-      **Team → Phones**.
+      **Settings → Team → Phones**.
 - [ ] Approve an inspector who registered **on the website**. *Expected:* they
       automatically get an invite code by SMS and email to set up the app.
 - [ ] Approve someone as **Desk supervisor**. *Expected:* they can sign in to
@@ -256,13 +257,14 @@ to approve: you invite people directly (section C2).*
 
 This is the normal way people join.
 
-1. **Team → Invite an inspector.** Enter a name and phone number (and email if
+1. **Settings → Team → Invite an inspector.** Enter a name and phone number (and email if
    you have it).
 
 - [ ] *Expected:* the screen shows the code and says whether the **SMS** and
       **email** were sent. If you're standing next to them, they can type the
       code you see.
-- [ ] **Team → Add a colleague** for office staff. *Expected:* they can sign in
+- [ ] **Settings → Team → Add a colleague** for office staff. *Expected:* they get
+      a welcome email with a button to the sign-in page, and can sign in
       with that email straight away.
 
 ### C3. Set up your state
@@ -270,14 +272,14 @@ This is the normal way people join.
 - [ ] **Facilities → Add facility → Import.** Upload your spreadsheet (CSV).
       *Expected:* a preview first, then import. Duplicate licence numbers are
       flagged, not imported twice.
-- [ ] **Checklists.** Make sure each facility type you inspect has a checklist
+- [ ] **Settings → Checklists.** Make sure each facility type you inspect has a checklist
       **in force**. Without one, an inspector can't start that inspection.
-- [ ] Follow the **"Set up your state in five steps"** list on the Dashboard.
+- [ ] Follow the **"Set up your state in four steps"** list on Home.
       It ticks itself as you go.
 
 ### C4. A lost phone
 
-1. **Team → Phones**. Next to a test phone, type a reason (e.g. "lost") and
+1. **Settings → Team → Phones**. Next to a test phone, type a reason (e.g. "lost") and
    click **Sign out this phone**.
 
 - [ ] *Expected:* the phone stops working on its next connection and shows

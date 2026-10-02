@@ -112,7 +112,7 @@ the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
 
 | Screen | What it is for |
 |---|---|
-| Dashboard | Compliance tiles, the "decisions within 30 days" clock, findings by section, and risk-targeted suggestions — each shown with the reason that produced it, because a score without a reason cannot be argued with |
+| Home | Compliance tiles, the "decisions within 30 days" clock, findings by section, and risk-targeted suggestions — each shown with the reason that produced it, because a score without a reason cannot be argued with |
 | Facilities | The registry, with certificate status derived at read time so a lapse shows the morning after it happens |
 | Facility | Registered point, certificate history, every visit |
 | Inspections | The queue, marked by what still awaits an officer decision |
@@ -120,7 +120,7 @@ the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
 | Corrective actions | The findings worklist by severity and due date |
 | Certificate | The record, its authorising officer, and the verification token behind the QR |
 | Instruments | The version timeline, the in-force structure in both languages, and the explicit change list before a publish |
-| Users and devices | Roles, and device enrolment against a key the device generated and never exported |
+| Settings → Team | Roles, and phone set-up against a key the device generated and never exported |
 
 Styled to Huzex Light: `#409EF2` for action, `#072435` for text, white surfaces,
 12–16px radii, soft shadows, and light blurred overlays rather than dark tints.
@@ -280,7 +280,7 @@ browser installed on the render host; the HTML route works without it.
 
 ## Setting up a new state
 
-Until a state has run its first inspection, the dashboard shows a five-step
+Until a state has planned its first visits, the home page shows a four-step
 checklist. Each step ticks itself off from the record (`GET /v1/setup`), not
 from anyone clicking "done":
 
@@ -296,23 +296,32 @@ from anyone clicking "done":
    written, both here and on the single-facility form.
 2. **Check your checklists.** Publish the questions inspectors answer on site.
 3. **Invite your inspectors.** Covered in the next section.
-4. **Plan the first visits.** *Plan visits* shows every inspector, whether
+4. **Plan the first visits.** *Visits* shows every inspector, whether
    their phone is set up and how many visits they already have. Tick
    facilities, sorted with never-inspected and overdue first, and add a reason
    the inspector will see. A batch is all or nothing
    (`POST /v1/assignments/batch`), and a facility that already has a visit
    planned can't be planned twice. Risk suggestions sit alongside with their
    reasons and a one-click *Send*.
-5. **Review the first inspection.**
 
-The menu shows each person only the pages their role can use
+Reviewing the first inspection is not a setup step: it is the work, and it
+happens by itself once an inspector submits one.
+
+The menu is five everyday links — *Home, Visits, Inspections, Issues to fix,
+Facilities* — and one *Settings* page that holds the occasional jobs (*Team,
+Checklists, Programme overview*). Each person sees only what their role can use
 (`GET /v1/me`). The gateway still authorises every request.
+
+Shipping a default, already-published checklist would remove step 2 too, but it
+needs the real questions from the Technical Implementation Guide; the repository
+only holds placeholders, and inspection questions are not something to invent.
+Load them as the in-force version for each facility type and that step can go.
 
 ## Getting an inspector working
 
 One form in the console, one code on the phone. Nothing waits on anybody.
 
-1. **Invite.** An administrator opens **Team** and enters the inspector's name
+1. **Invite.** An administrator opens **Settings → Team** and enters the inspector's name
    and phone number (email optional). The gateway creates them with the
    inspector role and issues a one-time code, e.g. `K7PM-4XQ2`, sent by SMS and
    email. The console shows the same code and a QR code, for someone standing
@@ -369,7 +378,7 @@ starts with the person; it is built and tested but switched off unless
    with an unproven contact. Codes expire after 30 minutes; a wrong one is
    named, and a right one entered beside it still counts.
 3. **Approve.** The state's administrators are emailed, the dashboard shows
-   "N people are waiting to join", and **Team → Requests to join** lists each
+   "N people are waiting to join", and **Settings → Team → Requests to join** lists each
    person with a tick against each proven contact. The administrator picks the
    role — it starts at *Inspector* for app requests and *Desk supervisor* for
    website ones — and approves, or rejects with a reason that is sent on.

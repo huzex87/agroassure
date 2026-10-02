@@ -13,7 +13,10 @@ export type InviteState =
   | { status: "issued"; invitation: IssuedInvitation }
   | { status: "error"; message: string };
 
-export type FormState = { status: "idle" } | { status: "done" } | { status: "error"; message: string };
+export type FormState =
+  | { status: "idle" }
+  | { status: "done"; message?: string }
+  | { status: "error"; message: string };
 
 /**
  * A refusal the person filling the form can act on, as a message; anything
@@ -79,9 +82,17 @@ export async function addColleague(_prev: FormState, formData: FormData): Promis
   const role = String(formData.get("role") ?? "");
   if (!fullName || !email) return { status: "error", message: "Enter their full name and work email." };
   try {
-    await post("/v1/users", { fullName, email, roles: [role] });
+    const added = await post<{ id: string; welcome?: string }>("/v1/users", { fullName, email, roles: [role] });
     revalidatePath("/team");
-    return { status: "done" };
+    return {
+      status: "done",
+      message:
+        added.welcome === "sent"
+          ? `Added. We've emailed ${email} a link to sign in.`
+          : added.welcome === "failed"
+            ? "Added, but the welcome email didn't send. They can still sign in with that email address."
+            : "Added. They can sign in to this console with that email address.",
+    };
   } catch (err) {
     return { status: "error", message: refusal(err) };
   }

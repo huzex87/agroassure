@@ -2,13 +2,16 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import type { SetupProgress } from "../lib/api";
 
-// Getting a state started, as five things to do in order.
+// Getting a state started, as four things to do in order.
 //
 // A new deployment's dashboard used to be a grid of zeros with nothing saying
-// which zero to fix first. Until the state has run its first inspection, this
+// which zero to fix first. Until the state has planned its first visits, this
 // sits above everything else. Each step ticks itself from the record — a
 // facility registered, a phone set up, a visit planned — so it cannot fall out
 // of step with what has actually happened, and it goes away on its own.
+//
+// Reviewing the first inspection is not here: it is not setup, it is the work,
+// and it happens by itself once an inspector submits one.
 
 interface Step {
   title: string;
@@ -38,7 +41,7 @@ export function setupSteps(p: SetupProgress): Step[] {
           : "Publish the questions inspectors will answer on site",
       done: p.checklistsInForce > 0,
       href: "/instruments",
-      action: "Review checklists",
+      action: "Open checklists",
     },
     {
       title: "Invite your inspectors",
@@ -62,13 +65,6 @@ export function setupSteps(p: SetupProgress): Step[] {
       href: "/plan",
       action: "Plan visits",
     },
-    {
-      title: "Review the first inspection",
-      detail: "It arrives here once an inspector submits it from the field",
-      done: p.submittedInspections > 0,
-      href: "/inspections",
-      action: "See inspections",
-    },
   ];
 }
 
@@ -87,7 +83,7 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary-700">Getting started</p>
           <h2 id="setup-heading" className="mt-1 text-lg font-semibold tracking-tight text-ink">
-            Set up your state in five steps
+            Set up your state in four steps
           </h2>
         </div>
         <div className="w-full max-w-xs">

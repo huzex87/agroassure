@@ -24,8 +24,10 @@ import { CertificateRenderService } from "../certificate/render.service";
 import { AdminService } from "./admin.service";
 import { AuditService } from "./audit.service";
 import { SetupService } from "./setup.service";
+import { InvitationsModule } from "../invitations/invitations.module";
 
 @Module({
+  imports: [InvitationsModule],
   controllers: [
     DevAuthController,
     FacilitiesController,

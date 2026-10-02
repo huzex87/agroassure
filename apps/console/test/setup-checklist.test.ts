@@ -17,7 +17,7 @@ const empty = {
 describe("the setup checklist", () => {
   it("starts with nothing done, and says what to do first", () => {
     const steps = setupSteps(empty);
-    expect(steps.map((s) => s.done)).toEqual([false, false, false, false, false]);
+    expect(steps.map((s) => s.done)).toEqual([false, false, false, false]);
     expect(steps[0]!.detail).toMatch(/Import the spreadsheet/);
   });
 
@@ -33,6 +33,10 @@ describe("the setup checklist", () => {
   it("treats a submitted inspection as proof the visits were planned", () => {
     const steps = setupSteps({ ...empty, submittedInspections: 1 });
     expect(steps[3]!.done).toBe(true);
-    expect(steps[4]!.done).toBe(true);
+  });
+
+  it("ends at planning visits: reviewing an inspection is the work, not the setup", () => {
+    const titles = setupSteps(empty).map((s) => s.title);
+    expect(titles).toEqual(["Add your facilities", "Check your checklists", "Invite your inspectors", "Plan the first visits"]);
   });
 });
