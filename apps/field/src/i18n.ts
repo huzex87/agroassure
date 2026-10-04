@@ -15,6 +15,8 @@ const STRINGS = {
   greetAfternoon: { en: "Good afternoon", ha: "Barka da rana" },
   greetEvening: { en: "Good evening", ha: "Barka da yamma" },
   visitsDone: { en: "done", ha: "an kammala" },
+  statusNotStarted: { en: "Not started", ha: "Ba a fara ba" },
+  statusInProgress: { en: "In progress", ha: "Ana yi" },
   visitsOne: { en: "visit", ha: "ziyara" },
   visitsMany: { en: "visits", ha: "ziyarce-ziyarce" },
   allVisitsDone: { en: "All visits done. Well done.", ha: "An kammala dukkan ziyarce-ziyarce. Madalla." },

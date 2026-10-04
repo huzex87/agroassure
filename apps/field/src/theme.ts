@@ -10,14 +10,18 @@ import { Platform, StyleSheet } from "react-native";
 // which are done without reading each one.
 
 export const colors = {
-  primary: "#2F93EC",
-  primaryDark: "#1665AD",
+  /** The brand blue: for shapes that are seen (the mark, progress fills). */
+  brand: "#409EF2",
+  /** The action blue: the same hue, deep enough for white text on it (4.7:1). */
+  primary: "#1B75CC",
+  primaryDark: "#124F8A",
   primaryTint: "#EAF4FE",
   primaryLine: "#C2E0FB",
 
   ink: "#072435",
   inkMuted: "#4A6B7C",
-  inkFaint: "#7C96A4",
+  // 4.5:1 or better on every surface it sits on; the old #7C96A4 was 3.1:1.
+  inkFaint: "#587384",
 
   line: "#E4EDF3",
   lineFirm: "#CBDAE5",
@@ -121,7 +125,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
     ...raised,
@@ -143,7 +147,7 @@ export const styles = StyleSheet.create({
   segmented: {
     flexDirection: "row",
     backgroundColor: colors.surfaceSunk,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
     padding: 4,
@@ -152,7 +156,7 @@ export const styles = StyleSheet.create({
   segment: {
     flex: 1,
     minHeight: 44,
-    borderRadius: 9,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -163,7 +167,7 @@ export const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.lineFirm,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 13,
     // 16 and no smaller: iOS zooms the whole page when a focused field is under
@@ -230,7 +234,7 @@ export const styles = StyleSheet.create({
   responseButton: {
     flex: 1,
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.line,
     backgroundColor: colors.surface,
@@ -308,7 +312,17 @@ export const styles = StyleSheet.create({
     borderColor: colors.line,
     overflow: "hidden",
   },
-  progressFill: { height: "100%", borderRadius: 999, backgroundColor: colors.primary },
+  progressFill: { height: "100%", borderRadius: 999, backgroundColor: colors.brand },
+
+  // Why a visit is on the list: a quoted line beside a rule, not a box inside a
+  // card. A card within a card reads as clutter; a rule reads as a note.
+  reasonBlock: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.brand,
+    paddingLeft: 12,
+    paddingVertical: 2,
+    gap: 2,
+  },
 
   sectionHeaderRow: {
     flexDirection: "row",
@@ -366,4 +380,17 @@ export function chipTone(tone: "good" | "caution" | "critical" | "neutral") {
     default:
       return { bg: colors.surfaceSunk, fg: colors.inkMuted };
   }
+}
+
+/** A banner in the colour of what it reports, for the rating shown before sign-off. */
+export function toneBanner(tone: "good" | "caution" | "critical") {
+  const t = chipTone(tone);
+  return {
+    backgroundColor: t.bg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: t.fg,
+    padding: 14,
+    gap: 4,
+  } as const;
 }

@@ -136,23 +136,6 @@ export default function Today() {
         </Pressable>
       </View>
 
-      {total > 0 ? (
-        <View style={[styles.card, { gap: 10 }]}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.h2}>
-              {total} {t(total === 1 ? "visitsOne" : "visitsMany")}
-            </Text>
-            <Text style={styles.muted}>
-              {finished} {t("visitsDone")}
-            </Text>
-          </View>
-          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: finished }}>
-            <View style={[styles.progressFill, { width: `${(finished / total) * 100}%` }]} />
-          </View>
-          {finished === total ? <Text style={[styles.muted, { color: colors.good }]}>{t("allVisitsDone")}</Text> : null}
-        </View>
-      ) : null}
-
       {sync.phase === "signedOut" ? (
         <Pressable
           style={[styles.card, { borderColor: colors.critical }]}
@@ -166,6 +149,30 @@ export default function Today() {
             <Text style={styles.actionChevron}>›</Text>
           </View>
         </Pressable>
+      ) : total > 0 ? (
+        // One card for the state of the day: how far through, and whether
+        // everything done so far has been sent. Two cards said the same kind of
+        // thing twice and pushed the first visit down the screen.
+        <View style={[styles.card, { gap: 12 }]}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.h2}>
+              {total} {t(total === 1 ? "visitsOne" : "visitsMany")}
+            </Text>
+            <Text style={styles.muted}>
+              {finished} {t("visitsDone")}
+            </Text>
+          </View>
+          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: finished }}>
+            <View style={[styles.progressFill, { width: `${(finished / total) * 100}%` }]} />
+          </View>
+          {finished === total ? <Text style={[styles.muted, { color: colors.good }]}>{t("allVisitsDone")}</Text> : null}
+          {sync.phase === "notReady" ? null : (
+            <>
+              <View style={styles.divider} />
+              <SendStatus sync={sync} t={t} embedded />
+            </>
+          )}
+        </View>
       ) : sync.phase === "notReady" ? null : (
         <SendStatus sync={sync} t={t} />
       )}
@@ -206,7 +213,24 @@ export default function Today() {
           disabled={Boolean(row.submitted) || busy}
           accessibilityRole="button"
         >
-          <Text style={styles.h2}>{row.name}</Text>
+          <View style={[styles.rowBetween, { alignItems: "flex-start" }]}>
+            <Text style={[styles.h2, { flexShrink: 1 }]}>{row.name}</Text>
+            {/* Where this visit stands, at a glance. A submitted visit says so
+                at the foot of its card, so it is not repeated here. */}
+            {row.submitted ? null : (
+              <View
+                style={[
+                  styles.chip,
+                  { backgroundColor: row.open ? colors.cautionTint : colors.surfaceSunk },
+                ]}
+              >
+                <View style={[styles.chipDot, { backgroundColor: row.open ? colors.caution : colors.inkFaint }]} />
+                <Text style={[styles.chipText, { color: row.open ? colors.caution : colors.inkMuted }]}>
+                  {t(row.open ? "statusInProgress" : "statusNotStarted")}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.muted}>
             {row.licenceNumber} · {facilityType(row.facilityType)}
             {row.lga ? ` · ${row.lga}` : ""}
@@ -215,9 +239,9 @@ export default function Today() {
           {/* Why this facility, in words. An inspector is never handed a list
               they cannot account for. */}
           {row.assignmentReason ? (
-            <View style={[styles.banner, styles.bannerQuiet]}>
+            <View style={styles.reasonBlock}>
               <Text style={styles.overline}>{t("whyThisVisit")}</Text>
-              <Text style={styles.muted}>{row.assignmentReason}</Text>
+              <Text style={styles.body}>{row.assignmentReason}</Text>
             </View>
           ) : null}
 
@@ -269,7 +293,7 @@ export default function Today() {
  * waiting — and every state says in words that the work is safe, because the
  * colour alone would leave an inspector guessing whether amber means lost.
  */
-function SendStatus({ sync, t }: { sync: SyncStatus; t: (k: StringKey) => string }) {
+function SendStatus({ sync, t, embedded = false }: { sync: SyncStatus; t: (k: StringKey) => string; embedded?: boolean }) {
   const sending = sync.phase === "sending";
   const waiting = sync.queued > 0;
   const tone = sending ? colors.primary : waiting ? colors.caution : colors.good;
@@ -288,7 +312,7 @@ function SendStatus({ sync, t }: { sync: SyncStatus; t: (k: StringKey) => string
       : null;
 
   return (
-    <View style={[styles.banner, waiting || sending ? null : styles.bannerQuiet]}>
+    <View style={embedded ? { gap: 4 } : [styles.banner, waiting || sending ? null : styles.bannerQuiet]}>
       <View style={styles.rowBetween}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
           {sending ? (
@@ -296,7 +320,7 @@ function SendStatus({ sync, t }: { sync: SyncStatus; t: (k: StringKey) => string
           ) : (
             <View style={[styles.statusDot, { backgroundColor: tone }]} />
           )}
-          <Text style={styles.h2}>{title}</Text>
+          <Text style={embedded ? styles.body : styles.h2}>{title}</Text>
         </View>
         {waiting && !sending ? (
           <Pressable

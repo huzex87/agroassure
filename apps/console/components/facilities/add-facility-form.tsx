@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "../ui/button";
 import { useActionState, useEffect, useRef } from "react";
 import { MapPin, Plus } from "lucide-react";
 import { addFacility, type AddFacilityState } from "../../app/facilities/actions";
@@ -103,9 +104,9 @@ export function AddFacilityForm() {
         <SubmitButton pendingText="Adding…" className="sm:w-56">
           <Plus className="size-4" aria-hidden /> Add facility
         </SubmitButton>
-        <Link href="/facilities" className="text-sm font-medium text-ink-muted hover:text-ink">
-          Back to facilities
-        </Link>
+        <Button asChild variant="ghost" size="lg">
+          <Link href="/facilities">Back to facilities</Link>
+        </Button>
       </div>
     </form>
   );
