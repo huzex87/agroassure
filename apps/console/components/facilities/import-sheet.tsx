@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { CircleAlert, CircleCheck, Download, FileSpreadsheet, RotateCw, Upload } from "lucide-react";
+import { Button } from "../ui/button";
 import { importFacilities, type ImportState } from "../../app/facilities/actions";
 import {
   FACILITY_TEMPLATE_EXAMPLE,
@@ -94,21 +95,15 @@ export function ImportSheet() {
           {state.invalid > 0 ? ` ${state.invalid} ${state.invalid === 1 ? "row was" : "rows were"} left out — fix them in your sheet and import that file again; rows already added are recognised and skipped.` : ""}
         </SuccessNote>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/facilities"
-            className="inline-flex h-10 items-center rounded-control bg-primary px-4 text-sm font-semibold text-white shadow-raised hover:bg-primary-600"
-          >
-            See the registry
-          </Link>
-          <Link
-            href="/plan"
-            className="inline-flex h-10 items-center rounded-control border border-line bg-card px-4 text-sm font-medium hover:bg-surface-sunk"
-          >
-            Plan the first visits
-          </Link>
-          <button type="button" onClick={reset} className="h-10 px-2 text-sm font-medium text-ink-muted hover:text-ink">
+          <Button asChild size="lg">
+            <Link href="/facilities">See the registry</Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary">
+            <Link href="/plan">Plan the first visits</Link>
+          </Button>
+          <Button type="button" size="lg" variant="ghost" onClick={reset}>
             Import another file
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -154,13 +149,9 @@ export function ImportSheet() {
                 &ldquo;Business name&rdquo; or &ldquo;Licence No.&rdquo; are recognised.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={downloadTemplate}
-              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line bg-card px-3 text-sm font-medium shadow-xs hover:bg-surface-sunk"
-            >
-              <Download className="size-4" aria-hidden /> Download template
-            </button>
+            <Button type="button" variant="secondary" onClick={downloadTemplate}>
+              <Download aria-hidden /> Download template
+            </Button>
           </div>
         </>
       ) : (
@@ -247,17 +238,18 @@ export function ImportSheet() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="button"
-              disabled={pending || result.valid === 0}
+              size="lg"
+              loading={pending}
+              disabled={result.valid === 0}
               onClick={() => start(async () => setState(await importFacilities(rows, false)))}
-              className="inline-flex h-10 items-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600 disabled:opacity-60"
             >
-              {pending ? <RotateCw className="size-4 animate-spin" aria-hidden /> : <Upload className="size-4" aria-hidden />}
+              {pending ? null : <Upload aria-hidden />}
               {pending
                 ? "Importing…"
                 : `Import ${result.valid} ${result.valid === 1 ? "facility" : "facilities"}`}
-            </button>
+            </Button>
             {result.invalid > 0 && result.valid > 0 ? (
               <p className="text-xs text-ink-muted">
                 Rows that need fixing are left out. You can fix them and import the same file again later.

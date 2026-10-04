@@ -5,6 +5,7 @@ import { BadgeCheck, Globe, Mail, MapPin, Phone, Smartphone, X } from "lucide-re
 import type { RegistrationRow } from "../../lib/api";
 import { approveRequest, rejectRequest, type FormState } from "../../app/team/actions";
 import { ErrorNote, SubmitButton } from "../forms";
+import { Button } from "../ui/button";
 
 // One person asking to join, and the decision about them.
 //
@@ -103,16 +104,12 @@ export function RequestCard({ request, canGrantNational }: { request: Registrati
               <input name="reason" maxLength={500} autoFocus placeholder="e.g. Not on our staff list" className="field mt-1.5 w-full" />
             </label>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setRejecting(false)}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-control border border-line px-3 text-sm font-medium text-ink-muted hover:bg-surface-sunk"
-              >
+              <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setRejecting(false)}>
                 Cancel
-              </button>
-              <div className="flex-1 [&_button]:bg-destructive [&_button:hover]:bg-destructive/90">
-                <SubmitButton pendingText="Rejecting…">Reject</SubmitButton>
-              </div>
+              </Button>
+              <SubmitButton variant="destructive" className="flex-1" pendingText="Rejecting…">
+                Reject
+              </SubmitButton>
             </div>
           </form>
         ) : (
@@ -137,13 +134,15 @@ export function RequestCard({ request, canGrantNational }: { request: Registrati
               <p className="text-xs text-ink-muted">They&rsquo;ll sign in to this console with their email.</p>
             )}
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="lg"
+                className="hover:border-destructive-border hover:bg-destructive-muted hover:text-destructive"
                 onClick={() => setRejecting(true)}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-control border border-line px-3 text-sm font-medium text-ink-muted transition-colors hover:border-destructive-border hover:bg-destructive-muted hover:text-destructive"
               >
-                <X className="size-4" aria-hidden /> Reject
-              </button>
+                <X aria-hidden /> Reject
+              </Button>
               <div className="flex-1">
                 <SubmitButton pendingText="Approving…">Approve</SubmitButton>
               </div>

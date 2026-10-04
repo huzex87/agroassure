@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setupSteps } from "../components/setup-checklist";
+import { setupSteps } from "../lib/setup-steps";
 
 // The checklist ticks from the record, so these are its rules: what counts as
 // each step being done, and what it says while it is not.

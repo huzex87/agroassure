@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Check, Clock, PartyPopper, ShieldCheck, Smartphone, XCircle } from "lucide-react";
-import { Panel } from "../../components/ui";
+import { Button, Panel } from "../../components/ui";
 import { CodesForm, DetailsForm, KeepChecking } from "../../components/register/register-forms";
 import { currentRegistration, registerOptions, startOver } from "./actions";
 
@@ -143,12 +143,9 @@ export default async function RegisterPage() {
           </p>
         </Outcome>
         {request.role !== "inspector" ? (
-          <Link
-            href="/signin"
-            className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600"
-          >
-            Sign in
-          </Link>
+          <Button asChild size="lg" className="mt-6 w-full">
+            <Link href="/signin">Sign in</Link>
+          </Button>
         ) : null}
       </Panel>
     );

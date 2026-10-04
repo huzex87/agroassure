@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function SkeletonHeader() {
   return (
     <div className="flex flex-col gap-2.5">
-      <Skeleton className="h-7 w-64" />
+      <Skeleton className="h-8 w-64" />
       <Skeleton className="h-4 w-96 max-w-full" />
     </div>
   );
@@ -24,7 +24,7 @@ export function SkeletonHeader() {
 
 export function SkeletonStats({ count = 5 }: { count?: number }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
       {Array.from({ length: count }, (_, i) => (
         <Card key={i} className="gap-3 px-4 py-4">
           <Skeleton className="h-3.5 w-28" />
@@ -79,7 +79,7 @@ export function SkeletonChart() {
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-3.5 w-64 max-w-full" />
       </div>
-      <Skeleton className="aspect-[16/7] w-full" />
+      <Skeleton className="h-60 w-full" />
     </Card>
   );
 }

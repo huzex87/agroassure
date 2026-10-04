@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Check } from "lucide-react";
 import type { InspectorOption } from "../../lib/api";
 import { assignSuggestion, type PlanState } from "../../app/plan/actions";
+import { Button } from "../ui/button";
 
 // Taking up one of the engine's suggestions: choose who, press Send. The
 // suggestion's own reason goes with the visit, so the inspector reads the same
@@ -45,13 +46,9 @@ export function SuggestionAssign({
           </option>
         ))}
       </select>
-      <button
-        type="submit"
-        disabled={pending || inspectors.length === 0}
-        className="inline-flex h-8 items-center rounded-control bg-primary px-3 text-xs font-semibold text-white shadow-raised hover:bg-primary-600 disabled:opacity-60"
-      >
+      <Button type="submit" size="sm" loading={pending} disabled={inspectors.length === 0}>
         {pending ? "Sending…" : "Send"}
-      </button>
+      </Button>
       {state.status === "error" ? <span className="w-full text-xs text-destructive">{state.message}</span> : null}
     </form>
   );

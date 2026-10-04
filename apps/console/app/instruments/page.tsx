@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InstrumentRow } from "../../lib/api";
-import { Badge, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
+import { Badge, Button, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
 
 // The template version manager. A published version is frozen and an inspection
@@ -28,12 +28,7 @@ export default async function InstrumentsPage() {
     <>
       <PageHeader
         title="Checklists"
-        summary={
-          <>
-          The questions inspectors answer on site — one checklist for each type of facility.
-          Publishing a change creates a new version; past inspections keep the version they used.
-          </>
-        }
+        summary="The questions inspectors answer on site, one checklist for each type of facility. Publishing a change creates a new version; past inspections keep the version they used."
       />
 
       {instruments.length === 0 && (
@@ -46,6 +41,7 @@ export default async function InstrumentsPage() {
         const versions = (instrument.versions ?? []).filter((v) => v.id);
         return (
           <Panel
+            flush
             key={instrument.id}
             title={instrument.name}
             subtitle={label(FACILITY_TYPE_LABEL, instrument.facility_type)}
@@ -75,12 +71,11 @@ export default async function InstrumentsPage() {
                         version; history is not re-pointed. */}
                   </Cell>
                   <Cell>
-                    <Link
-                      href={`/instruments/${v.id}`}
-                      className="text-sm text-primary-700 hover:underline"
-                    >
-                      {v.status === "draft" ? "Review changes" : "View structure"}
-                    </Link>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/instruments/${v.id}`}>
+                        {v.status === "draft" ? "Review changes" : "View structure"}
+                      </Link>
+                    </Button>
                   </Cell>
                 </Row>
               ))}

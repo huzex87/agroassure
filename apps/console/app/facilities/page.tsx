@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileSpreadsheet, Plus } from "lucide-react";
 import { get, type FacilityRow } from "../../lib/api";
-import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
+import { Button, ChipNav, Panel, Cell, Empty, Row, DataTable, FilterBar, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
 import { RegistryMap } from "../../components/registry-map";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
@@ -61,54 +61,40 @@ export default async function FacilitiesPage({
     <>
       <PageHeader
         title="Facilities"
-        summary={`Every regulated site in this jurisdiction, with the standing of its certificate.`}
+        summary="Every regulated site in this jurisdiction, with the standing of its certificate."
         actions={
           <>
-            <Link
-              href="/facilities/new?tab=import"
-              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line bg-card px-3 text-sm font-medium shadow-xs transition-colors hover:bg-surface-sunk"
-            >
-              <FileSpreadsheet className="size-4" aria-hidden /> Import
-            </Link>
-            <Link
-              href="/facilities/new"
-              className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600"
-            >
-              <Plus className="size-4" aria-hidden /> Add facility
-            </Link>
+            <Button asChild variant="secondary">
+              <Link href="/facilities/new?tab=import">
+                <FileSpreadsheet aria-hidden /> Import
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/facilities/new">
+                <Plus aria-hidden /> Add facility
+              </Link>
+            </Button>
           </>
         }
       />
 
-      <nav aria-label="Filter by certificate status" className="flex flex-wrap gap-2">
-        {([["", "All"], ...STATUSES] as Array<[string, string]>).map(([value, text]) => {
-          const on = status === value;
-          const n = value ? (counts[value] ?? 0) : everyone.length;
-          return (
-            <Link
-              key={value || "all"}
-              href={chipHref(value)}
-              aria-current={on ? "true" : undefined}
-              className={`inline-flex h-9 items-center gap-2 rounded-pill border px-3.5 text-sm transition-colors ${
-                on
-                  ? "border-primary-200 bg-primary-50 font-semibold text-primary-700"
-                  : "border-line bg-card text-ink-muted hover:bg-surface-sunk hover:text-ink"
-              }`}
-            >
-              <span aria-hidden className={`size-2 rounded-full ${CHIP_DOT[value]}`} />
-              {text}
-              <span className={`tabular text-xs ${on ? "text-primary-700" : "text-ink-faint"}`}>{n}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <ChipNav
+        label="Filter by certificate status"
+        items={([["", "All"], ...STATUSES] as Array<[string, string]>).map(([value, text]) => ({
+          label: text,
+          href: chipHref(value),
+          active: status === value,
+          count: value ? (counts[value] ?? 0) : everyone.length,
+          dot: CHIP_DOT[value],
+        }))}
+      />
 
       <Panel>
         <RegistryMap facilities={facilities} />
       </Panel>
 
-      <Panel>
-        <form className="mb-5 flex flex-wrap gap-3" action="/facilities">
+      <Panel flush>
+        <FilterBar action="/facilities" active={Boolean(params.q || params.type || params.lga || status)}>
           {status ? <input type="hidden" name="status" value={status} /> : null}
           <input
             name="q"
@@ -117,12 +103,7 @@ export default async function FacilitiesPage({
             aria-label="Search by business name or licence number"
             className="field min-w-[15rem] flex-1"
           />
-          <select
-            name="type"
-            defaultValue={params.type ?? ""}
-            aria-label="Facility type"
-            className="field"
-          >
+          <select name="type" defaultValue={params.type ?? ""} aria-label="Facility type" className="field w-52">
             <option value="">All types</option>
             {TYPES.map(([value, text]) => (
               <option key={value} value={value}>
@@ -137,13 +118,7 @@ export default async function FacilitiesPage({
             aria-label="Local government area"
             className="field w-36"
           />
-          <button
-            type="submit"
-            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-          >
-            Filter
-          </button>
-        </form>
+        </FilterBar>
 
         <DataTable
           head={["Business", "Type", "LGA", "Last inspected", "Rating", "Certificate"]}
@@ -154,12 +129,11 @@ export default async function FacilitiesPage({
               ) : (
                 <Empty
                   action={
-                    <Link
-                      href="/facilities/new?tab=import"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised hover:bg-primary-600"
-                    >
-                      <FileSpreadsheet className="size-4" aria-hidden /> Import your registry
-                    </Link>
+                    <Button asChild>
+                      <Link href="/facilities/new?tab=import">
+                        <FileSpreadsheet aria-hidden /> Import your registry
+                      </Link>
+                    </Button>
                   }
                 >
                   No facilities yet. Import the spreadsheet you already keep, or add them one at a time.

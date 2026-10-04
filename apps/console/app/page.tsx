@@ -21,7 +21,7 @@ import {
   type SetupProgress,
 } from "../lib/api";
 import { SetupChecklist } from "../components/setup-checklist";
-import { Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
+import { Button, Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
 import { canSee, PLANNERS } from "../lib/roles";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
@@ -88,19 +88,17 @@ export default async function DashboardPage() {
         actions={
           <>
             {canPlan ? (
-              <Link
-                href="/plan"
-                className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600"
-              >
-                <CalendarClock className="size-4" aria-hidden /> Plan visits
-              </Link>
+              <Button asChild>
+                <Link href="/plan">
+                  <CalendarClock aria-hidden /> Plan visits
+                </Link>
+              </Button>
             ) : null}
-            <Link
-              href="/facilities/new"
-              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line bg-card px-3.5 text-sm font-medium shadow-xs transition-colors hover:bg-surface-sunk"
-            >
-              <Plus className="size-4" aria-hidden /> Add facility
-            </Link>
+            <Button asChild variant="secondary">
+              <Link href="/facilities/new">
+                <Plus aria-hidden /> Add facility
+              </Link>
+            </Button>
           </>
         }
       />

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { RotateCw, Send, UserPlus } from "lucide-react";
+import { Send, UserPlus } from "lucide-react";
+import { Button } from "../ui/button";
 import { ErrorNote, Field, SubmitButton as Submit } from "../forms";
 import type { InviteChannels } from "../../lib/api";
 import {
@@ -83,14 +84,10 @@ export function ResendCodeButton({ userId, label = "Send new code" }: { userId: 
   return (
     <>
       <form action={action}>
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex h-8 items-center gap-1.5 rounded-control border border-line bg-card px-3 text-xs font-medium text-ink shadow-xs transition-colors hover:bg-surface-sunk disabled:opacity-60"
-        >
-          {pending ? <RotateCw className="size-3.5 animate-spin" aria-hidden /> : <Send className="size-3.5" aria-hidden />}
+        <Button type="submit" variant="secondary" size="sm" loading={pending}>
+          {pending ? null : <Send aria-hidden />}
           {pending ? "Sending…" : label}
-        </button>
+        </Button>
       </form>
       <Modal open={open} onClose={() => setOpen(false)}>
         {state.status === "issued" ? (
@@ -100,13 +97,9 @@ export function ResendCodeButton({ userId, label = "Send new code" }: { userId: 
             <h2 className="text-lg font-semibold text-ink">Couldn&rsquo;t send a new code</h2>
             <ErrorNote message={state.message} />
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="inline-flex h-9 items-center rounded-control border border-line px-4 text-sm font-medium hover:bg-surface-sunk"
-              >
+              <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}

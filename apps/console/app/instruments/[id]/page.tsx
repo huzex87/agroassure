@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get } from "../../../lib/api";
-import { Badge, Panel, Empty } from "../../../components/ui";
+import { Badge, Empty, PageHeader, Panel } from "../../../components/ui";
 import { SEVERITY_LABEL, label } from "../../../lib/format";
 
 export const dynamic = "force-dynamic";
@@ -54,26 +54,17 @@ export default async function InstrumentVersionPage({
   const checkpointCount = version.sections.reduce((n, s) => n + s.checkpoints.length, 0);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <Link href="/instruments" className="text-sm text-ink-muted hover:text-primary-700">
-          ← Checklists
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold text-ink">{version.versionLabel}</h1>
-          <Badge variant={version.status === "in_force" ? "success" : "secondary"}>
-            {version.status === "in_force"
-              ? "In force"
-              : version.status === "draft"
-                ? "Draft"
-                : "Superseded"}
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: "Checklists", href: "/instruments" }, { label: version.versionLabel }]}
+        title={version.versionLabel}
+        badges={
+          <Badge variant={version.status === "in_force" ? "success" : version.status === "draft" ? "warning" : "secondary"} dot>
+            {version.status === "in_force" ? "In force" : version.status === "draft" ? "Draft" : "Superseded"}
           </Badge>
-        </div>
-        <p className="mt-1 text-sm text-ink-muted">
-          {version.sections.length} sections, {checkpointCount} checkpoints · Satisfactory ≥{" "}
-          {version.satisfactoryMin}% · Needs Improvement ≥ {version.needsImprovementMin}%
-        </p>
-      </header>
+        }
+        summary={`${version.sections.length} sections, ${checkpointCount} checkpoints · Satisfactory from ${version.satisfactoryMin}% · Needs Improvement from ${version.needsImprovementMin}%`}
+      />
 
       {version.status === "draft" && (
         <Panel
@@ -110,8 +101,8 @@ export default async function InstrumentVersionPage({
         >
           <ul className="divide-y divide-line">
             {section.checkpoints.map((c) => (
-              <li key={c.ordinal} className="flex items-start gap-3 py-2.5">
-                <span className="w-12 shrink-0 font-mono text-xs text-ink-muted">
+              <li key={c.ordinal} className="flex items-start gap-4 py-3">
+                <span className="text-caption text-muted-foreground w-9 shrink-0 pt-0.5 font-mono tabular">
                   {section.ordinal}.{c.ordinal}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -130,6 +121,6 @@ export default async function InstrumentVersionPage({
           </ul>
         </Panel>
       ))}
-    </div>
+    </>
   );
 }

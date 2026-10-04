@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import type { SetupProgress } from "../lib/api";
+import { setupSteps } from "../lib/setup-steps";
+import { Button } from "./ui/button";
 
 // Getting a state started, as four things to do in order.
 //
@@ -12,61 +14,6 @@ import type { SetupProgress } from "../lib/api";
 //
 // Reviewing the first inspection is not here: it is not setup, it is the work,
 // and it happens by itself once an inspector submits one.
-
-interface Step {
-  title: string;
-  detail: string;
-  done: boolean;
-  href: string;
-  action: string;
-}
-
-export function setupSteps(p: SetupProgress): Step[] {
-  return [
-    {
-      title: "Add your facilities",
-      detail:
-        p.facilities > 0
-          ? `${p.facilities} ${p.facilities === 1 ? "facility" : "facilities"} in the registry`
-          : "Import the spreadsheet you already keep, or add them one at a time",
-      done: p.facilities > 0,
-      href: "/facilities/new?tab=import",
-      action: "Import facilities",
-    },
-    {
-      title: "Check your checklists",
-      detail:
-        p.checklistsInForce > 0
-          ? `Checklists ready for ${p.checklistsInForce} of 4 facility types`
-          : "Publish the questions inspectors will answer on site",
-      done: p.checklistsInForce > 0,
-      href: "/instruments",
-      action: "Open checklists",
-    },
-    {
-      title: "Invite your inspectors",
-      detail:
-        p.inspectorsWithPhone > 0
-          ? `${p.inspectorsWithPhone} of ${p.inspectors} inspectors have a working phone`
-          : p.invitesWaiting > 0
-            ? `${p.invitesWaiting} ${p.invitesWaiting === 1 ? "invite" : "invites"} sent, waiting to be used`
-            : "Send each one a code by SMS and email",
-      done: p.inspectorsWithPhone > 0,
-      href: "/team",
-      action: "Invite inspectors",
-    },
-    {
-      title: "Plan the first visits",
-      detail:
-        p.plannedVisits > 0
-          ? `${p.plannedVisits} ${p.plannedVisits === 1 ? "visit" : "visits"} planned`
-          : "Choose who goes where; visits appear on their phone",
-      done: p.plannedVisits > 0 || p.submittedInspections > 0,
-      href: "/plan",
-      action: "Plan visits",
-    },
-  ];
-}
 
 export function SetupChecklist({ progress }: { progress: SetupProgress }) {
   const steps = setupSteps(progress);
@@ -135,16 +82,11 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
               </div>
               <p className="min-h-[2.5rem] text-xs leading-relaxed text-ink-muted">{step.detail}</p>
               {!step.done ? (
-                <Link
-                  href={step.href}
-                  className={`mt-auto inline-flex h-8 w-fit items-center gap-1.5 rounded-control px-3 text-xs font-semibold transition-colors ${
-                    current
-                      ? "bg-primary text-white shadow-raised hover:bg-primary-600"
-                      : "border border-line bg-card text-ink hover:bg-surface-sunk"
-                  }`}
-                >
-                  {step.action} <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
+                <Button asChild size="sm" variant={current ? "default" : "secondary"} className="mt-auto w-fit">
+                  <Link href={step.href}>
+                    {step.action} <ArrowRight aria-hidden />
+                  </Link>
+                </Button>
               ) : null}
             </li>
           );

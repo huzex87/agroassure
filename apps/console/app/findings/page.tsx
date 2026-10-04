@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type FindingRow } from "../../lib/api";
-import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
+import { Badge, Panel, Cell, Empty, Row, DataTable, FilterBar, PageHeader } from "../../components/ui";
 import { FindingStatus, Severity } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -43,21 +43,26 @@ export default async function FindingsPage({
     <>
       <PageHeader
         title="Issues to fix"
-        summary={
+        summary="Corrective actions raised by inspections, most urgent first. Overdue and escalated states arrive on their own."
+        badges={
           <>
-          {findings.length} shown · {overdue} past due · {escalated} escalated
+            {overdue > 0 ? (
+              <Badge variant="destructive" dot>
+                {overdue} past due
+              </Badge>
+            ) : null}
+            {escalated > 0 ? (
+              <Badge variant="warning" dot>
+                {escalated} escalated
+              </Badge>
+            ) : null}
           </>
         }
       />
 
-      <Panel>
-        <form className="mb-4 flex flex-wrap items-center gap-3" action="/findings">
-          <select
-            name="status"
-            defaultValue={params.status ?? ""}
-            aria-label="Status"
-            className="field"
-          >
+      <Panel flush>
+        <FilterBar action="/findings" active={Boolean(params.status || params.severity || params.overdueOnly)}>
+          <select name="status" defaultValue={params.status ?? ""} aria-label="Status" className="field w-48">
             <option value="">All states</option>
             {STATUSES.map(([value, text]) => (
               <option key={value} value={value}>
@@ -65,12 +70,7 @@ export default async function FindingsPage({
               </option>
             ))}
           </select>
-          <select
-            name="severity"
-            defaultValue={params.severity ?? ""}
-            aria-label="Severity"
-            className="field"
-          >
+          <select name="severity" defaultValue={params.severity ?? ""} aria-label="Severity" className="field w-44">
             <option value="">All severities</option>
             {SEVERITIES.map(([value, text]) => (
               <option key={value} value={value}>
@@ -78,23 +78,17 @@ export default async function FindingsPage({
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <label className="text-body text-muted-foreground flex cursor-pointer items-center gap-2">
             <input
               type="checkbox"
               name="overdueOnly"
               value="true"
               defaultChecked={params.overdueOnly === "true"}
-              className="h-4 w-4 rounded border-line"
+              className="size-4 accent-[var(--primary)]"
             />
             Past due only
           </label>
-          <button
-            type="submit"
-            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-          >
-            Filter
-          </button>
-        </form>
+        </FilterBar>
 
         <DataTable
           head={["Reference", "Facility", "Finding", "Severity", "Due", "Status"]}
