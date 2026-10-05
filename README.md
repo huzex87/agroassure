@@ -355,7 +355,9 @@ administrator's decision comes before the phone exists, not after.
 
 ## Testing with real people
 
-Two guides in `docs/`:
+**New here?** Start with the one-page [`docs/onboarding-guide.md`](docs/onboarding-guide.md): what administrators, inspectors and office staff each do first.
+
+Two more guides in `docs/`:
 
 - [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list
   (SMS and email accounts, Render settings, naming yourself the first
