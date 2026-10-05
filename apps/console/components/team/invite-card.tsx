@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, CircleAlert, Clock, Copy, Mail, MessageSquare, Smartphone, X } from "lucide-react";
 import type { ChannelOutcome, IssuedInvitation } from "../../lib/api";
+import { Button } from "../ui/button";
 
 // The moment after an invitation is sent.
 //
@@ -134,13 +135,9 @@ export function InviteCard({ invitation, onClose }: { invitation: IssuedInvitati
         <p className="flex items-center gap-1.5 text-xs text-ink-muted">
           <Clock className="size-3.5" aria-hidden /> Works once · expires {expiry(invitation.expiresAt)}
         </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-9 items-center rounded-control bg-primary px-4 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-        >
+        <Button type="button" onClick={onClose}>
           Done
-        </button>
+        </Button>
       </div>
     </div>
   );

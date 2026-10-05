@@ -1,9 +1,12 @@
+import { useState, type ReactNode } from "react";
 import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import { renderScreen, press } from "./harness";
 import { cleanCode, displayCode } from "../src/invite-code";
+import { LanguageContext, type Language } from "../src/i18n";
 
-// Setting up a phone is now one code and one button. What has to hold: the code
+// Setting up a phone is one code and one button, and nothing else is demanded.
+// A PIN is offered afterwards, never required. What has to hold: the code
 // is forgiving about how it is typed, a good code leaves the phone signed in as
 // the invited person with its own key registered, a refused code says why in
 // the server's words, and a phone that was signed out remotely starts again
@@ -44,17 +47,42 @@ async function typePin(pin: string) {
   for (const digit of pin) await press(screen.getByLabelText(digit));
 }
 
-/** The PIN every successful activation now asks for, chosen and confirmed. */
+/** The optional PIN, offered on the welcome screen: chosen and confirmed. */
 async function choosePin(pin = "2580") {
+  await press(await screen.findByText("Add a PIN"));
   expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
   await typePin(pin);
   expect(await screen.findByText("Enter the same PIN again")).toBeTruthy();
   await typePin(pin);
 }
 
+/** The activation request, whatever else the screen asked the server. */
+function activationCalls() {
+  return fetchMock.mock.calls.filter(([url]) => /\/v1\/auth\/activate$/.test(String(url)));
+}
+
+/** A server where registration is switched off, answering activation with `then`. */
+function serverWith(then: () => Promise<unknown>, registration = false) {
+  fetchMock.mockImplementation((url: string) =>
+    /\/v1\/register\/options$/.test(String(url))
+      ? reply(200, { available: registration, jurisdictions: [] })
+      : then(),
+  );
+}
+
+/** The language state the real layout holds, so a switch on screen takes effect. */
+function WithLanguage({ children }: { children: ReactNode }) {
+  const [language, setLanguage] = useState<Language>("en");
+  return <LanguageContext.Provider value={{ language, setLanguage }}>{children}</LanguageContext.Provider>;
+}
+
 function renderActivate() {
   const Activate = require("../app/activate").default;
-  return renderScreen(<Activate />);
+  return renderScreen(
+    <WithLanguage>
+      <Activate />
+    </WithLanguage>,
+  );
 }
 
 beforeEach(async () => {
@@ -95,7 +123,7 @@ describe("the activation screen", () => {
     expect(screen.getByDisplayValue("K7PM-4X")).toBeTruthy();
 
     fireEvent.press(screen.getByText("Continue"));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(activationCalls()).toHaveLength(0);
   });
 
   it("fills the code in from the link in the message", async () => {
@@ -104,16 +132,18 @@ describe("the activation screen", () => {
     expect(await screen.findByDisplayValue("K7PM-4XQ2")).toBeTruthy();
   });
 
-  it("signs the phone in as the invited person, with its own key", async () => {
-    fetchMock.mockImplementation(() => reply(200, ACTIVATED));
+  it("signs the phone in as the invited person, with its own key, and asks for nothing else", async () => {
+    serverWith(() => reply(200, ACTIVATED));
     renderActivate();
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
 
-    await choosePin();
+    // Straight to the welcome: no keypad in the way of the first visit.
     expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
+    expect(screen.queryByText("Choose a 4-digit PIN")).toBeNull();
+    expect(await SecureStore.getItemAsync("agroassure.pin.hash")).toBeNull();
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = activationCalls()[0];
     expect(url).toMatch(/\/v1\/auth\/activate$/);
     const body = JSON.parse(init.body);
     expect(body.code).toBe("K7PM4XQ2");
@@ -128,27 +158,29 @@ describe("the activation screen", () => {
     expect(mockRouter.replace).toHaveBeenCalledWith("/");
   });
 
-  it("asks for a PIN before letting anyone in, and again if the two do not match", async () => {
-    fetchMock.mockImplementation(() => reply(200, ACTIVATED));
+  it("offers a PIN, and asks again if the two do not match", async () => {
+    serverWith(() => reply(200, ACTIVATED));
     renderActivate();
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
 
+    await press(await screen.findByText("Add a PIN"));
     expect(await screen.findByText("Choose a 4-digit PIN")).toBeTruthy();
     await typePin("1111");
     await typePin("2222");
     expect(await screen.findByText("Those didn't match. Choose your PIN again.")).toBeTruthy();
     expect(await SecureStore.getItemAsync("agroassure.pin.hash")).toBeNull();
 
-    await choosePin("1357");
-    expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
+    await typePin("1357");
+    await typePin("1357");
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
     const stored = await SecureStore.getItemAsync("agroassure.pin.hash");
     expect(stored).toMatch(/^[0-9a-f]{64}$/);
     expect(stored).not.toContain("1357");
   });
 
   it("shows the server's reason when a code is refused", async () => {
-    fetchMock.mockImplementation(() =>
+    serverWith(() =>
       reply(410, {
         error: true,
         status: 410,
@@ -165,7 +197,7 @@ describe("the activation screen", () => {
   });
 
   it("says the connection failed, in words, when there is no signal", async () => {
-    fetchMock.mockImplementation(() => Promise.reject(new TypeError("Network request failed")));
+    serverWith(() => Promise.reject(new TypeError("Network request failed")));
     renderActivate();
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
@@ -173,20 +205,19 @@ describe("the activation screen", () => {
   });
 
   it("starts again with a new key when this phone was signed out remotely", async () => {
-    fetchMock
-      .mockImplementationOnce(() =>
-        reply(409, { message: "This phone was signed out remotely.", reason: "device_signed_out" }),
-      )
-      .mockImplementationOnce(() => reply(200, ACTIVATED));
+    const answers = [
+      () => reply(409, { message: "This phone was signed out remotely.", reason: "device_signed_out" }),
+      () => reply(200, ACTIVATED),
+    ];
+    serverWith(() => answers.shift()!());
 
     renderActivate();
     fireEvent.changeText(await screen.findByLabelText("Invite code"), "K7PM-4XQ2");
     await press(screen.getByText("Continue"));
 
-    await choosePin();
     expect(await screen.findByText("Welcome, Aisha")).toBeTruthy();
-    const first = JSON.parse(fetchMock.mock.calls[0][1].body).publicKeyBase64;
-    const second = JSON.parse(fetchMock.mock.calls[1][1].body).publicKeyBase64;
+    const first = JSON.parse(activationCalls()[0][1].body).publicKeyBase64;
+    const second = JSON.parse(activationCalls()[1][1].body).publicKeyBase64;
     expect(second).not.toBe(first);
   });
 
@@ -196,6 +227,39 @@ describe("the activation screen", () => {
     await SecureStore.setItemAsync("agroassure.user.name", "Aisha Bello");
     renderActivate();
     expect(await screen.findByText("This phone is already set up")).toBeTruthy();
-    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled());
+    await waitFor(() => expect(activationCalls()).toHaveLength(0));
+  });
+});
+
+describe("one way in", () => {
+  it("shows only the code box when asking to join is switched off", async () => {
+    serverWith(() => reply(200, ACTIVATED), false);
+    renderActivate();
+    await screen.findByLabelText("Invite code");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText("Register instead")).toBeNull();
+    expect(screen.getByText(/No code\? Ask your supervisor/)).toBeTruthy();
+  });
+
+  it("offers asking to join, quietly below the code box, only when the server has it on", async () => {
+    serverWith(() => reply(200, ACTIVATED), true);
+    renderActivate();
+    expect(await screen.findByText("Register instead")).toBeTruthy();
+  });
+
+  it("shows only the code box when the server cannot be reached", async () => {
+    fetchMock.mockImplementation(() => Promise.reject(new TypeError("Network request failed")));
+    renderActivate();
+    await screen.findByLabelText("Invite code");
+    expect(screen.queryByText("Register instead")).toBeNull();
+  });
+
+  it("switches language on the first screen with one tap", async () => {
+    serverWith(() => reply(200, ACTIVATED));
+    renderActivate();
+    await press(await screen.findByText("Hausa"));
+    expect(await screen.findByText("Barka da zuwa AgroAssure")).toBeTruthy();
+    await press(screen.getByText("English"));
+    expect(await screen.findByText("Welcome to AgroAssure")).toBeTruthy();
   });
 });

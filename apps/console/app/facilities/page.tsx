@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileSpreadsheet, Plus } from "lucide-react";
 import { get, type FacilityRow } from "../../lib/api";
-import { Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
+import { Button, ChipNav, Panel, Cell, Empty, Row, DataTable, FilterBar, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
 import { RegistryMap } from "../../components/registry-map";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
@@ -14,10 +14,25 @@ export const dynamic = "force-dynamic";
 
 const TYPES = Object.entries(FACILITY_TYPE_LABEL);
 
+const STATUSES: Array<[string, string]> = [
+  ["valid", "Valid"],
+  ["due_soon", "Due soon"],
+  ["overdue", "Overdue"],
+  ["never_inspected", "Not yet inspected"],
+];
+
+const CHIP_DOT: Record<string, string> = {
+  "": "bg-primary",
+  valid: "bg-success",
+  due_soon: "bg-warning",
+  overdue: "bg-destructive",
+  never_inspected: "bg-ink-faint",
+};
+
 export default async function FacilitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; lga?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; lga?: string; status?: string }>;
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
@@ -25,60 +40,70 @@ export default async function FacilitiesPage({
   if (params.type) query.set("type", params.type);
   if (params.lga) query.set("lga", params.lga);
 
-  const facilities = await get<FacilityRow[]>(`/v1/facilities?${query}`);
-  const counts = facilities.reduce<Record<string, number>>((acc, f) => {
+  const everyone = await get<FacilityRow[]>(`/v1/facilities?${query}`);
+  const counts = everyone.reduce<Record<string, number>>((acc, f) => {
     acc[f.certificate_status] = (acc[f.certificate_status] ?? 0) + 1;
     return acc;
   }, {});
+  // The status chips narrow what is already fetched, so the counts on them stay
+  // the whole picture for this search rather than collapsing to the chosen one.
+  const status = params.status && STATUSES.some(([value]) => value === params.status) ? params.status : "";
+  const facilities = status ? everyone.filter((f) => f.certificate_status === status) : everyone;
+
+  const chipHref = (value: string) => {
+    const next = new URLSearchParams(query);
+    if (value) next.set("status", value);
+    const qs = next.toString();
+    return qs ? `/facilities?${qs}` : "/facilities";
+  };
 
   return (
     <>
       <PageHeader
         title="Facilities"
-        summary={
-          <>
-          {facilities.length} in this jurisdiction · {counts.valid ?? 0} valid ·{" "}
-          {counts.due_soon ?? 0} due soon · {counts.overdue ?? 0} overdue ·{" "}
-          {counts.never_inspected ?? 0} not yet inspected
-          </>
-        }
+        summary="Every regulated site in this jurisdiction, with the standing of its certificate."
         actions={
           <>
-            <Link
-              href="/facilities/new?tab=import"
-              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line bg-card px-3 text-sm font-medium shadow-xs transition-colors hover:bg-surface-sunk"
-            >
-              <FileSpreadsheet className="size-4" aria-hidden /> Import
-            </Link>
-            <Link
-              href="/facilities/new"
-              className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600"
-            >
-              <Plus className="size-4" aria-hidden /> Add facility
-            </Link>
+            <Button asChild variant="secondary">
+              <Link href="/facilities/new?tab=import">
+                <FileSpreadsheet aria-hidden /> Import
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/facilities/new">
+                <Plus aria-hidden /> Add facility
+              </Link>
+            </Button>
           </>
         }
+      />
+
+      <ChipNav
+        label="Filter by certificate status"
+        items={([["", "All"], ...STATUSES] as Array<[string, string]>).map(([value, text]) => ({
+          label: text,
+          href: chipHref(value),
+          active: status === value,
+          count: value ? (counts[value] ?? 0) : everyone.length,
+          dot: CHIP_DOT[value],
+        }))}
       />
 
       <Panel>
         <RegistryMap facilities={facilities} />
       </Panel>
 
-      <Panel>
-        <form className="mb-4 flex flex-wrap gap-3" action="/facilities">
+      <Panel flush>
+        <FilterBar action="/facilities" active={Boolean(params.q || params.type || params.lga || status)}>
+          {status ? <input type="hidden" name="status" value={status} /> : null}
           <input
             name="q"
             defaultValue={params.q ?? ""}
-            placeholder="Business name or licence number"
+            placeholder="Search by name or licence number"
             aria-label="Search by business name or licence number"
-            className="field"
+            className="field min-w-[15rem] flex-1"
           />
-          <select
-            name="type"
-            defaultValue={params.type ?? ""}
-            aria-label="Facility type"
-            className="field"
-          >
+          <select name="type" defaultValue={params.type ?? ""} aria-label="Facility type" className="field w-52">
             <option value="">All types</option>
             {TYPES.map(([value, text]) => (
               <option key={value} value={value}>
@@ -91,31 +116,24 @@ export default async function FacilitiesPage({
             defaultValue={params.lga ?? ""}
             placeholder="LGA"
             aria-label="Local government area"
-            className="field"
+            className="field w-36"
           />
-          <button
-            type="submit"
-            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-          >
-            Filter
-          </button>
-        </form>
+        </FilterBar>
 
         <DataTable
           head={["Business", "Type", "LGA", "Last inspected", "Rating", "Certificate"]}
           empty={
             facilities.length === 0 ? (
-              params.q || params.type || params.lga ? (
+              params.q || params.type || params.lga || status ? (
                 <Empty>No facility matches this search.</Empty>
               ) : (
                 <Empty
                   action={
-                    <Link
-                      href="/facilities/new?tab=import"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-sm font-semibold text-white shadow-raised hover:bg-primary-600"
-                    >
-                      <FileSpreadsheet className="size-4" aria-hidden /> Import your registry
-                    </Link>
+                    <Button asChild>
+                      <Link href="/facilities/new?tab=import">
+                        <FileSpreadsheet aria-hidden /> Import your registry
+                      </Link>
+                    </Button>
                   }
                 >
                   No facilities yet. Import the spreadsheet you already keep, or add them one at a time.

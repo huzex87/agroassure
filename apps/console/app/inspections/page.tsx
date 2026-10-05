@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { get, type InspectionRow } from "../../lib/api";
-import { Badge, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
+import { Badge, Panel, Cell, Empty, Row, DataTable, FilterBar, PageHeader } from "../../components/ui";
 import { Rating } from "../../components/status";
 import { formatDate } from "../../lib/format";
 
@@ -31,20 +31,23 @@ export default async function InspectionsPage({
     <>
       <PageHeader
         title="Inspections"
-        summary={
-          <>
-          {inspections.length} shown · {awaiting} awaiting a decision
-          </>
+        summary="Every submitted inspection, with the rating it earned and whether an officer has decided."
+        badges={
+          awaiting > 0 ? (
+            <Badge variant="warning" dot>
+              {awaiting} awaiting a decision
+            </Badge>
+          ) : null
         }
       />
 
-      <Panel>
-        <form className="mb-4 flex flex-wrap gap-3" action="/inspections">
+      <Panel flush>
+        <FilterBar action="/inspections" active={Boolean(params.ratingBand || params.status || params.from || params.to)}>
           <select
             name="ratingBand"
             defaultValue={params.ratingBand ?? ""}
             aria-label="Rating"
-            className="field"
+            className="field w-48"
           >
             <option value="">All ratings</option>
             {BANDS.map(([value, text]) => (
@@ -53,31 +56,15 @@ export default async function InspectionsPage({
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <label className="text-body text-muted-foreground flex items-center gap-2">
             From
-            <input
-              type="date"
-              name="from"
-              defaultValue={params.from ?? ""}
-              className="field"
-            />
+            <input type="date" name="from" defaultValue={params.from ?? ""} className="field w-40" />
           </label>
-          <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <label className="text-body text-muted-foreground flex items-center gap-2">
             To
-            <input
-              type="date"
-              name="to"
-              defaultValue={params.to ?? ""}
-              className="field"
-            />
+            <input type="date" name="to" defaultValue={params.to ?? ""} className="field w-40" />
           </label>
-          <button
-            type="submit"
-            className="inline-flex items-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-          >
-            Filter
-          </button>
-        </form>
+        </FilterBar>
 
         <DataTable
           head={["Reference", "Facility", "Inspector", "Submitted", "Rating", "Findings", "Review"]}
@@ -110,8 +97,8 @@ export default async function InspectionsPage({
                   {i.lga ? ` · ${i.lga}` : ""}
                 </p>
               </Cell>
-              <Cell className="text-ink-muted">{i.inspector}</Cell>
-              <Cell className="text-ink-muted">{formatDate(i.submitted_at)}</Cell>
+              <Cell className="text-ink-muted whitespace-nowrap">{i.inspector}</Cell>
+              <Cell className="text-ink-muted whitespace-nowrap">{formatDate(i.submitted_at)}</Cell>
               <Cell>
                 <Rating band={i.rating_band} percent={i.rating_percent} />
               </Cell>

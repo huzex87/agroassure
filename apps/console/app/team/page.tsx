@@ -1,4 +1,4 @@
-import { Mail, MessageSquare } from "lucide-react";
+import { ChevronDown, Mail, MessageSquare } from "lucide-react";
 import { get, tryGet, type DeviceRow, type InviteChannels, type Me, type RegistrationRow, type UserRow } from "../../lib/api";
 import { Badge, Button, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
@@ -136,32 +136,43 @@ export default async function TeamPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Panel
           title="Invite an inspector"
-          subtitle="They'll be able to inspect from their phone in a couple of minutes."
-          className="lg:col-span-2"
+          subtitle="They get a code by SMS and email, and can inspect from their phone in a couple of minutes."
         >
           <InviteInspectorForm channels={channels} />
+          <details className="group border-border mt-5 border-t pt-4">
+            <summary className="text-body text-muted-foreground hover:text-foreground flex cursor-pointer list-none items-center justify-between gap-2 font-medium">
+              How phone setup works
+              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <ol className="mt-4 space-y-3">
+              {STEPS.map(([title, body], i) => (
+                <li key={title} className="flex gap-3">
+                  <span className="bg-primary-50 text-primary-700 ring-primary-100 grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold ring-1 ring-inset">
+                    {i + 1}
+                  </span>
+                  <span>
+                    <span className="text-body block font-semibold">{title}</span>
+                    <span className="text-caption text-muted-foreground block">{body}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="text-caption text-muted-foreground mt-4">
+              Each code works once and expires after a few days. Sending a new code cancels the old one. Every
+              inspection is still signed by the phone it was done on, so the record always shows who did it and
+              where.
+            </p>
+          </details>
         </Panel>
 
-        <Panel title="How phone setup works" className="lg:col-span-3">
-          <ol className="grid gap-4 sm:grid-cols-3">
-            {STEPS.map(([title, body], i) => (
-              <li key={title} className="rounded-control border border-line bg-surface-sunk p-4">
-                <span className="grid size-7 place-items-center rounded-full bg-primary text-sm font-semibold text-white shadow-raised">
-                  {i + 1}
-                </span>
-                <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-muted">{body}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-4 text-xs leading-relaxed text-ink-muted">
-            Each code works once and expires after a few days. Sending a new code cancels the old one.
-            Every inspection is still signed by the phone it was done on, so the record always shows
-            who did it and where.
-          </p>
+        <Panel
+          title="Add a colleague"
+          subtitle="Supervisors, authorising officers and administrators use this console rather than the phone app."
+        >
+          <AddColleagueForm />
         </Panel>
       </div>
 
@@ -209,12 +220,9 @@ export default async function TeamPage() {
                       />
                       {u.invitation_id && !hasPhone ? (
                         <form action={cancelInvitation.bind(null, u.invitation_id)}>
-                          <button
-                            type="submit"
-                            className="h-8 rounded-control px-2.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-sunk hover:text-destructive"
-                          >
+                          <Button type="submit" variant="ghost" size="sm" className="hover:text-destructive">
                             Cancel invite
-                          </button>
+                          </Button>
                         </form>
                       ) : null}
                     </div>
@@ -243,7 +251,7 @@ export default async function TeamPage() {
               </Cell>
               <Cell className="text-ink-muted">{d.assigned_to ?? "—"}</Cell>
               <Cell className="text-ink-muted">{ago(d.last_seen_at) ?? "—"}</Cell>
-              <Cell className="tabular-nums">{d.events_authored}</Cell>
+              <Cell className="tabular">{d.events_authored}</Cell>
               <Cell>
                 {d.status === "active" ? (
                   <Badge variant="success" dot>Active</Badge>
@@ -271,9 +279,9 @@ export default async function TeamPage() {
                       required
                       placeholder="Why? e.g. lost"
                       aria-label={`Reason for signing out ${d.label ?? "this phone"}`}
-                      className="field w-36 py-1.5 text-xs"
+                      className="field w-44"
                     />
-                    <Button variant="outline" size="sm">Sign out remotely</Button>
+                    <Button variant="secondary" size="sm">Sign out this phone</Button>
                   </form>
                 )}
               </Cell>
@@ -281,16 +289,9 @@ export default async function TeamPage() {
           ))}
         </DataTable>
         <p className="px-5 py-4 text-xs text-ink-muted">
-          Lost or replaced a phone? Sign it out remotely and it stops working straight away. Work it
+          Lost or replaced a phone? Sign it out and it stops working straight away. Work it
           already sent stays on record and stays credited to the inspector.
         </p>
-      </Panel>
-
-      <Panel
-        title="Add a colleague"
-        subtitle="Supervisors, authorising officers and administrators use this console rather than the phone app."
-      >
-        <AddColleagueForm />
       </Panel>
     </>
   );

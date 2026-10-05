@@ -112,7 +112,7 @@ the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
 
 | Screen | What it is for |
 |---|---|
-| Dashboard | Compliance tiles, the "decisions within 30 days" clock, findings by section, and risk-targeted suggestions — each shown with the reason that produced it, because a score without a reason cannot be argued with |
+| Home | Compliance tiles, the "decisions within 30 days" clock, findings by section, and risk-targeted suggestions — each shown with the reason that produced it, because a score without a reason cannot be argued with |
 | Facilities | The registry, with certificate status derived at read time so a lapse shows the morning after it happens |
 | Facility | Registered point, certificate history, every visit |
 | Inspections | The queue, marked by what still awaits an officer decision |
@@ -120,7 +120,7 @@ the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
 | Corrective actions | The findings worklist by severity and due date |
 | Certificate | The record, its authorising officer, and the verification token behind the QR |
 | Instruments | The version timeline, the in-force structure in both languages, and the explicit change list before a publish |
-| Users and devices | Roles, and device enrolment against a key the device generated and never exported |
+| Settings → Team | Roles, and phone set-up against a key the device generated and never exported |
 
 Styled to Huzex Light: `#409EF2` for action, `#072435` for text, white surfaces,
 12–16px radii, soft shadows, and light blurred overlays rather than dark tints.
@@ -280,7 +280,7 @@ browser installed on the render host; the HTML route works without it.
 
 ## Setting up a new state
 
-Until a state has run its first inspection, the dashboard shows a five-step
+Until a state has planned its first visits, the home page shows a four-step
 checklist. Each step ticks itself off from the record (`GET /v1/setup`), not
 from anyone clicking "done":
 
@@ -296,30 +296,40 @@ from anyone clicking "done":
    written, both here and on the single-facility form.
 2. **Check your checklists.** Publish the questions inspectors answer on site.
 3. **Invite your inspectors.** Covered in the next section.
-4. **Plan the first visits.** *Plan visits* shows every inspector, whether
+4. **Plan the first visits.** *Visits* shows every inspector, whether
    their phone is set up and how many visits they already have. Tick
    facilities, sorted with never-inspected and overdue first, and add a reason
    the inspector will see. A batch is all or nothing
    (`POST /v1/assignments/batch`), and a facility that already has a visit
    planned can't be planned twice. Risk suggestions sit alongside with their
    reasons and a one-click *Send*.
-5. **Review the first inspection.**
 
-The menu shows each person only the pages their role can use
+Reviewing the first inspection is not a setup step: it is the work, and it
+happens by itself once an inspector submits one.
+
+The menu is five everyday links — *Home, Visits, Inspections, Issues to fix,
+Facilities* — and one *Settings* page that holds the occasional jobs (*Team,
+Checklists, Programme overview*). Each person sees only what their role can use
 (`GET /v1/me`). The gateway still authorises every request.
+
+Shipping a default, already-published checklist would remove step 2 too, but it
+needs the real questions from the Technical Implementation Guide; the repository
+only holds placeholders, and inspection questions are not something to invent.
+Load them as the in-force version for each facility type and that step can go.
 
 ## Getting an inspector working
 
 One form in the console, one code on the phone. Nothing waits on anybody.
 
-1. **Invite.** An administrator opens **Team** and enters the inspector's name
+1. **Invite.** An administrator opens **Settings → Team** and enters the inspector's name
    and phone number (email optional). The gateway creates them with the
    inspector role and issues a one-time code, e.g. `K7PM-4XQ2`, sent by SMS and
    email. The console shows the same code and a QR code, for someone standing
    at the desk, and says which channel it went out on.
-2. **Enter the code.** The inspector installs the app, chooses a language and
-   types the code — or taps the link in the message, which opens the app with
-   the code already filled in.
+2. **Enter the code.** The inspector installs the app and types the code — or
+   taps the link in the message, which opens the app with the code already
+   filled in. The app uses the phone's language (one tap switches it), and
+   asks nothing else first.
 3. **Inspect.** The phone is active straight away. Assigned visits arrive on
    their own, and finished work sends itself whenever there is a signal.
 
@@ -345,7 +355,9 @@ administrator's decision comes before the phone exists, not after.
 
 ## Testing with real people
 
-Two guides in `docs/`:
+**New here?** Start with the one-page [`docs/onboarding-guide.md`](docs/onboarding-guide.md): what administrators, inspectors and office staff each do first.
+
+Two more guides in `docs/`:
 
 - [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list
   (SMS and email accounts, Render settings, naming yourself the first
@@ -356,8 +368,9 @@ Two guides in `docs/`:
 
 ## People asking to join
 
-Invitations start with the administrator. Registration starts with the person,
-and both stay available.
+Invitations start with the administrator and are the normal way in. Registration
+starts with the person; it is built and tested but switched off unless
+`SELF_REGISTRATION=on`, so the apps show one way in by default.
 
 1. **Ask.** An inspector taps **Register instead** on the app's first screen; a
    supervisor, officer or administrator uses **Request access** on the console's
@@ -367,15 +380,15 @@ and both stay available.
    with an unproven contact. Codes expire after 30 minutes; a wrong one is
    named, and a right one entered beside it still counts.
 3. **Approve.** The state's administrators are emailed, the dashboard shows
-   "N people are waiting to join", and **Team → Requests to join** lists each
+   "N people are waiting to join", and **Settings → Team → Requests to join** lists each
    person with a tick against each proven contact. The administrator picks the
    role — it starts at *Inspector* for app requests and *Desk supervisor* for
    website ones — and approves, or rejects with a reason that is sent on.
 4. **In.** The person is told by email and SMS. A phone request approved as an
    inspector is already that inspector's active phone: the request carried the
    phone's public key, approval registers it, and the waiting screen's next
-   check returns a session. They choose a PIN and see their visits — no invite
-   code. Someone who asked on the website and is approved as an inspector has
+   check returns a session. They see their visits — no invite code, and no
+   PIN to choose first. Someone who asked on the website and is approved as an inspector has
    no phone on file yet, so approval sends them an invite code at once, to the
    SMS and email they just proved. Office staff sign in to the console with the
    emailed link.
@@ -387,8 +400,9 @@ and the registrant's status token are stored only as hashes. The open
 endpoints (`/v1/register/*`) are rate limited per phone number and per email
 address — what stops the form being used to flood a stranger with codes — with
 a looser ceiling per source address, since every website request reaches the
-gateway from the console's own server. Registration is open when both an email
-and an SMS provider are configured; `SELF_REGISTRATION=off` turns it off.
+gateway from the console's own server. Registration is **off by default** — administrators invite their
+own staff, which is one form and one code. Set `SELF_REGISTRATION=on` to open it;
+it then runs whenever both an email and an SMS provider are configured.
 
 ## Authentication and evidence
 
@@ -427,7 +441,10 @@ A pilot can run on this instead of OIDC. In that case it refuses to start if
 `AUTH_JWT_SECRET` is still set, because that secret can mint a token for any
 role.
 
-**Phone PIN.** The field app asks for a 4-digit PIN when it opens and when it
+**Phone PIN.** Optional. After setup the welcome screen offers **Add a PIN**, and
+**Account → App PIN** adds or changes one at any time; a phone without one opens
+straight to the app and relies on the handset's own screen lock plus remote
+sign-out. Once set, the app asks for the 4-digit PIN when it opens and when it
 returns after 5 minutes away. The PIN is stored salted and hashed in the
 phone's secure storage. Forgetting it, or getting it wrong 5 times, signs the
 person out but keeps the phone's key and any unsent inspections, so a new

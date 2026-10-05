@@ -13,5 +13,6 @@ export * from "./card";
 export * from "./progress";
 export * from "./separator";
 export * from "./skeleton";
+export * from "./spark";
 export * from "./table";
 export * from "./primitives";

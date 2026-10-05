@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { I18nManager } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 // English and Hausa are both first-class. The instrument's own content is
@@ -10,6 +11,15 @@ export type Language = "en" | "ha";
 
 const STRINGS = {
   todaysVisits: { en: "Today's visits", ha: "Ziyarce-ziyarcen yau" },
+  greetMorning: { en: "Good morning", ha: "Barka da safiya" },
+  greetAfternoon: { en: "Good afternoon", ha: "Barka da rana" },
+  greetEvening: { en: "Good evening", ha: "Barka da yamma" },
+  visitsDone: { en: "done", ha: "an kammala" },
+  statusNotStarted: { en: "Not started", ha: "Ba a fara ba" },
+  statusInProgress: { en: "In progress", ha: "Ana yi" },
+  visitsOne: { en: "visit", ha: "ziyara" },
+  visitsMany: { en: "visits", ha: "ziyarce-ziyarce" },
+  allVisitsDone: { en: "All visits done. Well done.", ha: "An kammala dukkan ziyarce-ziyarce. Madalla." },
   noVisits: {
     en: "No visits yet. Your supervisor's assignments appear here as soon as your phone has a signal.",
     ha: "Babu ziyara tukuna. Ayyukan da shugabanka ya ba ka za su bayyana a nan da zarar wayarka ta sami sigina.",
@@ -61,7 +71,7 @@ const STRINGS = {
   continue: { en: "Continue", ha: "Ci gaba" },
   settingUp: { en: "Setting up your phone…", ha: "Ana saita wayarka…" },
   noCode: {
-    en: "No code? Ask your administrator to invite you. Codes are sent by email and SMS.",
+    en: "No code? Ask your supervisor to invite you. The code arrives by SMS and email.",
     ha: "Ba ka da lamba? Ka nemi shugabanka ya gayyace ka. Ana aika lambobi ta imel da SMS.",
   },
   // Asking to join, for someone without an invite code.
@@ -164,6 +174,22 @@ const STRINGS = {
     ha: "Kuskure ya yi yawa. Ka nemi sabuwar lambar gayyata daga shugabanka.",
   },
   deletePin: { en: "Delete", ha: "Goge" },
+  addPin: { en: "Add a PIN", ha: "Ƙara PIN" },
+  addPinBody: {
+    en: "Optional. Protects your work if the phone is lost or borrowed.",
+    ha: "Ba dole ba ne. Yana kare aikinka idan wayar ta ɓace ko an aro ta.",
+  },
+  pinTitle: { en: "App PIN", ha: "PIN ɗin manhaja" },
+  pinIsOff: {
+    en: "Not set. Anyone who can open this phone can open the app.",
+    ha: "Ba a saita ba. Duk mai iya buɗe wannan wayar zai iya buɗe manhajar.",
+  },
+  pinIsOn: {
+    en: "On. It is asked each time you open the app.",
+    ha: "A kunne. Ana tambaya duk lokacin da ka buɗe manhajar.",
+  },
+  setPin: { en: "Set a PIN", ha: "Saita PIN" },
+  changePin: { en: "Change PIN", ha: "Canza PIN" },
   // Sending.
   allSent: { en: "Everything is sent", ha: "An aika komai" },
   sending: { en: "Sending…", ha: "Ana aikawa…" },
@@ -276,6 +302,20 @@ export const LanguageContext = createContext<{
 // that lives in Account — an inspector who reads Hausa should never have to
 // find a toggle before they can read the screen that tells them where it is.
 const LANGUAGE_KEY = "agroassure.language";
+
+/**
+ * The phone's own language, for someone who has not chosen one. Hausa if the
+ * phone is set to Hausa, English otherwise — nobody is asked a question before
+ * they have seen anything. A switch in Account, or on the code screen, sticks.
+ */
+export function phoneLanguage(): Language {
+  try {
+    const id = (I18nManager.getConstants() as { localeIdentifier?: string }).localeIdentifier ?? "";
+    return id.toLowerCase().startsWith("ha") ? "ha" : "en";
+  } catch {
+    return "en";
+  }
+}
 
 export async function storedLanguage(): Promise<Language | null> {
   const value = await SecureStore.getItemAsync(LANGUAGE_KEY);

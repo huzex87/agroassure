@@ -28,6 +28,7 @@ export default async function NewFacilityPage({
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Facilities", href: "/facilities" }, { label: "Add facilities" }]}
         title="Add facilities"
         summary="Put the premises you regulate into the registry, so inspectors can be sent to them."
       />

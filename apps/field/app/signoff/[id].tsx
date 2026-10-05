@@ -7,7 +7,7 @@ import type { FieldInspection } from "@agroassure/field-core";
 import { inspectionSession, inspectorId } from "../../src/session";
 import { requestSync } from "../../src/auto-sync";
 import { useLanguage } from "../../src/i18n";
-import { colors, styles } from "../../src/theme";
+import { toneBanner, colors, styles } from "../../src/theme";
 
 // Sign-off, standing in the facility with the manager beside you. Both
 // signatures are captured here and the rating is shown before either is given,
@@ -122,7 +122,13 @@ export default function Signoff() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
-      <View style={styles.banner}>
+      <View
+        style={
+          rating
+            ? toneBanner(rating.band === "satisfactory" ? "good" : rating.band === "critical_issues" ? "critical" : "caution")
+            : styles.banner
+        }
+      >
         <Text style={styles.h1}>{rating ? `${rating.percent.toFixed(1)}%` : "…"}</Text>
         {/* Colour is never the only carrier: the band is written out. */}
         <Text style={styles.h2}>{rating ? ratingBand(rating.band) : ""}</Text>

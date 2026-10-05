@@ -27,8 +27,15 @@
   --popover: #ffffff;
   --popover-foreground: #072435;
 
-  /* -- brand ------------------------------------------------------------- */
-  --primary: #2f93ec;
+  /* -- brand -------------------------------------------------------------
+     One hue, two jobs. The brand blue (#409EF2) is for things that are seen
+     rather than read: the mark, focus rings, chart series, selected states. It
+     is 2.8:1 against white, which is right for a shape and wrong for text. So
+     the colour that carries a button label or a link is the same hue taken
+     down to 4.7:1, the lowest that still passes AA for body text. Both are
+     steps on one scale, so nothing in the interface is a different blue. */
+  --brand: #409ef2;
+  --primary: #1b75cc;
   --primary-foreground: #ffffff;
   --secondary: #f4f8fb;
   --secondary-foreground: #0d3f5c;
@@ -40,7 +47,7 @@
 
   --border: #e4edf3;
   --input: #cbdae5;
-  --ring: #2f93ec;
+  --ring: #409ef2;
 
   /* -- status -----------------------------------------------------------
      Chosen against the blue rather than off a colour wheel: the green is
@@ -65,7 +72,7 @@
      Ordered so a two-series chart reads as brand-against-settled rather than as
      two arbitrary colours, and so a five-series one never puts the caution
      amber beside the critical red. */
-  --chart-1: #2f93ec;
+  --chart-1: #409ef2;
   --chart-2: #0f7a5f;
   --chart-3: #a45e07;
   --chart-4: #b93a2e;
@@ -73,7 +80,10 @@
 
   /* Names the pages written before shadcn still use. */
   --ink-muted: #4a6b7c;
-  --ink-faint: #7c96a4;
+  /* The faintest text in the product (captions, placeholders, timestamps).
+     It used to be #7C96A4, which is 3.1:1 on white. This is 4.5:1 or better on
+     every surface it sits on. */
+  --ink-faint: #587384;
   --line-firm: #cbdae5;
   --surface-sunk: #f4f8fb;
 }
@@ -87,6 +97,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-brand: var(--brand);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -137,16 +148,32 @@
   --color-primary-50: #f1f8fe;
   --color-primary-100: #dfeffd;
   --color-primary-200: #bcdefb;
-  --color-primary-600: #1f7fd4;
-  --color-primary-700: #1665ad;
+  --color-primary-600: #1665ad; /* the fill on hover */
+  --color-primary-700: #124f8a; /* text and icons on a tint */
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Three radii and nothing else. A control (button, input, chip with a label)
+     is 10, a card or panel is 14, and a status badge is a pill. Eleven slightly
+     different radii were in use; the eye reads that as "assembled", not
+     "designed". */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
   --radius-card: 14px;
   --radius-control: 10px;
   --radius-pill: 999px;
+
+  /* One type scale. Each step has its size and line height decided once. */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.125rem;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-heading: 0.9375rem;
+  --text-heading--line-height: 1.375rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
 
   --font-sans: var(--font-jakarta), "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "Cascadia Mono", Menlo, monospace;
@@ -166,7 +193,9 @@
 
   html {
     background: var(--background);
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 5rem;
   }
 
   body {
@@ -195,34 +224,96 @@
 }
 
 /* Form controls. Every input, select and textarea in the console carries
-   "field"; it was referenced from every form and defined nowhere, so they were
-   rendering with the browser's defaults. */
+   "field", and a field is 36px tall to sit level with a default button; the
+   larger 40px "field-lg" belongs to forms that stand alone, such as sign-in. */
 @layer components {
   .field {
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
-    min-height: 2.25rem;
+    height: 2.25rem;
     border-radius: var(--radius-control);
     border: 1px solid var(--input);
-    background: var(--card);
-    padding: 0.5rem 0.75rem;
+    background-color: var(--card);
+    padding: 0 0.75rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--foreground);
     box-shadow: 0 1px 2px rgb(7 36 53 / 0.04);
-    transition: border-color 120ms, box-shadow 120ms;
+    transition: border-color 120ms, box-shadow 120ms, background-color 120ms;
+  }
+  .field-lg {
+    height: 2.5rem;
   }
   /* Faint enough that an example is never mistaken for something typed. */
   .field::placeholder {
     color: var(--ink-faint);
-    opacity: 1;
+    opacity: 0.85;
   }
-  .field:hover {
+  .field:hover:not(:disabled) {
     border-color: var(--color-primary-200);
   }
   .field:focus-visible {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 24%, transparent);
+  }
+  .field:disabled {
+    background-color: var(--muted);
+    color: var(--ink-faint);
+    cursor: not-allowed;
+  }
+  .field[aria-invalid="true"] {
+    border-color: var(--destructive);
+  }
+  .field[aria-invalid="true"]:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 20%, transparent);
+  }
+  /* A select draws its own chevron, so it matches the inputs beside it in every
+     browser instead of wearing the operating system's. */
+  select.field {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23587384' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+  }
+  textarea.field {
+    height: auto;
+    min-height: 5.5rem;
+    padding-block: 0.5rem;
+    line-height: 1.375rem;
+    resize: vertical;
+  }
+  input[type="date"].field {
+    padding-right: 0.5rem;
+  }
+}
+
+/* A quiet entrance for page content. 180ms and four pixels: enough that a page
+   arriving reads as a page arriving, not enough to be noticed on the tenth
+   visit. Switched off entirely for people who ask for less motion. */
+@layer utilities {
+  .page-enter {
+    animation: page-enter 180ms ease-out both;
+  }
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* A faint survey grid, for the places that show position rather than data:
+     the registry map and the sign-in backdrop. */
+  .survey-grid {
+    background-image: radial-gradient(circle at 1px 1px, rgb(7 36 53 / 0.09) 1px, transparent 0);
+    background-size: 20px 20px;
   }
 }
 
@@ -235,6 +326,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
   *,
   *::before,
   *::after {

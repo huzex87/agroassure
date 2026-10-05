@@ -204,7 +204,7 @@ export function PlanForm({
             {KINDS.map(([value, label], i) => (
               <label
                 key={value}
-                className="cursor-pointer rounded-[8px] px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors has-[:checked]:bg-card has-[:checked]:text-primary-700 has-[:checked]:shadow-raised"
+                className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors has-[:checked]:bg-card has-[:checked]:text-primary-700 has-[:checked]:shadow-raised"
               >
                 <input type="radio" name="kind" value={value} defaultChecked={i === 0} className="sr-only" />
                 {label}

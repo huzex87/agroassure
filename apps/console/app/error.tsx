@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { Button } from "../components/ui/button";
 import { DENIED } from "../lib/denied";
 
 // An error here is usually the API refusing something on purpose — a role that
@@ -72,24 +73,13 @@ export default function Error({
               rail is still on screen for anyone with somewhere to go; the one
               offer that is never wrong is to arrive as somebody else. */}
           {denied ? null : (
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex items-center rounded-control bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-            >
+            <Button type="button" onClick={reset}>
               Try again
-            </button>
+            </Button>
           )}
-          <Link
-            href="/signin"
-            className={
-              denied
-                ? "inline-flex items-center rounded-control bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-raised transition-colors hover:bg-primary-600"
-                : "inline-flex items-center rounded-control bg-surface px-3.5 py-2 text-sm font-medium text-ink ring-1 ring-inset ring-line-firm transition-colors hover:bg-surface-sunk"
-            }
-          >
-            Sign in as someone else
-          </Link>
+          <Button asChild variant={denied ? "default" : "secondary"}>
+            <Link href="/signin">Sign in as someone else</Link>
+          </Button>
         </div>
       </div>
     </div>

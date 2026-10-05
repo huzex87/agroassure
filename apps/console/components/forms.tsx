@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { CircleAlert, CircleCheck, RotateCw } from "lucide-react";
+import { CircleAlert, CircleCheck } from "lucide-react";
+import { Button } from "./ui/button";
 
 // The pieces every console form is built from, so a label, a hint, a refusal
 // and a busy button look and read the same on every page.
@@ -57,21 +58,20 @@ export function SubmitButton({
   pendingText,
   className = "w-full",
   disabled = false,
+  size = "lg",
+  variant = "default",
 }: {
   children: ReactNode;
   pendingText: string;
   className?: string;
   disabled?: boolean;
+  size?: "sm" | "default" | "lg";
+  variant?: "default" | "destructive" | "secondary";
 }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending || disabled}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-white shadow-raised transition-colors hover:bg-primary-600 disabled:opacity-60 ${className}`}
-    >
-      {pending ? <RotateCw className="size-4 animate-spin" aria-hidden /> : null}
+    <Button type="submit" size={size} variant={variant} loading={pending} disabled={disabled} className={className}>
       {pending ? pendingText : children}
-    </button>
+    </Button>
   );
 }

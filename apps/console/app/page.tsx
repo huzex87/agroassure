@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserPlus, ArrowRight } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  CalendarClock,
+  ClipboardCheck,
+  FileCheck2,
+  Plus,
+  ShieldCheck,
+  UserPlus,
+} from "lucide-react";
 import {
   get,
   tryGet,
@@ -11,7 +21,8 @@ import {
   type SetupProgress,
 } from "../lib/api";
 import { SetupChecklist } from "../components/setup-checklist";
-import { Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
+import { Button, Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
+import { canSee, PLANNERS } from "../lib/roles";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
 // The regulator dashboard: what to do today. Every number here reads from a
@@ -39,12 +50,57 @@ export default async function DashboardPage() {
   const waitingToJoin = requests?.length ?? 0;
 
   const { tiles, decisionsWithin30Days: clock } = summary;
+  const inspectionTrend = summary.complianceTrend.map((m) => m.inspections);
+  const ratingTrend = summary.complianceTrend.filter((m) => m.avg_rating !== null).map((m) => Number(m.avg_rating));
+
+  // The day, in the regulator's own time zone: a greeting that says "morning"
+  // at ten at night because the server runs in another country is worse than
+  // no greeting.
+  const now = new Date();
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Africa/Lagos" }).format(now));
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const today = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" }).format(now);
+  const first = me?.fullName.trim().split(/\s+/).find((p) => !/^(dr|prof|mr|mrs|ms|engr|alh|hajiya)\.?$/i.test(p)) ?? "";
+
+  // What needs a person today, said in one sentence. The tiles below hold the
+  // numbers; this holds the order to read them in.
+  const attention: string[] = [];
+  if (tiles.overdueFindings > 0)
+    attention.push(`${tiles.overdueFindings} ${tiles.overdueFindings === 1 ? "finding is" : "findings are"} past due`);
+  if (tiles.certificatesDueSoon > 0)
+    attention.push(
+      `${tiles.certificatesDueSoon} ${tiles.certificatesDueSoon === 1 ? "certificate expires" : "certificates expire"} within 30 days`,
+    );
+  if (waitingToJoin > 0)
+    attention.push(`${waitingToJoin} ${waitingToJoin === 1 ? "person is" : "people are"} waiting to join`);
+  const summaryLine =
+    attention.length === 0
+      ? "Nothing is overdue today. Figures update as inspections sync."
+      : `${attention.join(", ").replace(/, ([^,]*)$/, " and $1")}.`;
+  const canPlan = canSee(me?.roles ?? null, PLANNERS);
 
   return (
     <>
       <PageHeader
-        title="Compliance overview"
-        summary="Live from the inspection record. Figures update as inspections sync."
+        eyebrow={`${today}${me?.jurisdictionName ? ` · ${me.jurisdictionName}` : ""}`}
+        title={first ? `${greeting}, ${first}` : "Compliance overview"}
+        summary={summaryLine}
+        actions={
+          <>
+            {canPlan ? (
+              <Button asChild>
+                <Link href="/plan">
+                  <CalendarClock aria-hidden /> Plan visits
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href="/facilities/new">
+                <Plus aria-hidden /> Add facility
+              </Link>
+            </Button>
+          </>
+        }
       />
 
       {waitingToJoin > 0 ? (
@@ -75,10 +131,17 @@ export default async function DashboardPage() {
       {/* The tiles that carry a problem take the colour of the problem. A row
           where everything is ink means there is nothing to chase today, which
           is itself worth being able to see at a glance. */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat label="Registered facilities" value={tiles.facilities} href="/facilities" />
-        <Stat label="Inspections, last 30 days" value={tiles.inspections30d} href="/inspections" />
+      <div className="grid grid-cols-2 gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-3 xl:grid-cols-5">
+        <Stat label="Registered facilities" value={tiles.facilities} href="/facilities" icon={Building2} />
         <Stat
+          label="Inspections, last 30 days"
+          value={tiles.inspections30d}
+          href="/inspections"
+          icon={ClipboardCheck}
+          trend={inspectionTrend}
+        />
+        <Stat
+          icon={AlertTriangle}
           label="Open findings"
           value={tiles.openFindings}
           hint={
@@ -90,6 +153,7 @@ export default async function DashboardPage() {
           href="/findings"
         />
         <Stat
+          icon={FileCheck2}
           label="Valid certificates"
           value={tiles.validCertificates}
           hint={
@@ -108,6 +172,8 @@ export default async function DashboardPage() {
           }
         />
         <Stat
+          icon={ShieldCheck}
+          trend={ratingTrend}
           label="Decisions within 30 days"
           value={clock.percent === null ? "—" : `${clock.percent}%`}
           hint={
@@ -119,8 +185,9 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-5">
         <Panel
+          className="xl:col-span-3"
           title="Risk-targeted inspections"
           subtitle="Suggestions, with the reason that produced each one. Scheduling is yours."
         >
@@ -161,6 +228,7 @@ export default async function DashboardPage() {
         </Panel>
 
         <Panel
+          className="xl:col-span-2"
           title="Findings by section"
           subtitle="Where the value chain is actually failing, not where it is assumed to."
         >

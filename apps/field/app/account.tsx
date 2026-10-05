@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { getStore } from "../src/db";
 import { forgetIdentity } from "../src/signer";
-import { clearPin } from "../src/pin";
+import { clearPin, hasPin } from "../src/pin";
 import { clearInspector, inspectorName } from "../src/session";
 import { clearToken } from "../src/transport";
 import { syncNow, useAutoSync } from "../src/auto-sync";
@@ -28,10 +28,12 @@ export default function Account() {
   const [name, setName] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pinOn, setPinOn] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       inspectorName().then(setName);
+      hasPin().then(setPinOn);
     }, []),
   );
 
@@ -95,6 +97,20 @@ export default function Account() {
             );
           })}
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.overline}>{t("pinTitle")}</Text>
+        <Text style={styles.muted}>{pinOn ? t("pinIsOn") : t("pinIsOff")}</Text>
+        <Pressable
+          style={[styles.button, styles.buttonQuiet]}
+          onPress={() => router.push("/set-pin")}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.buttonText, styles.buttonQuietText]}>
+            {pinOn ? t("changePin") : t("setPin")}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.card}>

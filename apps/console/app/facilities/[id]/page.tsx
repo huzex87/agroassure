@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { get } from "../../../lib/api";
-import { Panel, Cell, Empty, Row, DataTable } from "../../../components/ui";
+import { Badge, Cell, DataTable, Empty, Facts, PageHeader, Panel, Row } from "../../../components/ui";
 import { Rating } from "../../../components/status";
-import { FACILITY_TYPE_LABEL, formatDate, formatPercent, label } from "../../../lib/format";
+import { FACILITY_TYPE_LABEL, formatDate, label } from "../../../lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -41,53 +41,58 @@ export default async function FacilityPage({
 
   const lat = facility.lat as number | null;
   const lng = facility.lng as number | null;
+  const current = certificates.find((c) => c.status === "valid");
 
   return (
-    <div className="space-y-6">
-      <header>
-        <Link href="/facilities" className="text-sm text-ink-muted hover:text-primary-700">
-          ← Facilities
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold text-ink">{String(facility.name)}</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          {String(facility.licence_number)} ·{" "}
-          {label(FACILITY_TYPE_LABEL, facility.facility_type as string)}
-          {facility.lga ? ` · ${String(facility.lga)} LGA` : ""}
-        </p>
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: "Facilities", href: "/facilities" }, { label: String(facility.name) }]}
+        title={String(facility.name)}
+        badges={
+          current ? (
+            <Badge variant="success" dot>
+              Certificate valid to {formatDate(current.valid_to)}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" dot>No valid certificate</Badge>
+          )
+        }
+        summary={
+          <>
+            <span className="font-mono text-[0.8125rem]">{String(facility.licence_number)}</span> ·{" "}
+            {label(FACILITY_TYPE_LABEL, facility.facility_type as string)}
+            {facility.lga ? ` · ${String(facility.lga)} LGA` : ""}
+          </>
+        }
+      />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="Registered location" className="lg:col-span-1">
+      <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <Panel title="Registered location" subtitle="Every visit is checked against this point.">
           {lat === null || lng === null ? (
-            <p className="text-sm text-ink-muted">
-              No registered point yet. The first inspection captures one, and every visit
-              afterwards is checked against it.
+            <p className="text-body text-muted-foreground">
+              No registered point yet. The first inspection captures one, and every visit afterwards is checked
+              against it.
             </p>
           ) : (
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-muted">Latitude</dt>
-                <dd className="tabular-nums">{lat.toFixed(5)}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-muted">Longitude</dt>
-                <dd className="tabular-nums">{lng.toFixed(5)}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-muted">Accuracy</dt>
-                <dd className="tabular-nums">
-                  {facility.registered_accuracy_m ? `${facility.registered_accuracy_m} m` : "—"}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-muted">Recorded</dt>
-                <dd>{formatDate(facility.registered_at as string)}</dd>
-              </div>
-            </dl>
+            <Facts
+              items={[
+                { label: "Latitude", value: <span className="tabular">{lat.toFixed(5)}</span> },
+                { label: "Longitude", value: <span className="tabular">{lng.toFixed(5)}</span> },
+                {
+                  label: "Accuracy",
+                  value: (
+                    <span className="tabular">
+                      {facility.registered_accuracy_m ? `± ${facility.registered_accuracy_m} m` : "—"}
+                    </span>
+                  ),
+                },
+                { label: "Recorded", value: formatDate(facility.registered_at as string) },
+              ]}
+            />
           )}
         </Panel>
 
-        <Panel title="Certificates" className="lg:col-span-2">
+        <Panel flush title="Certificates" subtitle="Newest first. A new certificate supersedes the one before it.">
           <DataTable
             head={["Serial", "Rating", "Issued", "Valid to", "Next due", "Status"]}
             empty={
@@ -98,10 +103,10 @@ export default async function FacilityPage({
           >
             {certificates.map((c) => (
               <Row key={c.id}>
-                <Cell>
+                <Cell className="whitespace-nowrap">
                   <Link
                     href={`/certificates/${c.id}`}
-                    className="font-mono text-xs text-ink hover:text-primary-700"
+                    className="hover:text-primary-700 font-mono text-[0.8125rem] font-medium"
                   >
                     {c.serial}
                   </Link>
@@ -109,17 +114,21 @@ export default async function FacilityPage({
                 <Cell>
                   <Rating band={c.rating_band} />
                 </Cell>
-                <Cell className="text-ink-muted">{formatDate(c.issued_on)}</Cell>
-                <Cell className="text-ink-muted">{formatDate(c.valid_to)}</Cell>
-                <Cell className="text-ink-muted">{formatDate(c.next_due_on)}</Cell>
-                <Cell className="text-ink-muted capitalize">{c.status}</Cell>
+                <Cell className="text-muted-foreground whitespace-nowrap">{formatDate(c.issued_on)}</Cell>
+                <Cell className="text-muted-foreground whitespace-nowrap">{formatDate(c.valid_to)}</Cell>
+                <Cell className="text-muted-foreground whitespace-nowrap">{formatDate(c.next_due_on)}</Cell>
+                <Cell>
+                  <Badge variant={c.status === "valid" ? "success" : c.status === "revoked" ? "destructive" : "secondary"} dot>
+                    {c.status === "valid" ? "Valid" : c.status === "revoked" ? "Revoked" : "Superseded"}
+                  </Badge>
+                </Cell>
               </Row>
             ))}
           </DataTable>
         </Panel>
       </div>
 
-      <Panel title="Inspection history" subtitle="Every visit, newest first.">
+      <Panel flush title="Inspection history" subtitle="Every visit, newest first.">
         <DataTable
           head={["Reference", "Submitted", "Inspector", "Rating", "Findings", ""]}
           empty={
@@ -131,28 +140,21 @@ export default async function FacilityPage({
           {inspections.map((i) => (
             <Row key={i.id}>
               <Cell>
-                <Link
-                  href={`/inspections/${i.id}`}
-                  className="font-medium text-ink hover:text-primary-700"
-                >
+                <Link href={`/inspections/${i.id}`} className="hover:text-primary-700 font-medium">
                   {i.reference}
                 </Link>
               </Cell>
-              <Cell className="text-ink-muted">{formatDate(i.submitted_at)}</Cell>
-              <Cell className="text-ink-muted">{i.inspector}</Cell>
+              <Cell className="text-muted-foreground whitespace-nowrap">{formatDate(i.submitted_at)}</Cell>
+              <Cell className="text-muted-foreground whitespace-nowrap">{i.inspector}</Cell>
               <Cell>
                 <Rating band={i.rating_band} percent={i.rating_percent} />
               </Cell>
-              <Cell className="tabular-nums">{i.findings_count}</Cell>
-              <Cell>
-                {i.checkin_flagged && (
-                  <span className="text-xs text-primary-700">Check-in flagged</span>
-                )}
-              </Cell>
+              <Cell className="tabular">{i.findings_count}</Cell>
+              <Cell>{i.checkin_flagged && <Badge variant="warning">Check-in flagged</Badge>}</Cell>
             </Row>
           ))}
         </DataTable>
       </Panel>
-    </div>
+    </>
   );
 }
