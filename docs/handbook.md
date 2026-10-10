@@ -66,6 +66,7 @@ You can work with no signal. Finished work sends by itself when the phone finds 
 ## Handy things in the console
 
 - **Find anything fast.** Press **Ctrl+K** (or click **Search** at the top of the sidebar) and type a facility name, a licence number or a page name.
+- **Download the registry.** On *Facilities*, click **Export**. You get a spreadsheet of what the page shows for your current search and filter. Long lists show 50 at a time, with **Next** and **Previous** underneath.
 - **Dark mode.** Click **Dark mode** at the bottom of the sidebar. The console otherwise follows your device, and remembers your choice on that browser.
 - **On a phone or tablet.** The sections become a row of buttons across the top of the page. Everything works, but the review pages are easiest on a larger screen.
 

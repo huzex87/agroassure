@@ -1,6 +1,8 @@
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src/config/config";
-import { buildSystemStatus, fromDomain } from "../src/console/system-status";
+import { buildSystemStatus, fromDomain, probeDownloadLink } from "../src/console/system-status";
 
 // The system status page is only useful if each message is true. These pin the
 // ones that cost real time: an email sender Resend refuses, a console address
@@ -72,6 +74,30 @@ describe("buildSystemStatus", () => {
     const { FIELD_APP_DOWNLOAD_URL: _x, ...rest } = WORKING;
     expect(check(rest, "download")?.fix).toMatch(/FIELD_APP_DOWNLOAD_URL/);
     expect(check(WORKING, "download")?.state).toBe("ok");
+  });
+
+  it("warns when the app download link does not work, and says what to do", () => {
+    const s = buildSystemStatus(loadConfig(WORKING), { ...up, downloadProblem: 'The link answered "404", so a phone cannot download from it.' });
+    const c = s.checks.find((x) => x.id === "download");
+    expect(c?.state).toBe("warn");
+    expect(c?.detail).toMatch(/404/);
+    expect(c?.fix).toMatch(/FIELD_APP_DOWNLOAD_URL/);
+  });
+
+  it("probes the link like a phone: an error status or no answer is a problem", async () => {
+    const server = createServer((req, res) => {
+      res.statusCode = req.url === "/gone" ? 404 : 200;
+      res.end("ok");
+    });
+    await new Promise<void>((r) => server.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    try {
+      expect(await probeDownloadLink(`${base}/app`)).toBeNull();
+      expect(await probeDownloadLink(`${base}/gone`)).toMatch(/404/);
+    } finally {
+      server.close();
+    }
+    expect(await probeDownloadLink("http://127.0.0.1:1/app", 1000)).toMatch(/did not answer/);
   });
 
   it("fails evidence kept on local disk", () => {

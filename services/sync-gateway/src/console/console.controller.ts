@@ -32,7 +32,7 @@ import { SetupService } from "./setup.service";
 import { InviteDelivery } from "../invitations/delivery";
 import { CONFIG, type AppConfig } from "../config/config";
 import { staffSignInUrl, staffWelcomeEmail } from "./staff-welcome";
-import { buildSystemStatus, type SystemStatus } from "./system-status";
+import { buildSystemStatus, probeDownloadLink, type SystemStatus } from "./system-status";
 import { PgService } from "../db/pg.service";
 import { ProjectorService } from "../projections/projector.service";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "../common/validate";
@@ -717,7 +717,9 @@ export class SystemController {
     } catch {
       /* reported as a failed check, not as an error page */
     }
-    return buildSystemStatus(this.config, { dbUp, projectionLag });
+    const url = this.config.invites.appDownloadUrl;
+    const downloadProblem = url ? await probeDownloadLink(url) : undefined;
+    return buildSystemStatus(this.config, { dbUp, projectionLag, downloadProblem });
   }
 
   /**
