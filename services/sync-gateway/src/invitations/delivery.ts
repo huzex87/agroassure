@@ -107,7 +107,7 @@ export function emailHtml(m: InviteMessage): string {
   const name = escape(firstName(m.fullName));
   const inviter = escape(m.invitedBy ?? "Your administrator");
   const download = m.appDownloadUrl
-    ? `<a href="${escape(m.appDownloadUrl)}" style="color:#1665AD;font-weight:600">Install the AgroAssure app</a>`
+    ? `<a href="${escape(m.appDownloadUrl)}" style="color:#166A45;font-weight:600">Install the AgroAssure app</a>`
     : "Install the AgroAssure app";
   return `<!doctype html>
 <html><body style="margin:0;background:#F1F5EF;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0E231B">
@@ -125,7 +125,7 @@ export function emailHtml(m: InviteMessage): string {
   <p style="margin:0;font-size:15px;line-height:1.55;color:#435A4D">${inviter} has invited you to AgroAssure, the inspection app.</p>
 </td></tr>
 <tr><td style="padding:22px 28px">
-  <div style="background:#EAF4FE;border:1px solid #C2E0FB;border-radius:14px;padding:18px;text-align:center">
+  <div style="background:#EEF7F1;border:1px solid #CFE6D8;border-radius:14px;padding:18px;text-align:center">
     <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#435A4D;font-weight:700">Your invite code</div>
     <div style="font-family:Menlo,Consolas,monospace;font-size:30px;font-weight:700;letter-spacing:.12em;margin-top:6px">${escape(m.code)}</div>
   </div>
