@@ -116,6 +116,15 @@ const routes = {
   "/v1/facilities": () => facilities,
   "/v1/inspections": () => inspections,
   "/v1/findings": () => findings,
+  "/v1/audit/processing-log": () => ({
+    generatedAt: iso(0), period: { from: day(-29), to: day(0) }, residency: "Nigeria: no personal data is processed outside the country.",
+    byActivity: [
+      { event_type: "InspectionSubmitted", events: 46, actors: 3, devices: 3, first_at: iso(-28), last_at: iso(-1) },
+      { event_type: "ResponseRecorded", events: 1420, actors: 3, devices: 3, first_at: iso(-28), last_at: iso(-1) },
+      { event_type: "DecisionRecorded", events: 38, actors: 2, devices: 0, first_at: iso(-27), last_at: iso(-2) },
+    ],
+    byActor: users.slice(0, 3).map((u, i) => ({ full_name: u.full_name, events: 400 - i * 120, first_at: iso(-28), last_at: iso(-i) })),
+  }),
   "/v1/inspectors": () => users.filter((u) => u.roles.includes("inspector")).map((u) => ({ id: u.id, full_name: u.full_name, has_phone: u.active_phones > 0, open_visits: 3 })),
   "/v1/assignments": () => planned,
   "/v1/users": () => users,

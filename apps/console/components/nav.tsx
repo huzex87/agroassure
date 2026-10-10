@@ -45,7 +45,7 @@ export const NAV: Array<{ heading: string; items: NavItem[] }> = [
         href: "/settings",
         label: "Settings",
         Icon: IconSettings,
-        also: ["/team", "/instruments", "/executive"],
+        also: ["/team", "/instruments", "/executive", "/activity"],
       },
       { href: "/help", label: "Help", Icon: IconHelp },
     ],

@@ -11,6 +11,8 @@ const SETTINGS_PAGES: Array<Destination & { roles?: string[] }> = [
   { href: "/team", label: "Team", hint: "Invite people, sign out a phone", roles: TEAM_ROLES },
   { href: "/instruments", label: "Checklists", hint: "The questions inspectors answer" },
   { href: "/executive", label: "Programme overview", hint: "Coverage and trends", roles: PROGRAMME_ROLES },
+  { href: "/activity", label: "Activity", hint: "Who did what, counted from the record", roles: TEAM_ROLES },
+  { href: "/profile", label: "Your account", hint: "Your name, email and role" },
   { href: "/settings/status", label: "System status", hint: "Email, sign-in and storage checks", roles: ADMIN_ROLES },
   { href: "/help", label: "Help", hint: "How it works, handy things, what to do when something is wrong" },
   { href: "/facilities/new", label: "Add a facility" },

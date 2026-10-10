@@ -29,6 +29,7 @@ How to run an inspection programme on AgroAssure. Find your role and follow it f
 - Check *Risk-targeted inspections* for facilities worth visiting next, each with the reason it was suggested.
 - Plan the week's visits under *Visits*.
 - Open *Findings* and chase anything past its due date.
+- Open *Settings → Activity* to see what was recorded in the last week, month or quarter, and by whom. It is counted from the record itself, so it cannot be edited.
 
 **A lost phone.** *Settings → Team → Phones → Sign out this phone*. It stops working at once. What it already sent stays on the record. Then use **Send new code** to set up a new phone.
 

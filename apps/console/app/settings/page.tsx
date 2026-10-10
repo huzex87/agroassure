@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowRight, BarChart3, ClipboardList, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, ClipboardList, History, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { tryGet, type Me } from "../../lib/api";
 import { PageHeader } from "../../components/ui";
@@ -37,6 +37,13 @@ const ITEMS: Array<{
     description: "Coverage, trends and enforcement across the whole programme.",
     icon: <BarChart3 className="size-5" aria-hidden />,
     roles: PROGRAMME_ROLES,
+  },
+  {
+    href: "/activity",
+    title: "Activity",
+    description: "What was recorded in the last week, month or quarter, and by whom, counted from the record itself.",
+    icon: <History className="size-5" aria-hidden />,
+    roles: TEAM_ROLES,
   },
   {
     href: "/settings/status",

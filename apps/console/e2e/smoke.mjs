@@ -80,7 +80,7 @@ try {
     }
   });
 
-  for (const path of ["/facilities", "/facilities/f-0", "/inspections", "/inspections/i-0", "/findings", "/plan", "/team", "/settings", "/executive", "/help"]) {
+  for (const path of ["/facilities", "/facilities/f-0", "/inspections", "/inspections/i-0", "/findings", "/plan", "/team", "/settings", "/executive", "/help", "/activity", "/profile"]) {
     await check(`${path} renders`, async () => {
       const res = await page.goto(base + path);
       assert(res && res.status() === 200, `status ${res?.status()}`);
