@@ -57,10 +57,25 @@ export default async function DashboardPage() {
   // at ten at night because the server runs in another country is worse than
   // no greeting.
   const now = new Date();
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Africa/Lagos" }).format(now));
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "Africa/Lagos",
+    }).format(now),
+  );
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const today = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" }).format(now);
-  const first = me?.fullName.trim().split(/\s+/).find((p) => !/^(dr|prof|mr|mrs|ms|engr|alh|hajiya)\.?$/i.test(p)) ?? "";
+  const today = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Africa/Lagos",
+  }).format(now);
+  const first =
+    me?.fullName
+      .trim()
+      .split(/\s+/)
+      .find((p) => !/^(dr|prof|mr|mrs|ms|engr|alh|hajiya)\.?$/i.test(p)) ?? "";
 
   // What needs a person today, said in one sentence. The tiles below hold the
   // numbers; this holds the order to read them in.
@@ -73,9 +88,19 @@ export default async function DashboardPage() {
     );
   if (waitingToJoin > 0)
     attention.push(`${waitingToJoin} ${waitingToJoin === 1 ? "person is" : "people are"} waiting to join`);
+  // A new deployment has nothing to report yet. Showing five zeros and three
+  // empty charts says "broken"; the steps below are the whole of what to do.
+  const unstarted =
+    tiles.facilities === 0 &&
+    tiles.inspections30d === 0 &&
+    tiles.openFindings === 0 &&
+    tiles.validCertificates === 0 &&
+    clock.total === 0;
   const summaryLine =
     attention.length === 0
-      ? "Nothing is overdue today. Figures update as inspections sync."
+      ? unstarted
+        ? "Welcome. Follow the steps below; figures appear here once inspections start to arrive."
+        : "Nothing is overdue today. Figures update as inspections sync."
       : `${attention.join(", ").replace(/, ([^,]*)$/, " and $1")}.`;
   const canPlan = canSee(me?.roles ?? null, PLANNERS);
 
@@ -88,7 +113,8 @@ export default async function DashboardPage() {
         actions={
           <>
             {canPlan ? (
-              <Button asChild>
+              // The setup steps own the one filled button until there is work to plan.
+              <Button asChild variant={unstarted ? "secondary" : "default"}>
                 <Link href="/plan">
                   <CalendarClock aria-hidden /> Plan visits
                 </Link>
@@ -128,126 +154,136 @@ export default async function DashboardPage() {
 
       {setup ? <SetupChecklist progress={setup} /> : null}
 
-      {/* The tiles that carry a problem take the colour of the problem. A row
+      {unstarted ? (
+        <Panel title="This page fills in as work comes in" subtitle="Nothing to show yet, and nothing wrong.">
+          <ul className="grid gap-4 text-sm leading-relaxed text-ink-muted sm:grid-cols-3">
+            <li>
+              <span className="block font-medium text-ink">Today&rsquo;s priorities</span>
+              Overdue findings, expiring certificates and people waiting to join, in one line at the top.
+            </li>
+            <li>
+              <span className="block font-medium text-ink">Risk-targeted inspections</span>
+              Facilities worth visiting next, each with the reason it was suggested.
+            </li>
+            <li>
+              <span className="block font-medium text-ink">Trends</span>
+              Findings by section and average rating by month, once inspections are decided.
+            </li>
+          </ul>
+        </Panel>
+      ) : (
+        <>
+          {/* The tiles that carry a problem take the colour of the problem. A row
           where everything is ink means there is nothing to chase today, which
           is itself worth being able to see at a glance. */}
-      <div className="grid grid-cols-2 gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-3 xl:grid-cols-5">
-        <Stat label="Registered facilities" value={tiles.facilities} href="/facilities" icon={Building2} />
-        <Stat
-          label="Inspections, last 30 days"
-          value={tiles.inspections30d}
-          href="/inspections"
-          icon={ClipboardCheck}
-          trend={inspectionTrend}
-        />
-        <Stat
-          icon={AlertTriangle}
-          label="Open findings"
-          value={tiles.openFindings}
-          hint={
-            tiles.overdueFindings > 0
-              ? `${tiles.overdueFindings} past their due date`
-              : "None past their due date"
-          }
-          tone={tiles.overdueFindings > 0 ? "destructive" : "neutral"}
-          href="/findings"
-        />
-        <Stat
-          icon={FileCheck2}
-          label="Valid certificates"
-          value={tiles.validCertificates}
-          hint={
-            tiles.certificatesDueSoon > 0
-              ? `${tiles.certificatesDueSoon} expire within 30 days`
-              : "None expiring within 30 days"
-          }
-          // Green means "settled", which an empty register is not. Zero valid
-          // certificates is not a good state, it is an unstarted one.
-          tone={
-            tiles.certificatesDueSoon > 0
-              ? "warning"
-              : tiles.validCertificates > 0
-                ? "success"
-                : "neutral"
-          }
-        />
-        <Stat
-          icon={ShieldCheck}
-          trend={ratingTrend}
-          label="Decisions within 30 days"
-          value={clock.percent === null ? "—" : `${clock.percent}%`}
-          hint={
-            clock.total === 0
-              ? "No inspections submitted in the last 90 days"
-              : `${clock.decided} of ${clock.total} inspections in the last 90 days`
-          }
-          tone={clock.percent !== null && clock.percent < 80 ? "warning" : "neutral"}
-        />
-      </div>
+          <div className="grid grid-cols-2 gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Stat label="Registered facilities" value={tiles.facilities} href="/facilities" icon={Building2} />
+            <Stat
+              label="Inspections, last 30 days"
+              value={tiles.inspections30d}
+              href="/inspections"
+              icon={ClipboardCheck}
+              trend={inspectionTrend}
+            />
+            <Stat
+              icon={AlertTriangle}
+              label="Open findings"
+              value={tiles.openFindings}
+              hint={
+                tiles.overdueFindings > 0 ? `${tiles.overdueFindings} past their due date` : "None past their due date"
+              }
+              tone={tiles.overdueFindings > 0 ? "destructive" : "neutral"}
+              href="/findings"
+            />
+            <Stat
+              icon={FileCheck2}
+              label="Valid certificates"
+              value={tiles.validCertificates}
+              hint={
+                tiles.certificatesDueSoon > 0
+                  ? `${tiles.certificatesDueSoon} expire within 30 days`
+                  : "None expiring within 30 days"
+              }
+              // Green means "settled", which an empty register is not. Zero valid
+              // certificates is not a good state, it is an unstarted one.
+              tone={tiles.certificatesDueSoon > 0 ? "warning" : tiles.validCertificates > 0 ? "success" : "neutral"}
+            />
+            <Stat
+              icon={ShieldCheck}
+              trend={ratingTrend}
+              label="Decisions within 30 days"
+              value={clock.percent === null ? "—" : `${clock.percent}%`}
+              hint={
+                clock.total === 0
+                  ? "No inspections submitted in the last 90 days"
+                  : `${clock.decided} of ${clock.total} inspections in the last 90 days`
+              }
+              tone={clock.percent !== null && clock.percent < 80 ? "warning" : "neutral"}
+            />
+          </div>
 
-      <div className="grid gap-5 xl:grid-cols-5">
-        <Panel
-          className="xl:col-span-3"
-          title="Risk-targeted inspections"
-          subtitle="Suggestions, with the reason that produced each one. Scheduling is yours."
-        >
-          {suggestions.length === 0 ? (
-            <Empty>
-              No facility is currently showing a risk signal. Suggestions appear here as
-              inspections and findings accumulate.
-            </Empty>
-          ) : (
-            <ul className="-my-3 divide-y divide-line">
-              {suggestions.map((s) => (
-                <li key={s.facilityId} className="flex items-start gap-3.5 py-3.5">
-                  {/* The score is a ranking device, not a verdict, so it is set
+          <div className="grid gap-5 xl:grid-cols-5">
+            <Panel
+              className="xl:col-span-3"
+              title="Risk-targeted inspections"
+              subtitle="Suggestions, with the reason that produced each one. Scheduling is yours."
+            >
+              {suggestions.length === 0 ? (
+                <Empty>
+                  No facility is currently showing a risk signal. Suggestions appear here as inspections and findings
+                  accumulate.
+                </Empty>
+              ) : (
+                <ul className="-my-3 divide-y divide-line">
+                  {suggestions.map((s) => (
+                    <li key={s.facilityId} className="flex items-start gap-3.5 py-3.5">
+                      {/* The score is a ranking device, not a verdict, so it is set
                       quietly beside the reason rather than shouted. */}
-                  <span
-                    aria-label={`Risk score ${s.score} of 100`}
-                    className="mt-0.5 grid h-7 w-8 shrink-0 place-items-center rounded-control bg-primary-50 text-xs font-semibold tabular-nums text-primary-700 ring-1 ring-inset ring-primary-100"
-                  >
-                    {s.score}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/facilities/${s.facilityId}`}
-                      className="block truncate text-sm font-medium text-ink hover:text-primary-700"
-                    >
-                      {s.facilityName}
-                    </Link>
-                    {/* The reason is the point; the score is secondary. */}
-                    <Reason>{s.leadingReason}</Reason>
-                    {s.reasons.length > 1 && (
-                      <p className="mt-1 text-xs text-ink-faint">{s.reasons.slice(1).join(" · ")}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
+                      <span
+                        aria-label={`Risk score ${s.score} of 100`}
+                        className="mt-0.5 grid h-7 w-8 shrink-0 place-items-center rounded-control bg-primary-50 text-xs font-semibold tabular-nums text-primary-700 ring-1 ring-inset ring-primary-100"
+                      >
+                        {s.score}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/facilities/${s.facilityId}`}
+                          className="block truncate text-sm font-medium text-ink hover:text-primary-700"
+                        >
+                          {s.facilityName}
+                        </Link>
+                        {/* The reason is the point; the score is secondary. */}
+                        <Reason>{s.leadingReason}</Reason>
+                        {s.reasons.length > 1 && (
+                          <p className="mt-1 text-xs text-ink-faint">{s.reasons.slice(1).join(" · ")}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
 
-        <Panel
-          className="xl:col-span-2"
-          title="Findings by section"
-          subtitle="Where the value chain is actually failing, not where it is assumed to."
-        >
-          <FindingsBySection rows={summary.findingsBySection} />
-        </Panel>
-      </div>
+            <Panel
+              className="xl:col-span-2"
+              title="Findings by section"
+              subtitle="Where the value chain is actually failing, not where it is assumed to."
+            >
+              <FindingsBySection rows={summary.findingsBySection} />
+            </Panel>
+          </div>
 
-      <Panel
-        title="Compliance trend"
-        subtitle="Average rating by month, on a full 0–100 scale."
-      >
-        <ComplianceTrend
-          points={summary.complianceTrend.map((m) => ({
-            month: m.month,
-            value: m.avg_rating === null ? null : Number(m.avg_rating),
-            inspections: m.inspections,
-          }))}
-        />
-      </Panel>
+          <Panel title="Compliance trend" subtitle="Average rating by month, on a full 0–100 scale.">
+            <ComplianceTrend
+              points={summary.complianceTrend.map((m) => ({
+                month: m.month,
+                value: m.avg_rating === null ? null : Number(m.avg_rating),
+                inspections: m.inspections,
+              }))}
+            />
+          </Panel>
+        </>
+      )}
     </>
   );
 }

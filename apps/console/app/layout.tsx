@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { signOut } from "../lib/session-actions";
 import { SideNav, TopNav } from "../components/nav";
 import { tryGet, type Me } from "../lib/api";
+import { accountLine } from "../lib/roles";
 import "./globals.css";
 
 // Two faces, each doing one job.
@@ -30,8 +31,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "AgroAssure · Regulator console",
-  description:
-    "Compliance and inspection oversight for the fertilizer and agro-input value chain.",
+  description: "Compliance and inspection oversight for the fertilizer and agro-input value chain.",
 };
 
 /**
@@ -45,7 +45,16 @@ function Mark({ className }: { className: string }) {
       aria-hidden
       className={`grid ${className} shrink-0 place-items-center rounded-[10px] bg-primary text-white shadow-raised ring-1 ring-inset ring-white/20`}
     >
-      <svg viewBox="0 0 20 20" width="62%" height="62%" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        viewBox="0 0 20 20"
+        width="62%"
+        height="62%"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M16.5 3.5c-6.5 0-11 3-11 8 0 1.6.5 3 1.5 4 5 0 9.5-3.5 9.5-12Z" />
         <path d="M3.5 17c1.5-3 3.5-5.5 6-7.5" />
         <path d="m9.2 11.4 1.6 1.6 3-3.4" />
@@ -87,8 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
             {children}
             <p className="mx-auto mt-8 max-w-sm text-center text-xs leading-relaxed text-ink-faint">
-              Records and renders compliance certificates on behalf of the mandated
-              regulator. It does not issue them.
+              Records and renders compliance certificates on behalf of the mandated regulator. It does not issue them.
             </p>
           </div>
         </body>
@@ -149,7 +157,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium text-ink">{me.fullName}</span>
                     <span className="block truncate text-xs text-ink-muted">
-                      {me.jurisdictionName ?? "All states"}
+                      {accountLine(me.roles, me.jurisdictionName)}
                     </span>
                   </span>
                 </div>
@@ -177,11 +185,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   Sign out
                 </button>
               </form>
-
-              <p className="mt-4 border-t border-line px-3 pt-4 text-[0.6875rem] leading-relaxed text-ink-faint">
-                Records and renders compliance certificates on behalf of the mandated
-                regulator. It does not issue them.
-              </p>
             </div>
           </nav>
 
@@ -191,6 +194,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
             <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 md:px-8 md:py-8">
               <div className="page-enter mx-auto flex w-full max-w-[80rem] flex-col gap-7">{children}</div>
+              {/* Said once, at the foot of the page, instead of taking room in
+                  the rail on every screen. */}
+              <p className="mx-auto mt-10 w-full max-w-[80rem] border-t border-line pt-4 text-xs leading-relaxed text-ink-faint">
+                AgroAssure records and renders compliance certificates on behalf of the mandated regulator. It does not
+                issue them.
+              </p>
             </main>
           </div>
         </div>
