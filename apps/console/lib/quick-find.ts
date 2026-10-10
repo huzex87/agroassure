@@ -1,5 +1,5 @@
 import { NAV_ITEMS } from "../components/nav";
-import { canSee, PROGRAMME_ROLES, TEAM_ROLES } from "./roles";
+import { ADMIN_ROLES, canSee, PROGRAMME_ROLES, TEAM_ROLES } from "./roles";
 
 // The places Quick find can take a person, and how a typed word narrows them.
 // Kept apart from the dialog so the matching can be tested without a browser.
@@ -11,6 +11,7 @@ const SETTINGS_PAGES: Array<Destination & { roles?: string[] }> = [
   { href: "/team", label: "Team", hint: "Invite people, sign out a phone", roles: TEAM_ROLES },
   { href: "/instruments", label: "Checklists", hint: "The questions inspectors answer" },
   { href: "/executive", label: "Programme overview", hint: "Coverage and trends", roles: PROGRAMME_ROLES },
+  { href: "/settings/status", label: "System status", hint: "Email, sign-in and storage checks", roles: ADMIN_ROLES },
   { href: "/facilities/new", label: "Add a facility" },
   { href: "/facilities/new?tab=import", label: "Import facilities", hint: "From a spreadsheet" },
 ];

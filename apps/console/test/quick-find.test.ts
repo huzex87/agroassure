@@ -26,11 +26,18 @@ describe("matchDestinations", () => {
   });
 
   it("matches a label, whatever the case", () => {
-    expect(matchDestinations(all, "CHECK").map((d) => d.href)).toEqual(["/instruments"]);
+    expect(matchDestinations(all, "CHECKLIST").map((d) => d.href)).toEqual(["/instruments"]);
   });
 
   it("matches the hint too, and needs every word", () => {
     expect(matchDestinations(all, "sign out phone").map((d) => d.href)).toEqual(["/team"]);
     expect(matchDestinations(all, "team spreadsheet")).toEqual([]);
+  });
+});
+
+describe("System status", () => {
+  it("is offered to administrators only", () => {
+    expect(destinationsFor(["state_admin"]).map((d) => d.href)).toContain("/settings/status");
+    expect(destinationsFor(["desk_supervisor"]).map((d) => d.href)).not.toContain("/settings/status");
   });
 });
