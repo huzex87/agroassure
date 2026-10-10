@@ -1,7 +1,16 @@
 import { ChevronDown, Mail, MessageSquare } from "lucide-react";
-import { get, tryGet, type DeviceRow, type InviteChannels, type Me, type RegistrationRow, type UserRow } from "../../lib/api";
+import {
+  get,
+  tryGet,
+  type DeviceRow,
+  type InviteChannels,
+  type Me,
+  type RegistrationRow,
+  type UserRow,
+} from "../../lib/api";
 import { Badge, Button, Panel, Cell, Empty, Row, DataTable, PageHeader } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
+import { ActionForm } from "../../components/action-form";
 import { AddColleagueForm, InviteInspectorForm, ResendCodeButton } from "../../components/team/invite-form";
 import { RequestCard } from "../../components/team/request-card";
 import { approveDevice, cancelInvitation, revokeDevice } from "./actions";
@@ -40,8 +49,7 @@ function ago(iso: string | null | undefined): string | null {
 
 function ChannelDot({ status, icon, label }: { status?: string | null; icon: React.ReactNode; label: string }) {
   if (!status) return null;
-  const tone =
-    status === "sent" ? "text-success" : status === "failed" ? "text-destructive" : "text-ink-faint";
+  const tone = status === "sent" ? "text-success" : status === "failed" ? "text-destructive" : "text-ink-faint";
   const word = status === "sent" ? "sent" : status === "failed" ? "failed" : "not sent";
   return (
     <span className={`inline-flex items-center gap-1 ${tone}`} title={`${label} ${word}`}>
@@ -62,7 +70,9 @@ function PhoneStatus({ user }: { user: UserRow }) {
     const seen = ago(user.phone_last_seen_at);
     return (
       <div>
-        <Badge variant="success" dot>Phone active</Badge>
+        <Badge variant="success" dot>
+          Phone active
+        </Badge>
         <p className="mt-1 text-xs text-ink-muted">{seen ? `Last seen ${seen}` : "Not seen yet"}</p>
       </div>
     );
@@ -72,14 +82,28 @@ function PhoneStatus({ user }: { user: UserRow }) {
     return (
       <div>
         {expired ? (
-          <Badge variant="destructive" dot>Invite expired</Badge>
+          <Badge variant="destructive" dot>
+            Invite expired
+          </Badge>
         ) : (
-          <Badge variant="warning" dot>Invite sent</Badge>
+          <Badge variant="warning" dot>
+            Invite sent
+          </Badge>
         )}
         <p className="mt-1 flex items-center gap-2 text-xs text-ink-muted">
-          {!expired && user.invitation_expires_at ? <span>Until {formatDateTime(user.invitation_expires_at)}</span> : null}
-          <ChannelDot status={user.invitation_sms_status} icon={<MessageSquare className="size-3.5" aria-hidden />} label="SMS" />
-          <ChannelDot status={user.invitation_email_status} icon={<Mail className="size-3.5" aria-hidden />} label="Email" />
+          {!expired && user.invitation_expires_at ? (
+            <span>Until {formatDateTime(user.invitation_expires_at)}</span>
+          ) : null}
+          <ChannelDot
+            status={user.invitation_sms_status}
+            icon={<MessageSquare className="size-3.5" aria-hidden />}
+            label="SMS"
+          />
+          <ChannelDot
+            status={user.invitation_email_status}
+            icon={<Mail className="size-3.5" aria-hidden />}
+            label="Email"
+          />
         </p>
       </div>
     );
@@ -115,24 +139,24 @@ export default async function TeamPage() {
         title="Team"
         summary={
           <>
-            {users.length} {users.length === 1 ? "person" : "people"} · {ready} of {inspectors.length}{" "}
-            inspectors have a working phone{waiting > 0 ? ` · ${waiting} invite${waiting === 1 ? "" : "s"} waiting` : ""}
+            {users.length} {users.length === 1 ? "person" : "people"} · {ready} of {inspectors.length} inspectors have a
+            working phone{waiting > 0 ? ` · ${waiting} invite${waiting === 1 ? "" : "s"} waiting` : ""}
           </>
         }
       />
 
       {waitingToJoin.length > 0 ? (
         <div id="requests" className="scroll-mt-20">
-        <Panel
-          title={`Requests to join · ${waitingToJoin.length}`}
-          subtitle="These people confirmed their email and phone. Choose a role and approve, or reject."
-        >
-          <ul className="space-y-3">
-            {waitingToJoin.map((r) => (
-              <RequestCard key={r.id} request={r} canGrantNational={me?.roles.includes("national_admin") ?? false} />
-            ))}
-          </ul>
-        </Panel>
+          <Panel
+            title={`Requests to join · ${waitingToJoin.length}`}
+            subtitle="These people confirmed their email and phone. Choose a role and approve, or reject."
+          >
+            <ul className="space-y-3">
+              {waitingToJoin.map((r) => (
+                <RequestCard key={r.id} request={r} canGrantNational={me?.roles.includes("national_admin") ?? false} />
+              ))}
+            </ul>
+          </Panel>
         </div>
       ) : null}
 
@@ -162,8 +186,7 @@ export default async function TeamPage() {
             </ol>
             <p className="text-caption text-muted-foreground mt-4">
               Each code works once and expires after a few days. Sending a new code cancels the old one. Every
-              inspection is still signed by the phone it was done on, so the record always shows who did it and
-              where.
+              inspection is still signed by the phone it was done on, so the record always shows who did it and where.
             </p>
           </details>
         </Panel>
@@ -179,7 +202,9 @@ export default async function TeamPage() {
       <Panel title="People" subtitle="Everyone with access in this state" flush>
         <DataTable
           head={["Name", "Role", "Phone app", ""]}
-          empty={users.length === 0 ? <Empty>Nobody has been added yet. Start by inviting an inspector.</Empty> : undefined}
+          empty={
+            users.length === 0 ? <Empty>Nobody has been added yet. Start by inviting an inspector.</Empty> : undefined
+          }
         >
           {users.map((u) => {
             const isInspector = u.roles.includes("inspector");
@@ -192,7 +217,9 @@ export default async function TeamPage() {
                     {[u.phone, u.email].filter(Boolean).join(" · ") || "No contact details"}
                   </p>
                   {u.status !== "active" ? (
-                    <Badge variant="warning" dot className="mt-1">Suspended</Badge>
+                    <Badge variant="warning" dot className="mt-1">
+                      Suspended
+                    </Badge>
                   ) : null}
                 </Cell>
                 <Cell>
@@ -219,11 +246,20 @@ export default async function TeamPage() {
                         label={hasPhone ? "Set up another phone" : u.invitation_id ? "Send new code" : "Send invite"}
                       />
                       {u.invitation_id && !hasPhone ? (
-                        <form action={cancelInvitation.bind(null, u.invitation_id)}>
+                        <ActionForm
+                          action={cancelInvitation.bind(null, u.invitation_id)}
+                          success="Invite cancelled."
+                          confirm={{
+                            title: `Cancel ${u.full_name}'s invite?`,
+                            body: "The code they were sent stops working. You can send a new one at any time.",
+                            confirmLabel: "Cancel invite",
+                            destructive: true,
+                          }}
+                        >
                           <Button type="submit" variant="ghost" size="sm" className="hover:text-destructive">
                             Cancel invite
                           </Button>
-                        </form>
+                        </ActionForm>
                       ) : null}
                     </div>
                   ) : null}
@@ -254,12 +290,18 @@ export default async function TeamPage() {
               <Cell className="tabular">{d.events_authored}</Cell>
               <Cell>
                 {d.status === "active" ? (
-                  <Badge variant="success" dot>Active</Badge>
+                  <Badge variant="success" dot>
+                    Active
+                  </Badge>
                 ) : d.status === "pending" ? (
-                  <Badge variant="warning" dot>Needs confirming</Badge>
+                  <Badge variant="warning" dot>
+                    Needs confirming
+                  </Badge>
                 ) : (
                   <div>
-                    <Badge variant="destructive" dot>Signed out</Badge>
+                    <Badge variant="destructive" dot>
+                      Signed out
+                    </Badge>
                     <p className="mt-1 text-xs text-ink-muted">{formatDateTime(d.revoked_at)}</p>
                   </div>
                 )}
@@ -268,12 +310,22 @@ export default async function TeamPage() {
                 {/* Only phones set up the old way can be waiting here; an
                     invited phone is active the moment its code is used. */}
                 {d.status === "pending" && (
-                  <form action={approveDevice.bind(null, d.id)}>
+                  <ActionForm action={approveDevice.bind(null, d.id)} success="Phone confirmed.">
                     <Button size="sm">Confirm phone</Button>
-                  </form>
+                  </ActionForm>
                 )}
                 {d.status === "active" && (
-                  <form action={revokeDevice.bind(null, d.id)} className="flex items-center justify-end gap-2">
+                  <ActionForm
+                    action={revokeDevice.bind(null, d.id)}
+                    success="Phone signed out."
+                    className="flex items-center justify-end gap-2"
+                    confirm={{
+                      title: `Sign out ${d.label ?? "this phone"}?`,
+                      body: "It stops working straight away. What it has already sent stays on the record. Anything it had not yet sent will not be accepted.",
+                      confirmLabel: "Sign out phone",
+                      destructive: true,
+                    }}
+                  >
                     <input
                       name="reason"
                       required
@@ -281,16 +333,18 @@ export default async function TeamPage() {
                       aria-label={`Reason for signing out ${d.label ?? "this phone"}`}
                       className="field w-44"
                     />
-                    <Button variant="secondary" size="sm">Sign out this phone</Button>
-                  </form>
+                    <Button variant="secondary" size="sm">
+                      Sign out this phone
+                    </Button>
+                  </ActionForm>
                 )}
               </Cell>
             </Row>
           ))}
         </DataTable>
         <p className="px-5 py-4 text-xs text-ink-muted">
-          Lost or replaced a phone? Sign it out and it stops working straight away. Work it
-          already sent stays on record and stays credited to the inspector.
+          Lost or replaced a phone? Sign it out and it stops working straight away. Work it already sent stays on record
+          and stays credited to the inspector.
         </p>
       </Panel>
     </>

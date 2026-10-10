@@ -80,41 +80,30 @@ export default async function ExecutivePage() {
         subtitle="What proportion of the register has actually been visited in the last twelve months"
       >
         <div className="grid items-center gap-6 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
-          <CoverageDial
-            percent={coverage.percent}
-            inspected={coverage.inspected12m}
-            total={coverage.total}
-          />
+          <CoverageDial percent={coverage.percent} inspected={coverage.inspected12m} total={coverage.total} />
 
           <div className="flex flex-col gap-5">
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <p className="text-muted-foreground text-[0.8125rem] font-medium">Never inspected</p>
-                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">
-                  {coverage.neverInspected}
-                </p>
-                <p className="text-muted-foreground mt-1.5 text-xs">
-                  No submitted inspection on record
-                </p>
+                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">{coverage.neverInspected}</p>
+                <p className="text-muted-foreground mt-1.5 text-xs">No submitted inspection on record</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-[0.8125rem] font-medium">
-                  Not seen in over a year
-                </p>
-                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">
-                  {coverage.lapsedOverAYear}
-                </p>
-                <p className="text-muted-foreground mt-1.5 text-xs">
-                  Inspected once, then not since
-                </p>
+                <p className="text-muted-foreground text-[0.8125rem] font-medium">Not seen in over a year</p>
+                <p className="mt-1.5 text-2xl leading-none font-semibold tabular-nums">{coverage.lapsedOverAYear}</p>
+                <p className="text-muted-foreground mt-1.5 text-xs">Inspected once, then not since</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Progress value={coverage.percent} tone={coverageTone} />
+              <Progress
+                value={coverage.percent}
+                tone={coverageTone}
+                aria-label="Share of facilities inspected in the last 12 months"
+              />
               <p className="text-muted-foreground text-xs leading-relaxed">
-                A regulator that inspects the same few sites repeatedly has a busy dashboard and an
-                unwatched market.
+                A regulator that inspects the same few sites repeatedly has a busy dashboard and an unwatched market.
               </p>
             </div>
           </div>
@@ -156,19 +145,14 @@ export default async function ExecutivePage() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
             label="Decisions within 30 days"
-            value={
-              promises.decisionsWithin30Days.percent === null
-                ? "—"
-                : `${promises.decisionsWithin30Days.percent}%`
-            }
+            value={promises.decisionsWithin30Days.percent === null ? "—" : `${promises.decisionsWithin30Days.percent}%`}
             hint={
               promises.decisionsWithin30Days.total === 0
                 ? "No inspections submitted in the last 90 days"
                 : `${promises.decisionsWithin30Days.decided} of ${promises.decisionsWithin30Days.total}`
             }
             tone={
-              promises.decisionsWithin30Days.percent !== null &&
-              promises.decisionsWithin30Days.percent < 80
+              promises.decisionsWithin30Days.percent !== null && promises.decisionsWithin30Days.percent < 80
                 ? "warning"
                 : "neutral"
             }

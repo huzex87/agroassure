@@ -4,15 +4,10 @@ import { get, type InspectionDetail } from "../../../lib/api";
 import { Badge, Empty, Panel } from "../../../components/ui";
 import { Button } from "../../../components/ui/button";
 import { PageHeader } from "../../../components/ui";
+import { ActionForm } from "../../../components/action-form";
 import { Field, SubmitButton } from "../../../components/forms";
 import { FindingStatus, Rating, Response, Severity } from "../../../components/status";
-import {
-  DECISION_LABEL,
-  compareCheckpointRefs,
-  formatDate,
-  formatDateTime,
-  label,
-} from "../../../lib/format";
+import { DECISION_LABEL, compareCheckpointRefs, formatDate, formatDateTime, label } from "../../../lib/format";
 import { authoriseCertificate, recordDecision, verifyFinding } from "./actions";
 
 // The full case: what was answered, what was seen, what it was rated, what was
@@ -53,11 +48,7 @@ function bySection(responses: Row_[]): Array<{ title: string; rows: Row_[] }> {
   return [...groups].map(([title, rows]) => ({ title, rows }));
 }
 
-export default async function InspectionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function InspectionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const detail = await get<InspectionDetail>(`/v1/inspections/${id}`);
   const i = detail.inspection as Record<string, string | number | boolean | null>;
@@ -113,9 +104,13 @@ export default async function InspectionPage({
           <>
             <Rating band={i.rating_band as string} percent={i.rating_percent as string} />
             {detail.decisions.length > 0 ? (
-              <Badge variant="success" dot>Decided</Badge>
+              <Badge variant="success" dot>
+                Decided
+              </Badge>
             ) : (
-              <Badge variant="warning" dot>Awaiting decision</Badge>
+              <Badge variant="warning" dot>
+                Awaiting decision
+              </Badge>
             )}
           </>
         }
@@ -148,8 +143,8 @@ export default async function InspectionPage({
                 </span>
                 {i.version_discrepancy ? (
                   <span>
-                    This version was superseded between download and the visit. The record shows the checklist
-                    actually worked.
+                    This version was superseded between download and the visit. The record shows the checklist actually
+                    worked.
                   </span>
                 ) : (
                   <span>Bound at sign-off, so its meaning cannot drift.</span>
@@ -165,9 +160,13 @@ export default async function InspectionPage({
                 </dd>
                 <dd className="mt-1.5">
                   {i.checkin_flagged ? (
-                    <Badge variant="warning" dot>Flagged for review</Badge>
+                    <Badge variant="warning" dot>
+                      Flagged for review
+                    </Badge>
                   ) : (
-                    <Badge variant="success" dot>Within range</Badge>
+                    <Badge variant="success" dot>
+                      Within range
+                    </Badge>
                   )}
                 </dd>
               </div>
@@ -197,11 +196,7 @@ export default async function InspectionPage({
             </dl>
           </Panel>
 
-          <Panel
-            flush
-            title="Findings"
-            subtitle={`${openFindings.length} open of ${detail.findings.length}`}
-          >
+          <Panel flush title="Findings" subtitle={`${openFindings.length} open of ${detail.findings.length}`}>
             {detail.findings.length === 0 ? (
               <Empty>No adverse response was recorded on this inspection.</Empty>
             ) : (
@@ -228,11 +223,11 @@ export default async function InspectionPage({
                     <div className="flex shrink-0 items-center gap-3">
                       <FindingStatus status={f.status} />
                       {f.status === "awaiting_verification" && (
-                        <form action={verifyFinding.bind(null, id, f.id)}>
+                        <ActionForm action={verifyFinding.bind(null, id, f.id)} success="Closure verified.">
                           <Button size="sm" variant="secondary">
                             Verify closed
                           </Button>
-                        </form>
+                        </ActionForm>
                       )}
                     </div>
                   </li>
@@ -293,7 +288,10 @@ export default async function InspectionPage({
                               {exhibits.length > 0 && (
                                 <ul className="mt-2 space-y-1">
                                   {exhibits.map((e) => (
-                                    <li key={e.id} className="text-caption text-muted-foreground flex items-start gap-1.5">
+                                    <li
+                                      key={e.id}
+                                      className="text-caption text-muted-foreground flex items-start gap-1.5"
+                                    >
                                       <Paperclip className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                                       <span>
                                         <span className="font-mono">{e.sha256.slice(0, 12)}…</span> ·{" "}
@@ -328,7 +326,7 @@ export default async function InspectionPage({
 
         <aside className="space-y-6 lg:sticky lg:top-6">
           <Panel title="Record a decision" subtitle="Added to the record. A change of mind is a new decision.">
-            <form action={recordDecision.bind(null, id)} className="space-y-4">
+            <ActionForm action={recordDecision.bind(null, id)} success="Decision recorded." className="space-y-4">
               <Field label="Decision">
                 <select name="decisionType" required className="field">
                   {DECISION_OPTIONS.map(([value, text]) => (
@@ -344,7 +342,7 @@ export default async function InspectionPage({
               <SubmitButton pendingText="Recording…" size="default">
                 Record decision
               </SubmitButton>
-            </form>
+            </ActionForm>
           </Panel>
 
           <Panel
@@ -371,11 +369,20 @@ export default async function InspectionPage({
             </ul>
             {/* The button being enabled is a courtesy. The API checks all three
                 conditions again, and the schema refuses an officer-less row. */}
-            <form action={authoriseCertificate.bind(null, id)} className="mt-5">
+            <ActionForm
+              action={authoriseCertificate.bind(null, id)}
+              success="Certificate authorised."
+              className="mt-5"
+              confirm={{
+                title: "Authorise this certificate?",
+                body: "It is recorded against your name and cannot be taken back; a later change is a new certificate or a revocation.",
+                confirmLabel: "Authorise certificate",
+              }}
+            >
               <SubmitButton pendingText="Authorising…" size="default" disabled={!canAuthorise}>
                 Authorise certificate
               </SubmitButton>
-            </form>
+            </ActionForm>
           </Panel>
 
           <Panel title="Decisions" subtitle="Append-only, newest last.">

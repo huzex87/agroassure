@@ -1,13 +1,8 @@
 import Link from "next/link";
-import {
-  get,
-  type AssignmentRow,
-  type FacilityRow,
-  type InspectorOption,
-  type RiskSuggestion,
-} from "../../lib/api";
+import { get, type AssignmentRow, type FacilityRow, type InspectorOption, type RiskSuggestion } from "../../lib/api";
 import { Badge, Cell, DataTable, Empty, PageHeader, Panel, Reason, Row } from "../../components/ui";
 import { formatDate } from "../../lib/format";
+import { ActionForm } from "../../components/action-form";
 import { PlanForm } from "../../components/plan/plan-form";
 import { SuggestionAssign } from "../../components/plan/suggestion-assign";
 import { cancelVisit } from "./actions";
@@ -28,7 +23,8 @@ function dueTone(due: string | null): { text: string; tone: "destructive" | "war
   if (!due) return null;
   const days = Math.ceil((new Date(due).getTime() - Date.now()) / 86_400_000);
   if (days < 0) return { text: `${-days} ${days === -1 ? "day" : "days"} late`, tone: "destructive" };
-  if (days <= 7) return { text: days === 0 ? "Due today" : `Due in ${days} ${days === 1 ? "day" : "days"}`, tone: "warning" };
+  if (days <= 7)
+    return { text: days === 0 ? "Due today" : `Due in ${days} ${days === 1 ? "day" : "days"}`, tone: "warning" };
   return { text: `Due ${formatDate(due)}`, tone: "secondary" };
 }
 
@@ -75,8 +71,8 @@ export default async function PlanPage() {
         >
           {openSuggestions.length === 0 ? (
             <Empty>
-              Nothing stands out right now. Suggestions appear as inspections build a history — overdue
-              issues, lapsing certificates, poor recent ratings.
+              Nothing stands out right now. Suggestions appear as inspections build a history — overdue issues, lapsing
+              certificates, poor recent ratings.
             </Empty>
           ) : (
             <ul className="divide-y divide-line">
@@ -131,17 +127,29 @@ export default async function PlanPage() {
                 <Cell>
                   <Badge variant="secondary">{KIND_LABEL[a.kind] ?? a.kind}</Badge>
                 </Cell>
-                <Cell>{due ? <Badge variant={due.tone}>{due.text}</Badge> : <span className="text-ink-faint">—</span>}</Cell>
+                <Cell>
+                  {due ? <Badge variant={due.tone}>{due.text}</Badge> : <span className="text-ink-faint">—</span>}
+                </Cell>
                 <Cell className="max-w-xs text-sm text-ink-muted">{a.reason ?? "—"}</Cell>
                 <Cell>
-                  <form action={cancelVisit.bind(null, a.id)} className="flex justify-end">
+                  <ActionForm
+                    action={cancelVisit.bind(null, a.id)}
+                    success="Visit cancelled."
+                    className="flex justify-end"
+                    confirm={{
+                      title: `Cancel the visit to ${a.facility_name}?`,
+                      body: "It disappears from the inspector's phone. The facility stays on your list to plan again.",
+                      confirmLabel: "Cancel visit",
+                      destructive: true,
+                    }}
+                  >
                     <button
                       type="submit"
                       className="h-8 rounded-control px-2.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-sunk hover:text-destructive"
                     >
                       Cancel
                     </button>
-                  </form>
+                  </ActionForm>
                 </Cell>
               </Row>
             );

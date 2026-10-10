@@ -357,6 +357,8 @@ administrator's decision comes before the phone exists, not after.
 
 **New here?** Start with the one-page [`docs/onboarding-guide.md`](docs/onboarding-guide.md): what administrators, inspectors and office staff each do first.
 
+About to put the phone app in front of inspectors? Run the one-hour [`docs/phone-field-test.md`](docs/phone-field-test.md) on a real handset first.
+
 Two more guides in `docs/`:
 
 - [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list

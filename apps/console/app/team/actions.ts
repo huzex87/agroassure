@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ApiError, post, type IssuedInvitation } from "../../lib/api";
+import { attempt, type ActionResult } from "../../lib/action-result";
 
 /**
  * What an invite form shows after it is submitted. The code is here and
@@ -58,21 +59,26 @@ export async function resendCode(userId: string, _prev: InviteState): Promise<In
   }
 }
 
-export async function cancelInvitation(invitationId: string) {
-  await post(`/v1/invitations/${invitationId}/cancel`, {});
-  revalidatePath("/team");
+export async function cancelInvitation(invitationId: string): Promise<ActionResult> {
+  const result = await attempt(() => post(`/v1/invitations/${invitationId}/cancel`, {}));
+  if (result.ok) revalidatePath("/team");
+  return result;
 }
 
-export async function approveDevice(deviceId: string) {
-  await post(`/v1/devices/${deviceId}/approve`, {});
-  revalidatePath("/team");
+export async function approveDevice(deviceId: string): Promise<ActionResult> {
+  const result = await attempt(() => post(`/v1/devices/${deviceId}/approve`, {}));
+  if (result.ok) revalidatePath("/team");
+  return result;
 }
 
-export async function revokeDevice(deviceId: string, formData: FormData) {
-  await post(`/v1/devices/${deviceId}/revoke`, {
-    reason: String(formData.get("reason") ?? ""),
-  });
-  revalidatePath("/team");
+export async function revokeDevice(deviceId: string, formData: FormData): Promise<ActionResult> {
+  const result = await attempt(() =>
+    post(`/v1/devices/${deviceId}/revoke`, {
+      reason: String(formData.get("reason") ?? ""),
+    }),
+  );
+  if (result.ok) revalidatePath("/team");
+  return result;
 }
 
 /** Someone who works in the console rather than in the field. */
