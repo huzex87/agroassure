@@ -442,9 +442,14 @@ export class InvitationsService {
   private async targetJurisdiction(principal: Principal, requested?: string): Promise<string> {
     if (isUnscoped(principal)) {
       if (requested) return requested;
-      // A national account on a single-state deployment has only one place it
-      // could mean, and the console forms do not ask. With several states the
-      // caller must say which.
+      // The console forms do not ask which state. A national account's own
+      // record names the state it was set up in, so use that; failing that, a
+      // single-state deployment has only one place it could mean.
+      const own = await this.pg.query<{ jurisdiction_id: string | null }>(
+        `SELECT jurisdiction_id FROM app_user WHERE id = $1`,
+        [principal.userId],
+      );
+      if (own[0]?.jurisdiction_id) return own[0].jurisdiction_id;
       const states = await this.pg.query<{ id: string }>(`SELECT id FROM jurisdiction LIMIT 2`);
       if (states.length === 1) return states[0]!.id;
       throw new BadRequestException("jurisdictionId is required for a national role");

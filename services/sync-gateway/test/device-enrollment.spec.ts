@@ -26,9 +26,13 @@ class FakePg {
   constructor(
     private readonly keyAlreadyEnrolled = false,
     private readonly states: Array<{ id: string }> = [],
+    private readonly ownState: string | null = null,
   ) {}
   async query<T>(text: string, params: unknown[] = []): Promise<T[]> {
     if (text.includes("FROM jurisdiction")) return this.states as T[];
+    if (text.replace(/\s+/g, " ").trim() === "SELECT jurisdiction_id FROM app_user WHERE id = $1") {
+      return (this.ownState ? [{ jurisdiction_id: this.ownState }] : []) as T[];
+    }
     if (text.includes("FROM app_user WHERE id = $1 AND status = 'active'")) {
       return [{ jurisdiction_id: JURISDICTION }] as T[];
     }
@@ -52,8 +56,8 @@ function stateAdmin(): Principal {
   };
 }
 
-function service(keyAlreadyEnrolled = false, states: Array<{ id: string }> = []) {
-  const pg = new FakePg(keyAlreadyEnrolled, states);
+function service(keyAlreadyEnrolled = false, states: Array<{ id: string }> = [], ownState: string | null = null) {
+  const pg = new FakePg(keyAlreadyEnrolled, states, ownState);
   return { pg, admin: new AdminService(pg as never) };
 }
 
@@ -151,5 +155,17 @@ describe("AdminService.enrollDevice", () => {
     await expect(
       admin.createUser(stateAdmin(), { fullName: "X", email: "x@example.org", roles: ["national_admin"] }),
     ).rejects.toThrow(/only a national administrator/);
+  });
+
+  it("uses the national administrator's own state when several states exist", async () => {
+    const { admin, pg } = service(false, [{ id: JURISDICTION }, { id: "other" }], JURISDICTION);
+    const national: Principal = {
+      userId: "018f0000-0000-7000-8000-0000000000na",
+      deviceId: null,
+      jurisdictionId: null,
+      roles: ["national_admin"],
+    };
+    await admin.enrollDevice(national, { assignedUserId: USER, publicKeyBase64: VALID_KEY });
+    expect(pg.inserted).toHaveLength(1);
   });
 });
