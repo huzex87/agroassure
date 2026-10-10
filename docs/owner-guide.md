@@ -6,7 +6,7 @@ For the person who runs the deployment. Setting it up is one afternoon if you do
 
 | Account | For | Notes |
 |---|---|---|
-| **Supabase** (Postgres) | The database | Use the *session pooler* connection string, not the direct host |
+| **A Postgres database** (for example Supabase) | The database | Use the provider's pooled connection string, not the direct host. On Supabase that is the *session pooler* |
 | **An S3-compatible bucket** | Evidence: photos and signatures, kept write-once | Object lock must be on. The gateway refuses to start a pilot without it |
 | **Render** | The gateway (the server) | Use a paid plan. The gateway runs two background timers, and a free instance sleeps when idle, so figures go stale and findings never escalate |
 | **Vercel** | The console (the website) | Root directory `apps/console`. The `sync-gateway` project on Vercel should be set to skip builds |
@@ -21,9 +21,9 @@ Render, then *agroassure-gateway*, then *Environment*. Make a secret with `opens
 | Setting | Value |
 |---|---|
 | `APP_ENV` | `pilot` |
-| `DATABASE_URL` | Supabase session pooler string |
+| `DATABASE_URL` | Your database's pooled connection string |
 | `PUBLIC_VERIFY_DATABASE_URL` | The limited `public_verify` login for the same database |
-| `PGSSLROOTCERT_PEM` | Supabase's CA certificate, pasted whole |
+| `PGSSLROOTCERT_PEM` | Your database provider's CA certificate, pasted whole |
 | `CONSOLE_URL` | The console's address, no trailing slash, e.g. `https://your-console.vercel.app` |
 | `CONSOLE_SESSION_SECRET` | A new secret |
 | `DEVICE_TOKEN_SECRET` | A different new secret. Changing it later signs every phone out |
@@ -68,7 +68,8 @@ Now follow the [handbook](handbook.md): add facilities, check checklists, invite
 - **Deploying.** A push to `main` redeploys both the gateway (Render) and the console (Vercel).
 - **Signing everyone out.** Changing `CONSOLE_SESSION_SECRET` ends every console session. Changing `DEVICE_TOKEN_SECRET` signs out every phone.
 - **A person leaves.** *Settings → Team*; sign out their phone. Their past work stays on the record.
-- **Backups.** The record is the database. Check what your Supabase plan backs up, and try one restore before you rely on it.
+- **Backups.** The record is the database. Check what your database plan backs up, and try one restore before you rely on it.
+- **Before you change the console,** run `pnpm --filter @agroassure/console run build` then `run smoke`. It opens the console in a real browser and clicks through every main page. The same check runs on every pull request.
 - **When something is wrong,** start at *Settings → System status*, then the Render *Logs* tab.
 
 ## More detail

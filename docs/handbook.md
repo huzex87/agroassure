@@ -63,6 +63,12 @@ You can work with no signal. Finished work sends by itself when the phone finds 
 3. When a facility says a finding is fixed, check it and click **Verify closed**.
 4. The authorising officer who made the decision clicks **Authorise certificate** once every finding is verified closed. It is recorded against their name and cannot be taken back, so the console asks them to confirm first.
 
+## Handy things in the console
+
+- **Find anything fast.** Press **Ctrl+K** (or click **Search** at the top of the sidebar) and type a facility name, a licence number or a page name.
+- **Dark mode.** Click **Dark mode** at the bottom of the sidebar. The console otherwise follows your device, and remembers your choice on that browser.
+- **On a phone or tablet.** The sections become a row of buttons across the top of the page. Everything works, but the review pages are easiest on a larger screen.
+
 ## If something goes wrong
 
 | Problem | What to do |
