@@ -20,7 +20,11 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B2A20"
+      }
     },
     "plugins": [
       "expo-router",
@@ -48,6 +52,7 @@
         "projectId": "9e09bf2e-1e48-4923-8007-67a2c57602d9"
       }
     },
-    "owner": "huzex"
+    "owner": "huzex",
+    "icon": "./assets/icon.png"
   }
 }

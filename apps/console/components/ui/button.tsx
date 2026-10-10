@@ -27,6 +27,9 @@ const buttonVariants = cva(
         destructive: "bg-destructive text-destructive-foreground shadow-raised hover:bg-destructive/90",
         success: "bg-success text-success-foreground shadow-raised hover:bg-success/90",
         warning: "bg-warning text-warning-foreground shadow-raised hover:bg-warning/90",
+        // On a pine surface: gold is the one thing to do, glass is everything else.
+        gold: "bg-millet text-pine shadow-raised hover:brightness-105",
+        glass: "border border-white/25 bg-white/10 text-white hover:bg-white/15",
         link: "h-auto rounded-sm px-0 font-medium text-primary-700 underline-offset-4 hover:underline",
         // Kept so older call sites keep compiling; the same thing as secondary.
         outline:

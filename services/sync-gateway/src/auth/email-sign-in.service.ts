@@ -42,21 +42,21 @@ export function signInEmail(name: string, link: string, minutes: number) {
     "If you didn't ask to sign in, you can ignore this email — nobody can sign in without the link.",
   ].join("\n");
   const html = `<!doctype html>
-<html><body style="margin:0;background:#F6FAFC;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#072435">
+<html><body style="margin:0;background:#F1F5EF;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0E231B">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px"><tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border:1px solid #E4EDF3;border-radius:16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border:1px solid #D9E2D5;border-radius:16px">
 <tr><td style="padding:28px 28px 0">
   <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-    <td style="width:36px;height:36px;background:#2F93EC;border-radius:10px;color:#fff;font-weight:700;font-size:18px;text-align:center">A</td>
+    <td style="width:36px;height:36px;background:#0B2A20;border-radius:10px;color:#fff;font-weight:700;font-size:18px;text-align:center">A</td>
     <td style="padding-left:10px;font-weight:600;font-size:16px">AgroAssure</td>
   </tr></table>
   <h1 style="margin:22px 0 8px;font-size:21px">Sign in, ${escape(first)}</h1>
-  <p style="margin:0;font-size:15px;line-height:1.55;color:#4A6B7C">Tap the button to sign in to the AgroAssure console.</p>
+  <p style="margin:0;font-size:15px;line-height:1.55;color:#435A4D">Tap the button to sign in to the AgroAssure console.</p>
 </td></tr>
 <tr><td style="padding:24px 28px" align="center">
-  <a href="${escape(link)}" style="display:inline-block;background:#2F93EC;color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:12px">Sign in to AgroAssure</a>
+  <a href="${escape(link)}" style="display:inline-block;background:#166A45;color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:12px">Sign in to AgroAssure</a>
 </td></tr>
-<tr><td style="padding:0 28px 26px;font-size:13px;line-height:1.55;color:#7C96A4;border-top:1px solid #E4EDF3;padding-top:16px">
+<tr><td style="padding:0 28px 26px;font-size:13px;line-height:1.55;color:#587062;border-top:1px solid #D9E2D5;padding-top:16px">
   The link works once and expires in ${minutes} minutes. If you didn't ask to sign in, ignore this email — nobody can sign in without the link.
 </td></tr>
 </table></td></tr></table></body></html>`;

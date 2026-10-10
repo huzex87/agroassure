@@ -28,6 +28,11 @@ export interface Me {
   roles: string[];
   jurisdictionId: string | null;
   jurisdictionName: string | null;
+  /**
+   * The authority the certificates are rendered for, so the console can say whose
+   * programme this is. A regulator's staff expect their own name on their tool.
+   */
+  authority: { name: string; markUrl: string | null } | null;
 }
 
 @Injectable()
@@ -81,10 +86,17 @@ export class SetupService {
       full_name: string;
       email: string | null;
       jurisdiction_name: string | null;
+      authority_name: string | null;
+      authority_mark: string | null;
     }>(
-      `SELECT u.full_name, u.email, j.name AS jurisdiction_name
+      `SELECT u.full_name, u.email, j.name AS jurisdiction_name,
+              a.display_name AS authority_name, a.mark_asset_url AS authority_mark
          FROM app_user u
          LEFT JOIN jurisdiction j ON j.id = $2
+         LEFT JOIN LATERAL (
+              SELECT display_name, mark_asset_url FROM issuing_authority
+               WHERE jurisdiction_id = $2 ORDER BY created_at LIMIT 1
+         ) a ON true
         WHERE u.id = $1`,
       [principal.userId, principal.jurisdictionId],
     );
@@ -95,6 +107,13 @@ export class SetupService {
       roles: principal.roles,
       jurisdictionId: principal.jurisdictionId,
       jurisdictionName: row?.jurisdiction_name ?? null,
+      authority: row?.authority_name
+        ? {
+            name: row.authority_name,
+            // Only a secure address is ever handed to a browser to load.
+            markUrl: row.authority_mark?.startsWith("https://") ? row.authority_mark : null,
+          }
+        : null,
     };
   }
 }

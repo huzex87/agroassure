@@ -315,6 +315,7 @@ export interface Me {
   roles: string[];
   jurisdictionId: string | null;
   jurisdictionName: string | null;
+  authority?: { name: string; markUrl: string | null } | null;
 }
 
 export interface InspectionDetail {

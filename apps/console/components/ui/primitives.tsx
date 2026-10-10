@@ -22,7 +22,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
  */
 export function Breadcrumbs({ items }: { items: Array<{ label: string; href?: string }> }) {
   return (
-    <nav aria-label="Breadcrumb" className="text-caption text-muted-foreground mb-2 flex flex-wrap items-center gap-1.5">
+    <nav
+      aria-label="Breadcrumb"
+      className="text-caption text-muted-foreground mb-2 flex flex-wrap items-center gap-1.5"
+    >
       {items.map((item, i) => (
         <span key={`${item.label}-${i}`} className="inline-flex items-center gap-1.5">
           {i > 0 && <ChevronRight className="text-border size-3.5" aria-hidden />}
@@ -73,12 +76,46 @@ export function PageHeader({
           <p className="text-primary-700 text-caption mb-1.5 font-semibold tracking-[0.08em] uppercase">{eyebrow}</p>
         )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="text-display font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-display font-extrabold tracking-tight">{title}</h1>
           {badges}
         </div>
         {summary && <div className="text-muted-foreground text-body mt-1.5 max-w-3xl">{summary}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+    </header>
+  );
+}
+
+/**
+ * The opening of the home page: the one place the product speaks in its own
+ * colours. Pine ground, a gold edge, the day's greeting and the day's one
+ * sentence. Other pages open with the quieter PageHeader; this is the front
+ * door, and it should feel like arriving somewhere.
+ */
+export function Hero({
+  title,
+  summary,
+  actions,
+  eyebrow,
+}: {
+  title: string;
+  summary?: ReactNode;
+  actions?: ReactNode;
+  eyebrow?: ReactNode;
+}) {
+  return (
+    <header className="furrows relative overflow-hidden rounded-card bg-pine px-6 py-7 text-white shadow-lifted sm:px-8 sm:py-9">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-millet" />
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="text-caption mb-2 font-semibold tracking-[0.1em] text-millet uppercase">{eyebrow}</p>
+          )}
+          <h1 className="text-[2rem] leading-tight font-extrabold tracking-tight sm:text-[2.25rem]">{title}</h1>
+          {summary && <div className="mt-2 max-w-2xl text-[0.9375rem] leading-relaxed text-white/80">{summary}</div>}
+        </div>
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div>}
+      </div>
     </header>
   );
 }
@@ -103,7 +140,9 @@ export function Facts({
         {items.map((item, i) => (
           <div key={i} className="min-w-0">
             <dt className="text-caption text-muted-foreground font-medium">{item.label}</dt>
-            <dd className={cn("text-body mt-1 break-words", item.mono && "font-mono text-[0.8125rem]")}>{item.value}</dd>
+            <dd className={cn("text-body mt-1 break-words", item.mono && "font-mono text-[0.8125rem]")}>
+              {item.value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -114,7 +153,9 @@ export function Facts({
       {items.map((item, i) => (
         <div key={i} className="text-body flex items-baseline justify-between gap-4 py-2.5">
           <dt className="text-muted-foreground shrink-0">{item.label}</dt>
-          <dd className={cn("min-w-0 text-right break-words", item.mono && "font-mono text-[0.8125rem]")}>{item.value}</dd>
+          <dd className={cn("min-w-0 text-right break-words", item.mono && "font-mono text-[0.8125rem]")}>
+            {item.value}
+          </dd>
         </div>
       ))}
     </dl>
@@ -204,7 +245,7 @@ const TONE_TEXT: Record<Tone, string> = {
 };
 
 const TONE_RULE: Record<Tone, string> = {
-  neutral: "",
+  neutral: "bg-primary",
   primary: "bg-primary",
   success: "bg-success",
   warning: "bg-warning",
@@ -258,6 +299,7 @@ export function Stat({
 }) {
   const body = (
     <>
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-1", TONE_RULE[tone])} />
       {/* The label row holds two lines whether or not the label needs them, so
           the figures in a row of tiles sit on the same line. */}
       <div className="flex min-h-9 items-start gap-2.5">
@@ -269,16 +311,21 @@ export function Stat({
             <Icon className="size-4" />
           </span>
         ) : null}
-        <p className="text-muted-foreground min-w-0 flex-1 self-center text-[0.8125rem] leading-snug font-medium">{label}</p>
+        <p className="text-muted-foreground min-w-0 flex-1 self-center text-[0.8125rem] leading-snug font-medium">
+          {label}
+        </p>
         {href ? (
-          <ArrowUpRight className="text-border group-hover:text-primary size-4 shrink-0 transition-colors" aria-hidden />
+          <ArrowUpRight
+            className="text-border group-hover:text-primary size-4 shrink-0 transition-colors"
+            aria-hidden
+          />
         ) : null}
       </div>
       <div className="mt-3 flex h-9 items-end justify-between gap-3">
-        <p className={cn("text-[1.875rem] leading-none font-semibold tracking-tight tabular", TONE_TEXT[tone])}>
-          {value}
-        </p>
-        {trend && trend.length > 1 ? <Spark values={trend} stroke={TONE_STROKE[tone]} className="mb-0.5 -mr-1" /> : null}
+        <p className={cn("text-[1.875rem] leading-none font-bold tracking-tight tabular", TONE_TEXT[tone])}>{value}</p>
+        {trend && trend.length > 1 ? (
+          <Spark values={trend} stroke={TONE_STROKE[tone]} className="mb-0.5 -mr-1" />
+        ) : null}
       </div>
       {hint && <p className="text-muted-foreground mt-3 text-xs leading-relaxed">{hint}</p>}
     </>
@@ -312,10 +359,7 @@ export function Stat({
 export function Empty({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
-      <span
-        aria-hidden
-        className="bg-muted text-muted-foreground grid size-9 place-items-center rounded-full border"
-      >
+      <span aria-hidden className="bg-muted text-muted-foreground grid size-9 place-items-center rounded-full border">
         <Inbox className="size-4" />
       </span>
       <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">{children}</p>
@@ -429,7 +473,5 @@ export function Cell({
   className?: string;
   align?: "left" | "right";
 }) {
-  return (
-    <TableCell className={cn(align === "right" && "text-right", className)}>{children}</TableCell>
-  );
+  return <TableCell className={cn(align === "right" && "text-right", className)}>{children}</TableCell>;
 }

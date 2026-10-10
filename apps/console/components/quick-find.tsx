@@ -126,11 +126,11 @@ export function QuickFind({ roles }: { roles: string[] | null }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-5 flex w-full items-center gap-2.5 rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink-muted transition-colors hover:border-primary-200 hover:text-ink"
+        className="mb-5 flex w-full items-center gap-2.5 rounded-control border border-pine-line bg-white/5 px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
       >
-        <Search className="size-4 text-ink-faint" aria-hidden />
+        <Search className="size-4 text-white/50" aria-hidden />
         <span className="flex-1 text-left">Search</span>
-        <kbd className="rounded border border-line bg-surface-sunk px-1.5 py-0.5 font-sans text-[0.6875rem] text-ink-faint">
+        <kbd className="rounded border border-pine-line bg-white/10 px-1.5 py-0.5 font-sans text-[0.6875rem] text-white/60">
           Ctrl K
         </kbd>
       </button>
@@ -141,7 +141,7 @@ export function QuickFind({ roles }: { roles: string[] | null }) {
         ? createPortal(
             <div className="fixed inset-0 z-50 flex items-start justify-center p-3 pt-[12vh] sm:p-6 sm:pt-[14vh]">
               <div
-                className="absolute inset-0 bg-[rgb(7_36_53/0.45)] backdrop-blur-[2px] animate-in fade-in"
+                className="absolute inset-0 bg-[rgb(11_42_32/0.55)] backdrop-blur-[2px] animate-in fade-in"
                 onClick={close}
                 aria-hidden
               />

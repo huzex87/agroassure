@@ -22,7 +22,7 @@ import {
   type SystemStatus,
 } from "../lib/api";
 import { SetupChecklist } from "../components/setup-checklist";
-import { Button, Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
+import { Button, Empty, Hero, Panel, Reason, Stat } from "../components/ui";
 import { ADMIN_ROLES, canSee, PLANNERS } from "../lib/roles";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader
+      <Hero
         eyebrow={`${today}${me?.jurisdictionName ? ` · ${me.jurisdictionName}` : ""}`}
         title={first ? `${greeting}, ${first}` : "Compliance overview"}
         summary={summaryLine}
@@ -121,13 +121,13 @@ export default async function DashboardPage() {
           <>
             {canPlan ? (
               // The setup steps own the one filled button until there is work to plan.
-              <Button asChild variant={unstarted ? "secondary" : "default"}>
+              <Button asChild variant={unstarted ? "glass" : "gold"}>
                 <Link href="/plan">
                   <CalendarClock aria-hidden /> Plan visits
                 </Link>
               </Button>
             ) : null}
-            <Button asChild variant="secondary">
+            <Button asChild variant="glass">
               <Link href="/facilities/new">
                 <Plus aria-hidden /> Add facility
               </Link>

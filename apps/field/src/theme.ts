@@ -1,36 +1,43 @@
 import { Platform, StyleSheet } from "react-native";
 
-// Huzex Light, on a phone held in a warehouse.
+// AgroAssure, on a phone held in a warehouse.
 //
 // The constraints here are not a desk's. Touch targets are generous because
 // this is used standing up, one-handed, sometimes in gloves. Contrast is high
 // because it is used in full daylight and in a dim store on the same afternoon.
-// And status carries its own hue rather than a tint of the brand blue, the same
-// way it does in the console: an inspector scanning eight facilities should see
+// And status carries its own hue rather than a tint of the brand green, the
+// same way it does in the console: an inspector scanning eight facilities should see
 // which are done without reading each one.
 
 export const colors = {
-  /** The brand blue: for shapes that are seen (the mark, progress fills). */
-  brand: "#409EF2",
-  /** The action blue: the same hue, deep enough for white text on it (4.7:1). */
-  primary: "#1B75CC",
-  primaryDark: "#124F8A",
-  primaryTint: "#EAF4FE",
-  primaryLine: "#C2E0FB",
+  /** Leaf: the bright green of the mark and progress fills. A shape colour, not a text colour. */
+  brand: "#2FA45F",
+  /** Forest: the working green. Deep enough for white text on it (6.6:1). */
+  primary: "#166A45",
+  primaryDark: "#0D4A2F",
+  primaryTint: "#EEF7F1",
+  primaryLine: "#B3DCC4",
 
-  ink: "#072435",
-  inkMuted: "#4A6B7C",
-  // 4.5:1 or better on every surface it sits on; the old #7C96A4 was 3.1:1.
-  inkFaint: "#587384",
+  /** Pine: the darkest green, the ink of the product and the colour of the header. */
+  pine: "#0B2A20",
+  /** Millet: the harvest gold, kept for the one thing to do next and for marks of record. */
+  millet: "#F2B01E",
+  milletTint: "#FFF3CF",
+  milletInk: "#7A5200",
 
-  line: "#E4EDF3",
-  lineFirm: "#CBDAE5",
+  ink: "#0E231B",
+  inkMuted: "#435A4D",
+  // 4.5:1 or better on every surface it sits on.
+  inkFaint: "#587062",
+
+  line: "#D9E2D5",
+  lineFirm: "#C4D0BF",
   surface: "#FFFFFF",
-  surfaceSunk: "#F4F8FB",
-  canvas: "#F6FAFC",
+  surfaceSunk: "#E8EEE5",
+  canvas: "#F1F5EF",
 
-  good: "#0F7A5F",
-  goodTint: "#E6F4EF",
+  good: "#187A44",
+  goodTint: "#E5F4EA",
   caution: "#A45E07",
   cautionTint: "#FDF3E5",
   critical: "#B93A2E",
@@ -46,7 +53,7 @@ export const colors = {
 // platform, and getting that wrong is how a card ends up flat on Android.
 const raised = Platform.select({
   ios: {
-    shadowColor: "#072435",
+    shadowColor: "#0B2A20",
     shadowOpacity: 0.07,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
@@ -229,7 +236,7 @@ export const styles = StyleSheet.create({
   // -- the three responses ------------------------------------------------
   // Each is a large target because a mis-tap on a compliance record is not a
   // small thing, and each settles into the colour of what it means rather than
-  // all three turning the same brand blue.
+  // all three turning the same brand green.
   responseRow: { flexDirection: "row", gap: 8 },
   responseButton: {
     flex: 1,

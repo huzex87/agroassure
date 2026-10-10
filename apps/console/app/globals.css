@@ -1,14 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Huzex Light, expressed as shadcn tokens.
+/* AgroAssure, expressed as shadcn tokens.
    ---------------------------------------------------------------------------
    The names here are shadcn's — background, foreground, card, muted, accent,
    destructive, ring, chart-1..5 — so any component copied in from the registry
    lands already wearing this palette and needs no edit. The values are the
    product's own: one saturated blue that means "act here", and structure built
    from a slate biased toward it rather than a true grey, because a neutral grey
-   next to #072435 reads as dirty for a reason nobody can name.
+   next to #0e231b reads as dirty for a reason nobody can name.
 
    Status keeps its own hues. Every tone used to be a tint of the primary, which
    meant a valid certificate and a critical finding were the same colour with
@@ -20,43 +20,52 @@
   --radius: 0.75rem;
 
   /* -- surfaces ---------------------------------------------------------- */
-  --background: #f6fafc;
-  --foreground: #072435;
+  --background: #f1f5ef;
+  --foreground: #0e231b;
   --card: #ffffff;
-  --card-foreground: #072435;
+  --card-foreground: #0e231b;
   --popover: #ffffff;
-  --popover-foreground: #072435;
+  --popover-foreground: #0e231b;
 
   /* -- brand -------------------------------------------------------------
-     One hue, two jobs. The brand blue (#409EF2) is for things that are seen
-     rather than read: the mark, focus rings, chart series, selected states. It
-     is 2.8:1 against white, which is right for a shape and wrong for text. So
-     the colour that carries a button label or a link is the same hue taken
-     down to 4.7:1, the lowest that still passes AA for body text. Both are
-     steps on one scale, so nothing in the interface is a different blue. */
-  --brand: #409ef2;
-  --primary: #1b75cc;
+     Four colours with jobs, taken from the field rather than a palette tool.
+     PINE is the dark of dense forest and the ink of the product: the sidebar,
+     the hero, headings. FOREST is the working green: buttons, links, the
+     selected state. LEAF is the bright green of new growth, for shapes seen
+     rather than read (the mark, focus rings, chart series); it is 3.2:1 on
+     white, right for a shape and wrong for text. MILLET is the gold of the
+     staple crop of this region, kept for the moments that matter: the seal, the
+     certificate, the current page, the one thing to do next. Used rarely, it
+     stays valuable. */
+  --brand: #2fa45f;
+  --pine: #0b2a20;
+  --pine-2: #133a2c;
+  --pine-line: #24503f;
+  --millet: #f2b01e;
+  --millet-tint: #fff3cf;
+  --millet-ink: #7a5200;
+  --primary: #166a45;
   --primary-foreground: #ffffff;
-  --secondary: #f4f8fb;
-  --secondary-foreground: #0d3f5c;
+  --secondary: #e8eee5;
+  --secondary-foreground: #0d3b2a;
 
-  --muted: #f4f8fb;
-  --muted-foreground: #4a6b7c;
-  --accent: #f1f8fe;
-  --accent-foreground: #1665ad;
+  --muted: #e8eee5;
+  --muted-foreground: #435a4d;
+  --accent: #eef7f1;
+  --accent-foreground: #115a39;
 
-  --border: #e4edf3;
-  --input: #cbdae5;
-  --ring: #409ef2;
+  --border: #d9e2d5;
+  --input: #bcc9b7;
+  --ring: #2fa45f;
 
   /* -- status -----------------------------------------------------------
-     Chosen against the blue rather than off a colour wheel: the green is
-     desaturated so it sits beside the primary without competing, and the red is
-     warmed so it reads as serious rather than as an operating-system alert. */
-  --success: #0f7a5f;
+     Status keeps its own meaning, and a word and an icon always sit beside it.
+     The green says healthy, the amber caution, the red serious. The amber is
+     deliberately a burnt orange, so it is never mistaken for Millet gold. */
+  --success: #187a44;
   --success-foreground: #ffffff;
-  --success-muted: #e6f4ef;
-  --success-border: #b7e0d2;
+  --success-muted: #e5f4ea;
+  --success-border: #b7dec5;
 
   --warning: #a45e07;
   --warning-foreground: #ffffff;
@@ -72,20 +81,20 @@
      Ordered so a two-series chart reads as brand-against-settled rather than as
      two arbitrary colours, and so a five-series one never puts the caution
      amber beside the critical red. */
-  --chart-1: #409ef2;
-  --chart-2: #0f7a5f;
-  --chart-3: #a45e07;
-  --chart-4: #b93a2e;
-  --chart-5: #6b7fd7;
+  --chart-1: #166a45;
+  --chart-2: #f2b01e;
+  --chart-3: #2fa45f;
+  --chart-4: #c2552b;
+  --chart-5: #3f6f8e;
 
   /* Names the pages written before shadcn still use. */
-  --ink-muted: #4a6b7c;
+  --ink-muted: #435a4d;
   /* The faintest text in the product (captions, placeholders, timestamps).
      It used to be #7C96A4, which is 3.1:1 on white. This is 4.5:1 or better on
      every surface it sits on. */
-  --ink-faint: #587384;
-  --line-firm: #cbdae5;
-  --surface-sunk: #f4f8fb;
+  --ink-faint: #587062;
+  --line-firm: #c4d0bf;
+  --surface-sunk: #e8eee5;
 }
 
 /* Tailwind v4 reads utilities from @theme. `inline` means the utilities point
@@ -98,6 +107,12 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-brand: var(--brand);
+  --color-pine: var(--pine);
+  --color-pine-2: var(--pine-2);
+  --color-pine-line: var(--pine-line);
+  --color-millet: var(--millet);
+  --color-millet-tint: var(--millet-tint);
+  --color-millet-ink: var(--millet-ink);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -145,11 +160,11 @@
   --color-critical: var(--destructive);
   --color-critical-bg: var(--destructive-muted);
   --color-critical-line: var(--destructive-border);
-  --color-primary-50: #f1f8fe;
-  --color-primary-100: #dfeffd;
-  --color-primary-200: #bcdefb;
-  --color-primary-600: #1665ad; /* the fill on hover */
-  --color-primary-700: #124f8a; /* text and icons on a tint */
+  --color-primary-50: #eef7f1;
+  --color-primary-100: #d8ede0;
+  --color-primary-200: #b3dcc4;
+  --color-primary-600: #115a39; /* the fill on hover */
+  --color-primary-700: #0d4a2f; /* text and icons on a tint */
 
   /* Three radii and nothing else. A control (button, input, chip with a label)
      is 10, a card or panel is 14, and a status badge is a pill. Eleven slightly
@@ -181,9 +196,9 @@
   /* Three levels, deliberately. Everything used to carry the same border and
      the same shadow, which flattens hierarchy: when every block is lifted,
      nothing is. */
-  --shadow-raised: 0 1px 2px rgb(7 36 53 / 0.05), 0 4px 12px -2px rgb(7 36 53 / 0.06);
-  --shadow-lifted: 0 2px 4px rgb(7 36 53 / 0.05), 0 12px 28px -6px rgb(7 36 53 / 0.10);
-  --shadow-overlay: 0 24px 60px -12px rgb(7 36 53 / 0.22);
+  --shadow-raised: 0 1px 2px rgb(11 42 32 / 0.05), 0 4px 12px -2px rgb(11 42 32 / 0.06);
+  --shadow-lifted: 0 2px 4px rgb(11 42 32 / 0.05), 0 12px 28px -6px rgb(11 42 32 / 0.10);
+  --shadow-overlay: 0 24px 60px -12px rgb(11 42 32 / 0.22);
 }
 
 @layer base {
@@ -239,7 +254,7 @@
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--foreground);
-    box-shadow: 0 1px 2px rgb(7 36 53 / 0.04);
+    box-shadow: 0 1px 2px rgb(11 42 32 / 0.04);
     transition: border-color 120ms, box-shadow 120ms, background-color 120ms;
   }
   .field-lg {
@@ -274,7 +289,7 @@
   select.field {
     appearance: none;
     padding-right: 2.25rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23587384' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23587062' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
@@ -309,10 +324,23 @@
     }
   }
 
+  /* Ploughed rows, for the places that should feel like the field: the hero and
+     the sign-in panel. Diagonal, faint, and never behind text that has to be
+     read at a glance. */
+  .furrows {
+    background-image: repeating-linear-gradient(
+      115deg,
+      rgb(255 255 255 / 0.045) 0,
+      rgb(255 255 255 / 0.045) 2px,
+      transparent 2px,
+      transparent 16px
+    );
+  }
+
   /* A faint survey grid, for the places that show position rather than data:
      the registry map and the sign-in backdrop. */
   .survey-grid {
-    background-image: radial-gradient(circle at 1px 1px, rgb(7 36 53 / 0.09) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, rgb(11 42 32 / 0.09) 1px, transparent 0);
     background-size: 20px 20px;
   }
 }

@@ -306,7 +306,7 @@ export class InvitationsService {
       type: "svg",
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#072435", light: "#ffffff" },
+      color: { dark: "#0B2A20", light: "#ffffff" },
     });
 
     return { ...issued, email, sms, qrSvg };
