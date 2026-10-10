@@ -1,0 +1,63 @@
+name: Build Android app
+
+# A button, not a pipeline. Run it from the Actions tab whenever the phone app
+# needs a new installable build (the old link expired, or the app changed). It
+# asks Expo's servers to build the APK and prints the link to paste into
+# Render as FIELD_APP_DOWNLOAD_URL. It never runs by itself.
+#
+# One-time setup: add an Expo access token as the repository secret
+# EXPO_TOKEN (expo.dev, Account settings, Access tokens).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Check the Expo token is present
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the repository secret EXPO_TOKEN first (expo.dev, Account settings, Access tokens)."
+            exit 1
+          fi
+
+      - name: Build the APK on Expo's servers
+        working-directory: apps/field
+        run: eas build --platform android --profile preview --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
+
+      - name: Show the link to paste into Render
+        run: |
+          url=$(jq -r '.[0].buildDetailsPageUrl // empty' "$RUNNER_TEMP/build.json")
+          apk=$(jq -r '.[0].artifacts.buildUrl // empty' "$RUNNER_TEMP/build.json")
+          {
+            echo "## Android build finished"
+            echo
+            echo "**Build page (use this for FIELD_APP_DOWNLOAD_URL):** $url"
+            echo
+            echo "Direct file: $apk"
+            echo
+            echo "In Render, open agroassure-gateway, then Environment, set FIELD_APP_DOWNLOAD_URL to the build page link, and save."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          test -n "$url"

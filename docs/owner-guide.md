@@ -65,7 +65,7 @@ Now follow the [handbook](handbook.md): add facilities, check checklists, invite
 
 ## Building and sharing the phone app
 
-The Android app is built on Expo's servers and shared as a link. Do this the first time, and again whenever the link stops working. **Settings → System status** now opens the link for you and says if it fails.
+The Android app is built on Expo's servers and shared as a link. **The easy way:** in GitHub, open the repository's **Actions** tab, choose **Build Android app**, then **Run workflow**. When it finishes (10 to 20 minutes) the run's summary shows the link to paste into Render. It needs the repository secret `EXPO_TOKEN` once (expo.dev, Account settings, Access tokens). The steps below do the same from a computer. Do this the first time, and again whenever the link stops working. **Settings → System status** now opens the link for you and says if it fails.
 
 1. On a computer with Node and pnpm: `git pull`, `pnpm install`, then `cd apps/field`.
 2. `npx eas-cli login` (the Expo account that owns the project), then `npx eas-cli build -p android --profile preview`. It takes 10 to 20 minutes and ends with a **link and a QR code**.
