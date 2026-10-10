@@ -197,3 +197,34 @@ jobs:
       - name: The migration runner is in the image and refuses to run blind
         run: |
           docker run --rm --entrypoint node agroassure-gateway:ci db/migrate.mjs 2>&1             | grep -q "DATABASE_URL is required"
+
+  # The unit tests cannot tell a page that compiles from a page that renders.
+  # This builds the console, starts it against a stub gateway and drives it in a
+  # real browser: sign-in, home, every main page, quick find and the theme
+  # toggle, failing on any script error.
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build what the console imports, then the console
+        run: |
+          pnpm --filter @agroassure/domain build
+          pnpm --filter @agroassure/console run build
+
+      - name: Install the browser
+        run: pnpm --filter @agroassure/console exec playwright install --with-deps chromium
+
+      - name: Click through the console in a real browser
+        run: pnpm --filter @agroassure/console run smoke
