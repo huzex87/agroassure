@@ -19,10 +19,11 @@ import {
   type RegistrationRow,
   type RiskSuggestion,
   type SetupProgress,
+  type SystemStatus,
 } from "../lib/api";
 import { SetupChecklist } from "../components/setup-checklist";
 import { Button, Empty, PageHeader, Panel, Reason, Stat } from "../components/ui";
-import { canSee, PLANNERS } from "../lib/roles";
+import { ADMIN_ROLES, canSee, PLANNERS } from "../lib/roles";
 import { FindingsBySection, ComplianceTrend } from "../components/charts";
 
 // The regulator dashboard: what to do today. Every number here reads from a
@@ -48,6 +49,12 @@ export default async function DashboardPage() {
     tryGet<RegistrationRow[]>("/v1/registrations"),
   ]);
   const waitingToJoin = requests?.length ?? 0;
+
+  // Administrators are told on their first screen when the server itself needs
+  // something, because a setup problem shows up everywhere else as "nothing
+  // arrived" and nobody can see why.
+  const system = me && canSee(me.roles, ADMIN_ROLES) ? await tryGet<SystemStatus>("/v1/system/status") : null;
+  const systemFailures = system?.checks.filter((c) => c.state === "fail").length ?? 0;
 
   const { tiles, decisionsWithin30Days: clock } = summary;
   const inspectionTrend = summary.complianceTrend.map((m) => m.inspections);
@@ -128,6 +135,29 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {systemFailures > 0 ? (
+        <Link
+          href="/settings/status"
+          className="group flex items-center gap-3 rounded-card border border-destructive-border bg-destructive-muted px-4 py-3 transition-colors hover:border-destructive"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-destructive text-white shadow-raised">
+            <AlertTriangle className="size-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-ink">
+              {systemFailures === 1 ? "1 thing is not set up yet" : `${systemFailures} things are not set up yet`}
+            </span>
+            <span className="block text-sm text-ink-muted">
+              Some people may not get their emails or sign-in links until it is fixed.
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-destructive">
+            See what
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+          </span>
+        </Link>
+      ) : null}
 
       {waitingToJoin > 0 ? (
         <Link

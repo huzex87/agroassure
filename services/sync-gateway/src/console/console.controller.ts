@@ -32,6 +32,9 @@ import { SetupService } from "./setup.service";
 import { InviteDelivery } from "../invitations/delivery";
 import { CONFIG, type AppConfig } from "../config/config";
 import { staffSignInUrl, staffWelcomeEmail } from "./staff-welcome";
+import { buildSystemStatus, type SystemStatus } from "./system-status";
+import { PgService } from "../db/pg.service";
+import { ProjectorService } from "../projections/projector.service";
 import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid } from "../common/validate";
 
 // The regulator console surface. Every route runs behind the auth guard, and
@@ -682,5 +685,70 @@ export class SetupController {
   @Get("me")
   me(@Req() req: Request) {
     return this.setup.me(getPrincipal(req));
+  }
+}
+
+
+/**
+ * Whether this server is set up properly, for the people who run it. State
+ * and national administrators only: it names providers and says what is
+ * missing, which is nobody else's business.
+ */
+@Controller("v1/system")
+@UseGuards(DeviceAuthGuard, RolesGuard)
+export class SystemController {
+  constructor(
+    private readonly pg: PgService,
+    private readonly projector: ProjectorService,
+    private readonly delivery: InviteDelivery,
+    private readonly setup: SetupService,
+    @Inject(CONFIG) private readonly config: AppConfig,
+  ) {}
+
+  @Get("status")
+  @Roles("state_admin", "national_admin")
+  async status(): Promise<SystemStatus> {
+    let dbUp = false;
+    let projectionLag: number | null = null;
+    try {
+      await this.pg.query("SELECT 1");
+      dbUp = true;
+      projectionLag = await this.projector.lag();
+    } catch {
+      /* reported as a failed check, not as an error page */
+    }
+    return buildSystemStatus(this.config, { dbUp, projectionLag });
+  }
+
+  /**
+   * Send a real email to the person asking, through the real provider, and
+   * report exactly what the provider answered. The checks above can say a
+   * setting looks right; only sending proves it, and a provider's refusal
+   * names the problem in its own words.
+   */
+  @Post("test-email")
+  @HttpCode(200)
+  @Roles("state_admin", "national_admin")
+  async testEmail(@Req() req: Request): Promise<{ ok: boolean; to: string | null; message: string }> {
+    const me = await this.setup.me(getPrincipal(req));
+    if (!me.email) {
+      return { ok: false, to: null, message: "Your account has no email address to send a test to." };
+    }
+    const outcome = await this.delivery.sendEmailContent(me.email, {
+      subject: "AgroAssure test email",
+      text: "This is a test from your AgroAssure server. If you can read it, email is working.",
+      html: "<p>This is a test from your AgroAssure server. If you can read it, email is working.</p>",
+    });
+    if (outcome.status === "sent") {
+      return {
+        ok: true,
+        to: me.email,
+        message:
+          outcome.detail === "written to the service log"
+            ? "Email is set to write to the server log only, so nothing was delivered."
+            : `Sent to ${me.email}. Check the inbox and spam.`,
+      };
+    }
+    return { ok: false, to: me.email, message: outcome.detail ?? "The email was not sent." };
   }
 }

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, ClipboardList, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, ClipboardList, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { tryGet, type Me } from "../../lib/api";
 import { PageHeader } from "../../components/ui";
-import { canSee, PROGRAMME_ROLES, TEAM_ROLES } from "../../lib/roles";
+import { ADMIN_ROLES, canSee, PROGRAMME_ROLES, TEAM_ROLES } from "../../lib/roles";
 
 // The occasional jobs, in one place. The menu carries the five things people do
 // every day; everything that is set up once and revisited now and then lives
@@ -37,6 +37,13 @@ const ITEMS: Array<{
     description: "Coverage, trends and enforcement across the whole programme.",
     icon: <BarChart3 className="size-5" aria-hidden />,
     roles: PROGRAMME_ROLES,
+  },
+  {
+    href: "/settings/status",
+    title: "System status",
+    description: "Whether email, sign-in, text messages and storage are set up, with a test email to prove it.",
+    icon: <Activity className="size-5" aria-hidden />,
+    roles: ADMIN_ROLES,
   },
 ];
 

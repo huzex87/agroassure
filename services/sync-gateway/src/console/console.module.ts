@@ -11,6 +11,7 @@ import {
   DevicesController,
   AuditController,
   SetupController,
+  SystemController,
 } from "./console.controller";
 import { RegistryService } from "./registry.service";
 import { InstrumentsService } from "./instruments.service";
@@ -40,6 +41,7 @@ import { InvitationsModule } from "../invitations/invitations.module";
     DevicesController,
     AuditController,
     SetupController,
+    SystemController,
   ],
   providers: [
     RegistryService,

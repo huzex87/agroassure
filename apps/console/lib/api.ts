@@ -284,6 +284,20 @@ export interface AssignmentRow {
   assigned_to: string;
 }
 
+/** One thing the server checked about its own setup, in words an administrator can act on. */
+export interface SystemCheck {
+  id: string;
+  title: string;
+  state: "ok" | "warn" | "fail";
+  detail: string;
+  fix?: string;
+}
+
+export interface SystemStatus {
+  overall: "ok" | "attention" | "broken";
+  checks: SystemCheck[];
+}
+
 export interface SetupProgress {
   facilities: number;
   checklistsInForce: number;

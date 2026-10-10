@@ -5,6 +5,8 @@
 export const PLANNERS = ["desk_supervisor", "authorising_officer", "state_admin"];
 export const OVERSIGHT = ["desk_supervisor", "authorising_officer", "state_admin", "national_admin", "auditor"];
 export const TEAM_ROLES = ["state_admin", "national_admin", "auditor"];
+/** Who runs the server and may see how it is set up. */
+export const ADMIN_ROLES = ["state_admin", "national_admin"];
 export const PROGRAMME_ROLES = ["state_admin", "national_admin", "auditor", "authorising_officer"];
 
 const ROLE_LABEL: Record<string, string> = {
