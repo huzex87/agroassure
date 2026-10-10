@@ -19,7 +19,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: 0.5c-512mb
-    region: ohio            # co-located with the Supabase project and the evidence bucket
+    region: ohio            # co-located with the database and the evidence bucket
     healthCheckPath: /health
     autoDeployTrigger: commit
 
@@ -34,8 +34,8 @@ services:
         value: "3001"
 
       # -- database ------------------------------------------------------------
-      # Supabase's session pooler, not the direct host: that one is IPv6-only and
-      # will not resolve from here.
+      # A pooled connection string, not the direct host: direct hosts are often
+      # IPv6-only and will not resolve from here. (Supabase: use the session pooler.)
       - key: DATABASE_URL
         sync: false
       # The same database as public_verify.<project-ref>, a role that holds

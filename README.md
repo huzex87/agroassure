@@ -122,14 +122,17 @@ the far side of `lib/api.ts`, so no screen can be made to work by relaxing one.
 | Instruments | The version timeline, the in-force structure in both languages, and the explicit change list before a publish |
 | Settings → Team | Roles, and phone set-up against a key the device generated and never exported |
 
-Styled to Huzex Light: `#409EF2` for action, `#072435` for text, white surfaces,
-12–16px radii, soft shadows, and light blurred overlays rather than dark tints.
-Every status carries a word as well as a colour, so the registry stays readable
-to a colour-blind reader and in a printed export.
+Styled in the AgroAssure palette: Pine for the sidebar and headings, Forest for
+action, Leaf for shapes, Millet gold for the current page and the one thing to
+do next. It follows the device's light or dark setting and has a toggle in the
+sidebar. Every status carries a word and an icon as well as a colour, so the
+registry stays readable to a colour-blind reader and in a printed export. The
+full guide is [`docs/brand-guide.md`](docs/brand-guide.md).
 
-Sign-in is a development stand-in that stores a token in an httpOnly cookie. It
-authenticates nobody. Replacing it with the institution's OpenID Connect
-provider changes only that page, because nothing else asks for a token.
+Staff sign in with an emailed one-time link (or the institution's OpenID Connect
+provider, if one is configured). The token lives in an httpOnly cookie, and the
+console only checks that a session exists: the gateway decides whether it is
+valid and what the person may do.
 
 ### The invariants, and where each one lives
 
@@ -181,7 +184,9 @@ If you use npm instead of pnpm, replace the `workspace:*` dependency on
 ## Tests
 
 ```bash
-pnpm -r run test              # 103 tests, no database needed
+pnpm -r run test              # unit tests, no database needed
+pnpm --filter @agroassure/console run build && pnpm --filter @agroassure/console run smoke
+                              # the console in a real browser, against a stub gateway
 node db/verify-invariants.mjs # the schema invariants, against a live database
 pnpm test:integration         # a full lifecycle, against a disposable database
 ```
@@ -367,6 +372,8 @@ The guides, one for each reader:
   System status page.
 - [`docs/phone-field-test.md`](docs/phone-field-test.md): a one-hour script for
   trying the phone app on a real handset.
+- [`docs/brand-guide.md`](docs/brand-guide.md): for anyone making a screen, a
+  document or a message that carries the name. The logo, colours, type and voice.
 
 Longer step-by-step detail (SMS and email providers, the Android build, a full
 testing script with expected results) is kept in [`docs/reference/`](docs/reference/).
