@@ -62,6 +62,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.0
         version: 19.2.5(@types/react@19.2.18)
+      playwright:
+        specifier: 1.62.1
+        version: 1.62.1
       tailwindcss:
         specifier: ^4.1.13
         version: 4.3.3
@@ -2141,6 +2144,7 @@ packages:
   '@smithy/node-http-handler@4.12.0':
     resolution: {integrity: sha512-0mq1pHadfyXCYCqm2cNpbjNIT+fbaUpNxewZb/YNr2L0IrEVMOb8gM/Fl4K6XvHCW3uSNDFwPl/+iKm0bx9jYg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Depreacted due to a memory leak issue https://github.com/smithy-lang/smithy-typescript/issues/2258
 
   '@smithy/signature-v4@5.7.3':
     resolution: {integrity: sha512-7ImGm+FkHRLcBaRttIAMZ6bzJZWb2cJGoYjq46F2UjycujWzrL9GEN9h4w7eQyXJYnltrUhxbbieBAIRrdqpow==}
@@ -11297,15 +11301,13 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  playwright-core@1.62.1:
-    optional: true
+  playwright-core@1.62.1: {}
 
   playwright@1.62.1:
     dependencies:
       playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
-    optional: true
 
   plist@3.1.1:
     dependencies:
