@@ -47,10 +47,7 @@
       "typedRoutes": false
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "9e09bf2e-1e48-4923-8007-67a2c57602d9"
-      }
+      "router": {}
     },
     "owner": "huzex",
     "icon": "./assets/icon.png"
