@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 import { Button, Panel } from "../../components/ui";
 import { authorizeUrl, challengeFor, newState, newVerifier, oidcSettings } from "../../lib/oidc";
 import { isWellFormedToken } from "../../lib/api";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
+import { AutoRefresh } from "../../components/auto-refresh";
 import { SubmitButton } from "../../components/forms";
 import { sendSignInLink } from "./email-actions";
 import { registerOptions } from "../register/actions";
@@ -52,15 +53,29 @@ async function startOidc() {
  * The ways in this gateway offers. Asked rather than configured twice, so the
  * page cannot offer email sign-in to a gateway that would refuse it.
  */
-async function signInMethods(): Promise<{ oidc: boolean; email: boolean; dev: boolean }> {
+async function signInMethods(): Promise<{
+  oidc: boolean;
+  email: boolean;
+  dev: boolean;
+} | null> {
   const base = process.env.AGROASSURE_API_URL ?? "http://localhost:3001";
   try {
-    const res = await fetch(`${base}/v1/auth/methods`, { cache: "no-store" });
-    if (res.ok) return (await res.json()) as { oidc: boolean; email: boolean; dev: boolean };
+    // A host that has gone to sleep can take most of a minute to start. Wait a
+    // few seconds, then let the page say what is happening and try again.
+    const res = await fetch(`${base}/v1/auth/methods`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok)
+      return (await res.json()) as {
+        oidc: boolean;
+        email: boolean;
+        dev: boolean;
+      };
   } catch {
-    /* an unreachable gateway offers nothing; the page says so below */
+    /* unreachable: null, so the page can say so rather than offer a way in that is not there */
   }
-  return { oidc: false, email: false, dev: false };
+  return null;
 }
 
 /** Two letters for the avatar. A single-word name still gets one. */
@@ -130,9 +145,12 @@ async function signInWithToken(formData: FormData) {
   const token = String(formData.get("token") ?? "").replace(/\s+/g, "");
   if (!token) return;
   if (!isWellFormedToken(token)) {
-    redirect("/signin?error=" + encodeURIComponent(
-      "That does not look like a token. It should be three dot-separated parts and nothing else — check for a stray character picked up while copying.",
-    ));
+    redirect(
+      "/signin?error=" +
+        encodeURIComponent(
+          "That does not look like a token. It should be three dot-separated parts and nothing else — check for a stray character picked up while copying.",
+        ),
+    );
   }
 
   const jar = await cookies();
@@ -149,14 +167,40 @@ async function signInWithToken(formData: FormData) {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string; demo?: string; email?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    sent?: string;
+    demo?: string;
+    email?: string;
+  }>;
 }) {
   const settings = oidcSettings();
-  const [methods, users, registration] = await Promise.all([
-    signInMethods(),
-    settings ? [] : devUsers(),
-    registerOptions(),
-  ]);
+  const methods = await signInMethods();
+
+  // The gateway did not answer. On a host that sleeps when idle this is the
+  // first request after a quiet spell, and it is starting. Say so and keep
+  // asking, rather than fall through to a sign-in the server cannot honour.
+  if (methods === null) {
+    return (
+      <div className="w-full">
+        <Panel className="shadow-lifted">
+          <div className="flex flex-col items-center gap-3 py-2 text-center" role="status">
+            <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary ring-1 ring-inset ring-primary-100">
+              <Loader2 className="size-6 animate-spin" aria-hidden />
+            </span>
+            <h1 className="text-lg font-semibold text-ink">Getting things ready</h1>
+            <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
+              The service was resting and is starting up. This can take up to a minute. This page will continue by
+              itself.
+            </p>
+          </div>
+        </Panel>
+        <AutoRefresh seconds={5} />
+      </div>
+    );
+  }
+
+  const [users, registration] = await Promise.all([settings ? [] : devUsers(), registerOptions()]);
   const canRegister = registration?.available === true;
   const requestAccess = canRegister ? (
     <p className="mt-4 text-center text-sm text-ink-muted">
@@ -186,8 +230,8 @@ export default async function SignInPage({
               </span>
               <h1 className="text-lg font-semibold text-ink">Check your email</h1>
               <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
-                If <strong className="text-ink">{sent}</strong> has an account, a sign-in link is on its way.
-                It works once and expires in 15 minutes.
+                If <strong className="text-ink">{sent}</strong> has an account, a sign-in link is on its way. It works
+                once and expires in 15 minutes.
               </p>
             </div>
             <p className="mt-6 border-t border-line pt-4 text-center text-sm text-ink-muted">
@@ -229,13 +273,15 @@ export default async function SignInPage({
             <SubmitButton pendingText="Sending…">Email me a sign-in link</SubmitButton>
           </form>
 
-          {settings ? (
+          {settings && methods.oidc ? (
             <>
               <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
                 <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
               </div>
               <form action={startOidc}>
-                <Button variant="outline" className="w-full" size="lg">Continue with work account</Button>
+                <Button variant="outline" className="w-full" size="lg">
+                  Continue with work account
+                </Button>
               </form>
             </>
           ) : null}
@@ -265,7 +311,9 @@ export default async function SignInPage({
         <Panel title="Sign in" subtitle="Use your work account to continue.">
           {notice}
           <form action={startOidc}>
-            <Button className="w-full" size="lg">Continue with work account</Button>
+            <Button className="w-full" size="lg">
+              Continue with work account
+            </Button>
           </form>
           <p className="mt-6 border-t border-line pt-4 text-sm text-ink-muted">
             You&rsquo;ll sign in on your organisation&rsquo;s page and come straight back here.
@@ -278,10 +326,7 @@ export default async function SignInPage({
 
   return (
     <div className="w-full">
-      <Panel
-        title="Sign in"
-        subtitle={users.length > 0 ? "Choose who to continue as." : undefined}
-      >
+      <Panel title="Sign in" subtitle={users.length > 0 ? "Choose who to continue as." : undefined}>
         {/* Said once, plainly, so nobody mistakes a demo for the real thing. */}
         <p className="mb-4 flex items-center gap-2 rounded-control border border-warning-border bg-warning-muted px-3 py-2 text-xs font-medium text-warning">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-warning" />
@@ -309,18 +354,22 @@ export default async function SignInPage({
                     {initials(u.full_name)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">
-                      {u.full_name}
-                    </span>
+                    <span className="block truncate text-sm font-medium text-ink">{u.full_name}</span>
                     <span className="block truncate text-xs text-ink-muted">
                       {u.roles.map((r) => r.replace(/_/g, " ")).join(", ") || "No role"}
                     </span>
                   </span>
-                  <span
-                    aria-hidden
-                    className="shrink-0 text-ink-faint transition-colors group-hover:text-primary"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <span aria-hidden className="shrink-0 text-ink-faint transition-colors group-hover:text-primary">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="m6 3.5 4.5 4.5L6 12.5" />
                     </svg>
                   </span>
@@ -340,19 +389,13 @@ export default async function SignInPage({
         <details className="mt-6 border-t border-line pt-4">
           <summary className="cursor-pointer text-xs text-ink-faint">Developer options</summary>
           <form action={signInWithToken} className="mt-3 space-y-3">
-          <label className="block text-sm">
-            <span className="text-ink-muted">API token</span>
-            <textarea
-              name="token"
-              required
-              rows={4}
-              className="field mt-1 w-full font-mono text-xs"
-            />
-          </label>
+            <label className="block text-sm">
+              <span className="text-ink-muted">API token</span>
+              <textarea name="token" required rows={4} className="field mt-1 w-full font-mono text-xs" />
+            </label>
             <Button>Continue</Button>
           </form>
         </details>
-
       </Panel>
     </div>
   );

@@ -30,19 +30,22 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
         <div>
           <p className="text-primary-700 text-xs font-semibold tracking-[0.08em] uppercase">Getting started</p>
           <h2 id="setup-heading" className="mt-0.5 text-base font-semibold tracking-tight text-ink">
-            Set up your state in four steps
+            Set up in four steps
           </h2>
         </div>
         <div className="flex w-full max-w-[16rem] items-center gap-3">
           <div
-            className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-sunk ring-1 ring-inset ring-line"
+            className="h-2 flex-1 overflow-hidden rounded-pill bg-line"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={steps.length}
             aria-valuenow={done}
             aria-label="Setup progress"
           >
-            <div className="h-full rounded-pill bg-primary transition-all" style={{ width: `${(done / steps.length) * 100}%` }} />
+            <div
+              className="h-full rounded-pill bg-primary transition-all"
+              style={{ width: `${(done / steps.length) * 100}%` }}
+            />
           </div>
           <p className="text-xs font-medium whitespace-nowrap text-ink-muted tabular">
             {done} of {steps.length}
