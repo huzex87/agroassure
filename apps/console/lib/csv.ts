@@ -119,3 +119,19 @@ export const FACILITY_TEMPLATE_EXAMPLE = [
   "12.98547",
   "7.61893",
 ];
+
+/**
+ * Writes a spreadsheet as CSV that Excel, Sheets and LibreOffice open correctly.
+ * Fields with a comma, quote or line break are quoted. A cell that starts with =,
+ * +, - or @ would be run as a formula when opened, so it is prefixed with an
+ * apostrophe: a business name is user-supplied text, not a formula. A byte-order
+ * mark first, so Excel reads the UTF-8 (Hausa letters, accents) correctly.
+ */
+export function toDownloadCsv(headers: string[], rows: Array<Array<string | number | null | undefined>>): string {
+  const cell = (value: string | number | null | undefined): string => {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  return "﻿" + [headers, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
+}

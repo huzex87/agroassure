@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { FileSpreadsheet, Plus } from "lucide-react";
+import { Download, FileSpreadsheet, Plus } from "lucide-react";
 import { get, type FacilityRow } from "../../lib/api";
 import { Button, ChipNav, Panel, Cell, Empty, Row, DataTable, FilterBar, PageHeader } from "../../components/ui";
 import { CertificateStatus, Rating } from "../../components/status";
 import { RegistryMap } from "../../components/registry-map";
+import { Pagination } from "../../components/pagination";
 import { FACILITY_TYPE_LABEL, formatDate, label } from "../../lib/format";
+import { pageParam, paginate } from "../../lib/paging";
 
 // The registry: every regulated site, with the status of its certificate.
 // Status is derived at read time rather than stored, so a certificate that
@@ -32,7 +34,7 @@ const CHIP_DOT: Record<string, string> = {
 export default async function FacilitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; lga?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; lga?: string; status?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
@@ -49,6 +51,18 @@ export default async function FacilitiesPage({
   // the whole picture for this search rather than collapsing to the chosen one.
   const status = params.status && STATUSES.some(([value]) => value === params.status) ? params.status : "";
   const facilities = status ? everyone.filter((f) => f.certificate_status === status) : everyone;
+  const paged = paginate(facilities, pageParam(params.page));
+
+  // The current search and status, as an address: the base of the page links and
+  // of the spreadsheet download, so both always match what is on screen.
+  const current = new URLSearchParams(query);
+  if (status) current.set("status", status);
+  const pageHref = (n: number) => {
+    const next = new URLSearchParams(current);
+    if (n > 1) next.set("page", String(n));
+    const qs = next.toString();
+    return qs ? `/facilities?${qs}` : "/facilities";
+  };
 
   const chipHref = (value: string) => {
     const next = new URLSearchParams(query);
@@ -64,6 +78,11 @@ export default async function FacilitiesPage({
         summary="Every regulated site in this jurisdiction, with the standing of its certificate."
         actions={
           <>
+            <Button asChild variant="secondary">
+              <a href={`/api/facilities/export?${current}`} download>
+                <Download aria-hidden /> Export
+              </a>
+            </Button>
             <Button asChild variant="secondary">
               <Link href="/facilities/new?tab=import">
                 <FileSpreadsheet aria-hidden /> Import
@@ -142,7 +161,7 @@ export default async function FacilitiesPage({
             ) : undefined
           }
         >
-          {facilities.map((f) => (
+          {paged.items.map((f) => (
             <Row key={f.id}>
               <Cell>
                 <Link
@@ -170,6 +189,7 @@ export default async function FacilitiesPage({
             </Row>
           ))}
         </DataTable>
+        <Pagination paged={paged} hrefFor={pageHref} />
       </Panel>
     </>
   );

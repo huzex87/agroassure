@@ -13,7 +13,8 @@ const base = `http://localhost:${CONSOLE}`;
 const children = [];
 
 function start(cmd, args, env) {
-  const child = spawn(cmd, args, { env: { ...process.env, ...env }, stdio: "ignore" });
+  // Own process group, so stopping `npx` also stops the server it started.
+  const child = spawn(cmd, args, { env: { ...process.env, ...env }, stdio: "ignore", detached: true });
   children.push(child);
   return child;
 }
@@ -87,6 +88,14 @@ try {
     });
   }
 
+  await check("the facility registry downloads as a spreadsheet", async () => {
+    const res = await ctx.request.get(`${base}/api/facilities/export`);
+    assert(res.status() === 200, `status ${res.status()}`);
+    assert((res.headers()["content-type"] ?? "").startsWith("text/csv"), "not a CSV");
+    const body = await res.text();
+    assert(body.includes("Licence number,Business") && body.split("\r\n").length > 2, "no rows");
+  });
+
   await check("Ctrl+K opens quick find", async () => {
     await page.goto(base, { waitUntil: "networkidle" }); // the shortcut binds once the page hydrates
     await page.keyboard.press("Control+k");
@@ -113,7 +122,13 @@ try {
 
   await browser.close();
 } finally {
-  for (const c of children) c.kill();
+  for (const c of children) {
+    try {
+      process.kill(-c.pid);
+    } catch {
+      // already gone
+    }
+  }
 }
 
 if (failed) {
