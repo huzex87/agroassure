@@ -372,6 +372,9 @@ The guides, one for each reader:
   System status page.
 - [`docs/phone-field-test.md`](docs/phone-field-test.md): a one-hour script for
   trying the phone app on a real handset.
+- [`docs/handover.md`](docs/handover.md): for the owner, on the day the system goes
+  to the people who will run it. A checklist, who owns what, and what to do when
+  something goes wrong.
 - [`docs/brand-guide.md`](docs/brand-guide.md): for anyone making a screen, a
   document or a message that carries the name. The logo, colours, type and voice.
 
