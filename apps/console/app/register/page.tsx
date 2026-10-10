@@ -3,6 +3,7 @@ import { Check, Clock, PartyPopper, ShieldCheck, Smartphone, XCircle } from "luc
 import { Button, Panel } from "../../components/ui";
 import { CodesForm, DetailsForm, KeepChecking } from "../../components/register/register-forms";
 import { currentRegistration, registerOptions, startOver } from "./actions";
+import { ROLE_LABEL } from "../../lib/roles";
 
 // Asking to join the console.
 //
@@ -12,15 +13,6 @@ import { currentRegistration, registerOptions, startOver } from "./actions";
 // then, so this page can be open to anyone.
 
 export const dynamic = "force-dynamic";
-
-const ROLE_LABEL: Record<string, string> = {
-  inspector: "Inspector",
-  desk_supervisor: "Desk supervisor",
-  authorising_officer: "Authorising officer",
-  state_admin: "State administrator",
-  national_admin: "National administrator",
-  auditor: "Auditor",
-};
 
 const STEPS = ["Your details", "Confirm", "Approval"];
 

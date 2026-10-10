@@ -14,6 +14,7 @@ import { ActionForm } from "../../components/action-form";
 import { AddColleagueForm, InviteInspectorForm, ResendCodeButton } from "../../components/team/invite-form";
 import { RequestCard } from "../../components/team/request-card";
 import { approveDevice, cancelInvitation, revokeDevice } from "./actions";
+import { ROLE_LABEL } from "../../lib/roles";
 
 // The team: who works here, in what role, and the phones inspectors use.
 //
@@ -25,15 +26,6 @@ import { approveDevice, cancelInvitation, revokeDevice } from "./actions";
 // yet, and a way to cut a phone off when it goes missing.
 
 export const dynamic = "force-dynamic";
-
-const ROLE_LABEL: Record<string, string> = {
-  inspector: "Inspector",
-  desk_supervisor: "Desk supervisor",
-  authorising_officer: "Authorising officer",
-  state_admin: "State administrator",
-  national_admin: "National administrator",
-  auditor: "Auditor",
-};
 
 /** "3 hours ago", for when a phone was last heard from. */
 function ago(iso: string | null | undefined): string | null {

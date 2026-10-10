@@ -307,7 +307,7 @@ from anyone clicking "done":
 Reviewing the first inspection is not a setup step: it is the work, and it
 happens by itself once an inspector submits one.
 
-The menu is five everyday links — *Home, Visits, Inspections, Issues to fix,
+The menu is five everyday links — *Home, Visits, Inspections, Findings,
 Facilities* — and one *Settings* page that holds the occasional jobs (*Team,
 Checklists, Programme overview*). Each person sees only what their role can use
 (`GET /v1/me`). The gateway still authorises every request.
@@ -355,18 +355,21 @@ administrator's decision comes before the phone exists, not after.
 
 ## Testing with real people
 
-**New here?** Start with the one-page [`docs/onboarding-guide.md`](docs/onboarding-guide.md): what administrators, inspectors and office staff each do first.
+**New here?** Start with the [`docs/handbook.md`](docs/handbook.md): what administrators, inspectors and office staff each do first.
 
-About to put the phone app in front of inspectors? Run the one-hour [`docs/phone-field-test.md`](docs/phone-field-test.md) on a real handset first.
+The guides, one for each reader:
 
-Two more guides in `docs/`:
+- [`docs/handbook.md`](docs/handbook.md): for everyone who uses it. What
+  administrators, inspectors and office staff each do, and what to do when
+  something goes wrong.
+- [`docs/owner-guide.md`](docs/owner-guide.md): for the person who runs the
+  deployment. The accounts, the settings, the first sign-in, and how to read the
+  System status page.
+- [`docs/phone-field-test.md`](docs/phone-field-test.md): a one-hour script for
+  trying the phone app on a real handset.
 
-- [`go-live-guide.md`](docs/go-live-guide.md), for the owner: the to-do list
-  (SMS and email accounts, Render settings, naming yourself the first
-  administrator, building the app) and a full walk-through on a real phone.
-- [`pilot-testing-guide.md`](docs/pilot-testing-guide.md), for the testers
-  themselves: what inspectors, office staff and administrators should each try,
-  what should happen, and how to report what didn't.
+Longer step-by-step detail (SMS and email providers, the Android build, a full
+testing script with expected results) is kept in [`docs/reference/`](docs/reference/).
 
 ## People asking to join
 

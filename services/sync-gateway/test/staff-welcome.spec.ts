@@ -16,10 +16,10 @@ describe("the staff welcome email", () => {
   });
 
   it("greets them by first name and names their role", () => {
-    const mail = staffWelcomeEmail("Aisha Bello", "a desk supervisor", "https://c.ng/signin?email=a%40b.ng");
+    const mail = staffWelcomeEmail("Aisha Bello", "a reviewer", "https://c.ng/signin?email=a%40b.ng");
     expect(mail.subject).toBe("You've been added to AgroAssure");
     expect(mail.text).toContain("Hello Aisha");
-    expect(mail.text).toContain("as a desk supervisor");
+    expect(mail.text).toContain("as a reviewer");
     expect(mail.text).toContain("https://c.ng/signin?email=a%40b.ng");
     expect(mail.html).toContain("Welcome, Aisha");
   });

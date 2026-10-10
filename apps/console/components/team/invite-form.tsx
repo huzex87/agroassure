@@ -5,6 +5,7 @@ import { Send, UserPlus } from "lucide-react";
 import { Button } from "../ui/button";
 import { ErrorNote, Field, SubmitButton as Submit } from "../forms";
 import type { InviteChannels } from "../../lib/api";
+import { ROLE_LABEL } from "../../lib/roles";
 import {
   addColleague,
   inviteInspector,
@@ -108,11 +109,13 @@ export function ResendCodeButton({ userId, label = "Send new code" }: { userId: 
   );
 }
 
+// Three choices, with the least powerful first and chosen to begin with. Read-only
+// access sits beneath them: it is asked for rarely, and a fourth card made every
+// administrator read one more thing to find the one they wanted.
 const CONSOLE_ROLES: Array<[string, string, string]> = [
-  ["desk_supervisor", "Desk supervisor", "Plans visits and reviews inspections"],
-  ["authorising_officer", "Authorising officer", "Decides outcomes and issues certificates"],
-  ["state_admin", "State administrator", "Manages the team and settings"],
-  ["auditor", "Auditor", "Read-only access to the record"],
+  ["desk_supervisor", ROLE_LABEL.desk_supervisor!, "Plans visits and records decisions on inspections"],
+  ["authorising_officer", ROLE_LABEL.authorising_officer!, "Records decisions and authorises certificates"],
+  ["state_admin", ROLE_LABEL.state_admin!, "Manages the team and settings, and plans visits"],
 ];
 
 /** Someone who works in the console: a supervisor, an officer, an administrator. */
@@ -136,7 +139,7 @@ export function AddColleagueForm() {
       </div>
       <fieldset>
         <legend className="text-sm font-medium text-ink">Role</legend>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div className="mt-2 grid gap-2">
           {CONSOLE_ROLES.map(([value, title, description], i) => (
             <label
               key={value}
@@ -150,6 +153,16 @@ export function AddColleagueForm() {
             </label>
           ))}
         </div>
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer text-ink-muted">Read-only access instead</summary>
+          <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-control border border-line px-3 py-2.5 transition-colors hover:bg-surface-sunk has-[:checked]:border-primary-200 has-[:checked]:bg-primary-50">
+            <input type="radio" name="role" value="auditor" className="mt-1 accent-[var(--primary)]" />
+            <span>
+              <span className="block font-medium text-ink">{ROLE_LABEL.auditor}</span>
+              <span className="block text-xs text-ink-muted">Can read everything and change nothing</span>
+            </span>
+          </label>
+        </details>
       </fieldset>
 
       {state.status === "error" ? <ErrorNote message={state.message} /> : null}

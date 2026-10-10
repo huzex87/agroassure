@@ -6,6 +6,7 @@ import type { RegistrationRow } from "../../lib/api";
 import { approveRequest, rejectRequest, type FormState } from "../../app/team/actions";
 import { ErrorNote, SubmitButton } from "../forms";
 import { Button } from "../ui/button";
+import { ROLE_LABEL } from "../../lib/roles";
 
 // One person asking to join, and the decision about them.
 //
@@ -16,11 +17,9 @@ import { Button } from "../ui/button";
 
 const ROLES: Array<[string, string]> = [
   ["inspector", "Inspector (phone app)"],
-  ["desk_supervisor", "Desk supervisor"],
-  ["authorising_officer", "Authorising officer"],
-  ["state_admin", "State administrator"],
-  ["auditor", "Auditor"],
-  ["national_admin", "National administrator"],
+  ...["desk_supervisor", "authorising_officer", "state_admin", "auditor", "national_admin"].map(
+    (r): [string, string] => [r, ROLE_LABEL[r]!],
+  ),
 ];
 
 const IDLE: FormState = { status: "idle" };

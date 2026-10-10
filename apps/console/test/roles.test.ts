@@ -7,7 +7,12 @@ describe("accountLine", () => {
   });
 
   it("says where a state role works", () => {
-    expect(accountLine(["state_admin"], "Katsina")).toBe("State administrator · Katsina");
+    expect(accountLine(["state_admin"], "Katsina")).toBe("Administrator · Katsina");
+  });
+
+  it("uses the short names a person sees in menus", () => {
+    expect(accountLine(["desk_supervisor"], null)).toBe("Reviewer");
+    expect(accountLine(["authorising_officer"], null)).toBe("Authorising officer");
   });
 
   it("falls back to something readable for roles it does not know", () => {

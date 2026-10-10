@@ -34,7 +34,7 @@ export const NAV: Array<{ heading: string; items: NavItem[] }> = [
       { href: "/", label: "Home", Icon: IconGrid, roles: OVERSIGHT },
       { href: "/plan", label: "Visits", Icon: IconCalendar, roles: PLANNERS },
       { href: "/inspections", label: "Inspections", Icon: IconClipboard },
-      { href: "/findings", label: "Issues to fix", Icon: IconFlag },
+      { href: "/findings", label: "Findings", Icon: IconFlag },
       { href: "/facilities", label: "Facilities", Icon: IconBuilding },
     ],
   },

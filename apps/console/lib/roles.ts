@@ -9,11 +9,16 @@ export const TEAM_ROLES = ["state_admin", "national_admin", "auditor"];
 export const ADMIN_ROLES = ["state_admin", "national_admin"];
 export const PROGRAMME_ROLES = ["state_admin", "national_admin", "auditor", "authorising_officer"];
 
-const ROLE_LABEL: Record<string, string> = {
+/**
+ * What each role is called on screen. The gateway keeps its own longer names
+ * (desk supervisor, state administrator); a person reading a menu needs the
+ * short ones, and needs the same one in every place.
+ */
+export const ROLE_LABEL: Record<string, string> = {
   national_admin: "National administrator",
-  state_admin: "State administrator",
+  state_admin: "Administrator",
   authorising_officer: "Authorising officer",
-  desk_supervisor: "Desk supervisor",
+  desk_supervisor: "Reviewer",
   auditor: "Auditor",
   inspector: "Inspector",
 };
