@@ -187,7 +187,7 @@ export default async function TeamPage() {
           title="Add a colleague"
           subtitle="Supervisors, authorising officers and administrators use this console rather than the phone app."
         >
-          <AddColleagueForm />
+          <AddColleagueForm canGrantNational={me?.roles.includes("national_admin") ?? false} />
         </Panel>
       </div>
 

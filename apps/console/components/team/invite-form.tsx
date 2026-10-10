@@ -119,7 +119,7 @@ const CONSOLE_ROLES: Array<[string, string, string]> = [
 ];
 
 /** Someone who works in the console: a supervisor, an officer, an administrator. */
-export function AddColleagueForm() {
+export function AddColleagueForm({ canGrantNational = false }: { canGrantNational?: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(addColleague, { status: "idle" });
   const form = useRef<HTMLFormElement>(null);
 
@@ -140,7 +140,10 @@ export function AddColleagueForm() {
       <fieldset>
         <legend className="text-sm font-medium text-ink">Role</legend>
         <div className="mt-2 grid gap-2">
-          {CONSOLE_ROLES.map(([value, title, description], i) => (
+          {(canGrantNational
+            ? [...CONSOLE_ROLES, ["national_admin", ROLE_LABEL.national_admin!, "Full access across every state, including adding other administrators"] as [string, string, string]]
+            : CONSOLE_ROLES
+          ).map(([value, title, description], i) => (
             <label
               key={value}
               className="flex cursor-pointer items-start gap-2.5 rounded-control border border-line px-3 py-2.5 transition-colors hover:bg-surface-sunk has-[:checked]:border-primary-200 has-[:checked]:bg-primary-50"
