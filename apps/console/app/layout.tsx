@@ -203,7 +203,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 where you leave from. */}
               <div className="mt-auto pt-8">
                 {me ? (
-                  <div className="mb-2 flex items-center gap-2.5 rounded-control px-3 py-2">
+                  <Link
+                    href="/profile"
+                    className="mb-2 flex items-center gap-2.5 rounded-control px-3 py-2 transition-colors hover:bg-white/5"
+                  >
                     <span
                       aria-hidden
                       className="grid size-8 shrink-0 place-items-center rounded-full bg-millet text-xs font-bold text-pine"
@@ -222,7 +225,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         {accountLine(me.roles, me.jurisdictionName)}
                       </span>
                     </span>
-                  </div>
+                  </Link>
                 ) : null}
                 <ThemeToggle />
                 <form action={signOut}>
