@@ -84,7 +84,7 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
     <div className="flex flex-col gap-6">
       {navFor(roles).map((group) => (
         <div key={group.heading}>
-          <p className="px-3 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+          <p className="px-3 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-white/50">
             {group.heading}
           </p>
           <ul className="flex flex-col gap-0.5">
@@ -97,14 +97,14 @@ export function SideNav({ roles = null }: { roles?: string[] | null }) {
                     aria-current={active ? "page" : undefined}
                     className={`relative flex items-center gap-2.5 rounded-control px-3 py-2 text-sm transition-colors ${
                       active
-                        ? "bg-primary-50 font-semibold text-primary-700"
-                        : "text-ink-muted hover:bg-surface-sunk hover:text-ink"
+                        ? "bg-white/10 font-semibold text-white"
+                        : "text-white/75 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     {active ? (
-                      <span aria-hidden className="absolute top-2 bottom-2 -left-3 w-[3px] rounded-r-full bg-primary" />
+                      <span aria-hidden className="absolute top-2 bottom-2 -left-3 w-[3px] rounded-r-full bg-millet" />
                     ) : null}
-                    <span className={active ? "text-primary" : "text-ink-faint"}>
+                    <span className={active ? "text-millet" : "text-white/50"}>
                       <item.Icon />
                     </span>
                     {item.label}
@@ -133,28 +133,28 @@ export function TopNav({ roles = null }: { roles?: string[] | null }) {
   return (
     <nav
       aria-label="Sections"
-      className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] md:hidden"
+      className="flex gap-1.5 overflow-x-auto bg-pine px-4 py-2.5 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] md:hidden"
     >
-      {navFor(roles).flatMap((g) => g.items).map((item) => {
-        const active = isActive(pathname, item.href, item.also);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={`flex shrink-0 items-center gap-1.5 rounded-pill px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
-              active
-                ? "bg-primary-50 font-semibold text-primary-700 ring-1 ring-inset ring-primary-200"
-                : "text-ink-muted"
-            }`}
-          >
-            <span className={active ? "text-primary" : "text-ink-faint"}>
-              <item.Icon />
-            </span>
-            {item.label}
-          </Link>
-        );
-      })}
+      {navFor(roles)
+        .flatMap((g) => g.items)
+        .map((item) => {
+          const active = isActive(pathname, item.href, item.also);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex shrink-0 items-center gap-1.5 rounded-pill px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
+                active ? "bg-white/10 font-semibold text-white ring-1 ring-inset ring-white/20" : "text-white/75"
+              }`}
+            >
+              <span className={active ? "text-millet" : "text-white/50"}>
+                <item.Icon />
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
     </nav>
   );
 }

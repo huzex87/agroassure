@@ -37,39 +37,37 @@ export const metadata: Metadata = {
 };
 
 /**
- * The mark: a leaf with a check through it. Agriculture and assurance in one
- * glyph, drawn in the product blue on a rounded tile so it reads at 32px and
- * still reads in a browser tab.
+ * The mark: a solid leaf with a check cut out of it, and a gold stem. Growth and
+ * assurance in one glyph. It is a filled shape, not outlines, so it still reads
+ * at the 16 pixels of a browser tab. On a light surface it sits on a pine tile;
+ * on the pine rail it stands alone, because the tile would vanish into it.
  */
-function Mark({ className }: { className: string }) {
+function Mark({ className, tile = false }: { className: string; tile?: boolean }) {
   return (
-    <span
-      aria-hidden
-      className={`grid ${className} shrink-0 place-items-center rounded-[10px] bg-primary text-white shadow-raised ring-1 ring-inset ring-white/20`}
-    >
-      <svg
-        viewBox="0 0 20 20"
-        width="62%"
-        height="62%"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
+    <svg aria-hidden viewBox={tile ? "0 0 32 32" : "3 4 26 26"} fill="none" className={`${className} shrink-0`}>
+      {tile ? <rect width="32" height="32" rx="8" className="fill-pine" /> : null}
+      <path d="M7.5 24.5C7.5 13.5 13.5 7 24.5 7c0 11-6.2 17.5-17 17.5Z" className="fill-brand" />
+      <path d="M7.5 24.5 4.8 27.2" className="stroke-millet" strokeWidth="2.2" strokeLinecap="round" />
+      <path
+        d="m12.4 17.6 2.9 2.9 5.4-6.2"
+        className="stroke-pine"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
-      >
-        <path d="M16.5 3.5c-6.5 0-11 3-11 8 0 1.6.5 3 1.5 4 5 0 9.5-3.5 9.5-12Z" />
-        <path d="M3.5 17c1.5-3 3.5-5.5 6-7.5" />
-        <path d="m9.2 11.4 1.6 1.6 3-3.4" />
-      </svg>
-    </span>
+      />
+    </svg>
   );
 }
 
-function Wordmark({ size = "sm" }: { size?: "sm" | "md" }) {
+function Wordmark({ size = "sm", onDark = false }: { size?: "sm" | "md"; onDark?: boolean }) {
   return (
     <>
-      <Mark className={size === "md" ? "size-10" : "size-8"} />
-      <span className={`${size === "md" ? "text-lg" : "text-[0.9375rem]"} font-semibold tracking-tight text-ink`}>
+      <Mark className={size === "md" ? "size-10" : "size-8"} tile={!onDark} />
+      <span
+        className={`${size === "md" ? "text-lg" : "text-[0.9375rem]"} font-bold tracking-tight ${
+          onDark ? "text-white" : "text-ink"
+        }`}
+      >
         AgroAssure
       </span>
     </>
@@ -86,21 +84,52 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (!signedIn) {
     return (
       <html lang="en" className={fonts}>
-        <body className="survey-grid grid min-h-screen place-items-center px-5 py-10">
-          <div className="page-enter w-full max-w-[26rem]">
-            <div className="mb-8 flex flex-col items-center gap-3 text-center">
-              <div className="flex items-center gap-2.5">
-                <Wordmark size="md" />
-              </div>
-              <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
+        <body className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+          {/* The brand panel. It says what this is in one line and why it can be
+              trusted in three, and it is the first colour a client meets. */}
+          <aside className="furrows relative hidden flex-col justify-between overflow-hidden bg-pine p-12 text-white lg:flex xl:p-16">
+            <div className="flex items-center gap-2.5">
+              <Wordmark onDark />
+            </div>
+            <div>
+              <span aria-hidden className="mb-6 block h-1 w-12 rounded-full bg-millet" />
+              <h2 className="text-balance text-4xl leading-[1.1] font-extrabold tracking-tight xl:text-5xl">
+                The field,
+                <br />
+                assured.
+              </h2>
+              <p className="mt-5 max-w-md text-lg leading-relaxed text-white/75">
                 Inspections, findings and certificates for fertilizer and agro-input businesses.
               </p>
+              <ul className="mt-10 grid max-w-md gap-4 text-[0.9375rem] leading-relaxed text-white/85">
+                {[
+                  "Every inspection is signed by the phone that made it.",
+                  "Photos and signatures are kept where they cannot be changed.",
+                  "Anyone can check a certificate by scanning its code.",
+                ].map((line) => (
+                  <li key={line} className="flex gap-3">
+                    <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-millet" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
             </div>
-            {children}
-            <p className="mx-auto mt-8 max-w-sm text-center text-xs leading-relaxed text-ink-faint">
+            <p className="max-w-md text-xs leading-relaxed text-white/55">
               Records and renders compliance certificates on behalf of the mandated regulator. It does not issue them.
             </p>
-          </div>
+          </aside>
+
+          <main className="grid min-h-screen place-items-center px-5 py-10">
+            <div className="page-enter w-full max-w-[26rem]">
+              <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+                <Wordmark />
+              </div>
+              {children}
+              <p className="mt-8 text-center text-xs leading-relaxed text-ink-faint lg:hidden">
+                Records and renders compliance certificates on behalf of the mandated regulator. It does not issue them.
+              </p>
+            </div>
+          </main>
         </body>
       </html>
     );
@@ -129,14 +158,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               sign-out and the disclaimer sit at its foot, and it was clipping them. */}
             <nav
               aria-label="Sections"
-              className="sticky top-0 hidden h-screen w-[15.5rem] shrink-0 flex-col overflow-y-auto border-r border-line bg-surface px-3 py-5 md:flex"
+              className="sticky top-0 hidden h-screen w-[15.5rem] shrink-0 flex-col overflow-y-auto bg-pine px-3 py-5 text-white md:flex"
             >
               <Link
                 href="/"
-                className="mb-7 flex items-center gap-2.5 rounded-control px-2 py-1 transition-colors hover:bg-surface-sunk"
+                className="mb-7 flex items-center gap-2.5 rounded-control px-2 py-1 transition-colors hover:bg-white/5"
               >
-                <Wordmark />
+                <Wordmark onDark />
               </Link>
+
+              {/* Whose programme this is. A regulator's staff expect their own name on
+                their own tool; AgroAssure stays small beside it. */}
+              {me?.authority ? (
+                <div className="mb-5 flex items-center gap-2.5 rounded-control border border-pine-line bg-white/5 px-3 py-2">
+                  {me.authority.markUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={me.authority.markUrl} alt="" className="size-7 shrink-0 object-contain" />
+                  ) : null}
+                  <span className="min-w-0">
+                    <span className="block text-[0.6875rem] font-semibold tracking-[0.08em] text-white/55 uppercase">
+                      Programme of
+                    </span>
+                    <span className="block truncate text-sm font-medium text-white">{me.authority.name}</span>
+                  </span>
+                </div>
+              ) : null}
 
               <QuickFind roles={roles} />
 
@@ -149,7 +195,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <div className="mb-2 flex items-center gap-2.5 rounded-control px-3 py-2">
                     <span
                       aria-hidden
-                      className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700 ring-1 ring-inset ring-primary-100"
+                      className="grid size-8 shrink-0 place-items-center rounded-full bg-millet text-xs font-bold text-pine"
                     >
                       {me.fullName
                         .split(/\s+/)
@@ -160,8 +206,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         .toUpperCase() || "?"}
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-ink">{me.fullName}</span>
-                      <span className="block truncate text-xs text-ink-muted">
+                      <span className="block truncate text-sm font-medium text-white">{me.fullName}</span>
+                      <span className="block truncate text-xs text-white/60">
                         {accountLine(me.roles, me.jurisdictionName)}
                       </span>
                     </span>
@@ -170,7 +216,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-sunk hover:text-ink"
+                    className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
                   >
                     <svg
                       width="16"
@@ -182,7 +228,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       aria-hidden
-                      className="shrink-0 text-ink-faint"
+                      className="shrink-0 text-white/50"
                     >
                       <path d="M6 14H3.5A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2H6" />
                       <path d="M10.5 11 14 8l-3.5-3M14 8H6" />

@@ -66,7 +66,7 @@ export class CertificateRenderService {
 <title>Certificate of Compliance ${esc(c.serial)}</title>
 <style>
   @page { size: A4; margin: 18mm; }
-  :root { --primary:#409EF2; --ink:#072435; }
+  :root { --primary:#166A45; --ink:#0E231B; }
   * { box-sizing: border-box; }
   body { margin:0; font-family: "Segoe UI", Inter, system-ui, sans-serif; color: var(--ink); }
   .sheet { border: 2px solid var(--primary); border-radius: 16px; padding: 28px 32px; }
@@ -74,29 +74,29 @@ export class CertificateRenderService {
   .authority { font-size: 13px; line-height: 1.5; }
   .authority strong { display:block; font-size: 15px; }
   .mark { max-width: 110px; max-height: 110px; }
-  .mark-absent { width:110px; height:110px; border:1px dashed #9bb; border-radius:12px;
+  .mark-absent { width:110px; height:110px; border:1px dashed #bcc9b7; border-radius:12px;
                  display:flex; align-items:center; justify-content:center; text-align:center;
-                 font-size:10px; color:#5a7; padding:6px; }
+                 font-size:10px; color:#587062; padding:6px; }
   h1 { font-size: 25px; margin: 26px 0 4px; letter-spacing: .2px; }
-  .subtitle { color:#4a6b7c; font-size: 13px; margin: 0 0 22px; }
+  .subtitle { color:#435a4d; font-size: 13px; margin: 0 0 22px; }
   .business { font-size: 21px; font-weight: 700; margin: 0 0 2px; }
-  .licence { color:#4a6b7c; font-size: 13px; margin: 0 0 20px; }
+  .licence { color:#435a4d; font-size: 13px; margin: 0 0 20px; }
   table.fields { width:100%; border-collapse: collapse; font-size: 13px; }
-  table.fields td { padding: 7px 0; border-bottom: 1px solid #e6eef4; vertical-align: top; }
-  table.fields td.k { color:#4a6b7c; width: 42%; }
+  table.fields td { padding: 7px 0; border-bottom: 1px solid #d9e2d5; vertical-align: top; }
+  table.fields td.k { color:#435a4d; width: 42%; }
   .rating { display:inline-block; padding: 4px 12px; border-radius: 999px;
-            background: #eaf4fe; color: var(--primary); font-weight: 600; }
+            background: #eef7f1; color: var(--primary); font-weight: 600; }
   footer { display:flex; justify-content:space-between; align-items:flex-end;
            gap: 24px; margin-top: 26px; }
   .officer { font-size: 13px; }
   .officer .name { font-weight: 700; font-size: 15px; }
-  .officer .role { color:#4a6b7c; }
-  .verify { text-align:center; font-size: 10px; color:#4a6b7c; }
+  .officer .role { color:#435a4d; }
+  .verify { text-align:center; font-size: 10px; color:#435a4d; }
   .verify svg { width: 108px; height: 108px; display:block; margin: 0 auto 6px; }
   .token { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
            font-size: 9px; letter-spacing: .3px; }
-  .disclaimer { margin-top: 22px; padding-top: 14px; border-top: 1px solid #e6eef4;
-                font-size: 11px; color:#4a6b7c; line-height: 1.6; }
+  .disclaimer { margin-top: 22px; padding-top: 14px; border-top: 1px solid #d9e2d5;
+                font-size: 11px; color:#435a4d; line-height: 1.6; }
 </style></head>
 <body><div class="sheet">
   <header>
