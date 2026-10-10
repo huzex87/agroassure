@@ -75,12 +75,12 @@ try {
   await check("home greets the signed-in person and lists the sections", async () => {
     await page.goto(base);
     await page.getByRole("heading", { level: 1, name: /Good (morning|afternoon|evening)/ }).waitFor({ timeout: 10000 });
-    for (const name of ["Home", "Visits", "Inspections", "Findings", "Facilities", "Settings"]) {
+    for (const name of ["Home", "Visits", "Inspections", "Findings", "Facilities", "Settings", "Help"]) {
       assert(await page.getByRole("link", { name, exact: true }).first().isVisible(), `nav link ${name} missing`);
     }
   });
 
-  for (const path of ["/facilities", "/facilities/f-0", "/inspections", "/inspections/i-0", "/findings", "/plan", "/team", "/settings", "/executive"]) {
+  for (const path of ["/facilities", "/facilities/f-0", "/inspections", "/inspections/i-0", "/findings", "/plan", "/team", "/settings", "/executive", "/help"]) {
     await check(`${path} renders`, async () => {
       const res = await page.goto(base + path);
       assert(res && res.status() === 200, `status ${res?.status()}`);

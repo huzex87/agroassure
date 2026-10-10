@@ -47,6 +47,7 @@ export const NAV: Array<{ heading: string; items: NavItem[] }> = [
         Icon: IconSettings,
         also: ["/team", "/instruments", "/executive"],
       },
+      { href: "/help", label: "Help", Icon: IconHelp },
     ],
   },
 ];
@@ -229,6 +230,15 @@ function IconCalendar() {
     <>
       <rect x="2" y="3" width="12" height="11" rx="1.5" />
       <path d="M2 6.5h12M5.5 1.75v2.5M10.5 1.75v2.5M6 10h4M8 8v4" />
+    </>,
+  );
+}
+
+function IconHelp() {
+  return glyph(
+    <>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M6.2 6.3a1.9 1.9 0 0 1 3.6.7c0 1.3-1.8 1.4-1.8 2.6M8 11.6v.01" />
     </>,
   );
 }

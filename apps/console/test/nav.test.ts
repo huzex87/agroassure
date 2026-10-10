@@ -43,8 +43,16 @@ describe("isActive", () => {
 describe("the menu for each role", () => {
   const hrefs = (roles: string[] | null) => navFor(roles).flatMap((g) => g.items.map((i) => i.href));
 
-  it("is five everyday links and one Settings, however many roles", () => {
-    expect(hrefs(["state_admin"])).toEqual(["/", "/plan", "/inspections", "/findings", "/facilities", "/settings"]);
+  it("is five everyday links, Settings and Help, however many roles", () => {
+    expect(hrefs(["state_admin"])).toEqual([
+      "/",
+      "/plan",
+      "/inspections",
+      "/findings",
+      "/facilities",
+      "/settings",
+      "/help",
+    ]);
   });
 
   it("gives a supervisor visits and the record", () => {

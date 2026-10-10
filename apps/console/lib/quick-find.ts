@@ -12,6 +12,7 @@ const SETTINGS_PAGES: Array<Destination & { roles?: string[] }> = [
   { href: "/instruments", label: "Checklists", hint: "The questions inspectors answer" },
   { href: "/executive", label: "Programme overview", hint: "Coverage and trends", roles: PROGRAMME_ROLES },
   { href: "/settings/status", label: "System status", hint: "Email, sign-in and storage checks", roles: ADMIN_ROLES },
+  { href: "/help", label: "Help", hint: "How it works, handy things, what to do when something is wrong" },
   { href: "/facilities/new", label: "Add a facility" },
   { href: "/facilities/new?tab=import", label: "Import facilities", hint: "From a spreadsheet" },
 ];
