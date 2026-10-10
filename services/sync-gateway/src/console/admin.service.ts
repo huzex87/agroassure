@@ -75,7 +75,15 @@ export class AdminService {
     );
   }
 
+  /** Only a national administrator may make another one; a state admin could otherwise promote themselves. */
+  private assertMayGrant(principal: Principal, roles: readonly string[]): void {
+    if (roles.includes("national_admin") && !principal.roles.includes("national_admin")) {
+      throw new ForbiddenException("only a national administrator can grant the national administrator role");
+    }
+  }
+
   async createUser(principal: Principal, input: CreateUserInput): Promise<string> {
+    this.assertMayGrant(principal, input.roles);
     const jurisdictionId = await this.targetJurisdiction(principal, input.jurisdictionId);
 
     return this.pg.transaction(async (client) => {
@@ -104,6 +112,7 @@ export class AdminService {
   }
 
   async grantRole(principal: Principal, userId: string, role: Role): Promise<void> {
+    this.assertMayGrant(principal, [role]);
     const jurisdictionId = await this.userJurisdiction(principal, userId);
     await this.pg.query(
       `INSERT INTO user_role (user_id, role_code, jurisdiction_id)

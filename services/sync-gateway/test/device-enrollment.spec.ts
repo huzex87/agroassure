@@ -145,4 +145,11 @@ describe("AdminService.enrollDevice", () => {
     await admin.enrollDevice(national, { assignedUserId: USER, publicKeyBase64: VALID_KEY });
     expect(pg.inserted).toHaveLength(1);
   });
+
+  it("does not let a state administrator create a national administrator", async () => {
+    const { admin } = service();
+    await expect(
+      admin.createUser(stateAdmin(), { fullName: "X", email: "x@example.org", roles: ["national_admin"] }),
+    ).rejects.toThrow(/only a national administrator/);
+  });
 });
