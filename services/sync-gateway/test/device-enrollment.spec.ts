@@ -23,8 +23,12 @@ const VALID_KEY = bytesToBase64(
 
 class FakePg {
   inserted: unknown[][] = [];
-  constructor(private readonly keyAlreadyEnrolled = false) {}
+  constructor(
+    private readonly keyAlreadyEnrolled = false,
+    private readonly states: Array<{ id: string }> = [],
+  ) {}
   async query<T>(text: string, params: unknown[] = []): Promise<T[]> {
+    if (text.includes("FROM jurisdiction")) return this.states as T[];
     if (text.includes("FROM app_user WHERE id = $1 AND status = 'active'")) {
       return [{ jurisdiction_id: JURISDICTION }] as T[];
     }
@@ -48,8 +52,8 @@ function stateAdmin(): Principal {
   };
 }
 
-function service(keyAlreadyEnrolled = false) {
-  const pg = new FakePg(keyAlreadyEnrolled);
+function service(keyAlreadyEnrolled = false, states: Array<{ id: string }> = []) {
+  const pg = new FakePg(keyAlreadyEnrolled, states);
   return { pg, admin: new AdminService(pg as never) };
 }
 
@@ -128,5 +132,17 @@ describe("AdminService.enrollDevice", () => {
     await expect(
       admin.enrollDevice(national, { assignedUserId: USER, publicKeyBase64: VALID_KEY }),
     ).rejects.toThrow(/jurisdictionId is required/);
+  });
+
+  it("lets a national administrator omit the jurisdiction when there is only one state", async () => {
+    const { admin, pg } = service(false, [{ id: JURISDICTION }]);
+    const national: Principal = {
+      userId: "018f0000-0000-7000-8000-0000000000na",
+      deviceId: null,
+      jurisdictionId: null,
+      roles: ["national_admin"],
+    };
+    await admin.enrollDevice(national, { assignedUserId: USER, publicKeyBase64: VALID_KEY });
+    expect(pg.inserted).toHaveLength(1);
   });
 });

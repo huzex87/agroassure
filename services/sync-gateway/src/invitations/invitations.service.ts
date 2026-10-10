@@ -118,7 +118,7 @@ export class InvitationsService {
       throw new BadRequestException("That email address doesn't look right.");
     }
 
-    const jurisdictionId = this.targetJurisdiction(principal, input.jurisdictionId);
+    const jurisdictionId = await this.targetJurisdiction(principal, input.jurisdictionId);
 
     const issued = await this.pg.transaction(async (client) => {
       if (email) {
@@ -439,10 +439,15 @@ export class InvitationsService {
     return bytes;
   }
 
-  private targetJurisdiction(principal: Principal, requested?: string): string {
+  private async targetJurisdiction(principal: Principal, requested?: string): Promise<string> {
     if (isUnscoped(principal)) {
-      if (!requested) throw new BadRequestException("jurisdictionId is required for a national role");
-      return requested;
+      if (requested) return requested;
+      // A national account on a single-state deployment has only one place it
+      // could mean, and the console forms do not ask. With several states the
+      // caller must say which.
+      const states = await this.pg.query<{ id: string }>(`SELECT id FROM jurisdiction LIMIT 2`);
+      if (states.length === 1) return states[0]!.id;
+      throw new BadRequestException("jurisdictionId is required for a national role");
     }
     if (!principal.jurisdictionId) throw new ForbiddenException("your account has no jurisdiction");
     if (requested && requested !== principal.jurisdictionId) {
