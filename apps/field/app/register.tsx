@@ -178,7 +178,7 @@ export default function Register() {
   const step = stage.kind === "details" ? 0 : stage.kind === "codes" ? 1 : 2;
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <ScrollView
         contentContainerStyle={[
           styles.content,

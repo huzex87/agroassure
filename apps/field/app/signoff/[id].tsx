@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FindingSeverity } from "@agroassure/domain";
@@ -121,7 +121,8 @@ export default function Signoff() {
           : null;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
       <View
         style={
           rating
@@ -225,5 +226,6 @@ export default function Signoff() {
         ) : null}
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

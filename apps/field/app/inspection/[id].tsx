@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -171,7 +172,7 @@ export default function Checklist() {
     if (!permission?.granted) {
       const granted = await requestPermission();
       if (!granted.granted) {
-        return setError("Camera permission is needed to attach an exhibit.");
+        return setError(t("cameraNeeded"));
       }
     }
     setCamera(ref);
@@ -188,7 +189,7 @@ export default function Checklist() {
   const done = rating.total === 0 ? 0 : rating.answered / rating.total;
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       {/* Outside the ScrollView on purpose. The running figure is the only
           thing telling an inspector where they are in a long instrument, and it
           used to scroll away the moment they started answering. It is computed
@@ -364,19 +365,23 @@ export default function Checklist() {
       </Pressable>
 
       <Modal visible={camera !== null} animationType="slide">
-        <CameraShot onCapture={(uri) => shoot(camera as string, uri)} onCancel={() => setCamera(null)} />
+        <CameraShot cancelLabel={t("cancel")} captureLabel={t("capture")} onCapture={(uri) => shoot(camera as string, uri)} onCancel={() => setCamera(null)} />
       </Modal>
     </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 function CameraShot({
   onCapture,
   onCancel,
+  cancelLabel,
+  captureLabel,
 }: {
   onCapture: (uri: string) => void;
   onCancel: () => void;
+  cancelLabel: string;
+  captureLabel: string;
 }) {
   const [view, setView] = useState<CameraView | null>(null);
   return (
@@ -384,7 +389,7 @@ function CameraShot({
       <CameraView ref={setView} style={{ flex: 1 }} facing="back" />
       <View style={{ flexDirection: "row", gap: 12, padding: 16 }}>
         <Pressable style={[styles.button, styles.buttonQuiet, { flex: 1 }]} onPress={onCancel}>
-          <Text style={[styles.buttonText, styles.buttonQuietText]}>Cancel</Text>
+          <Text style={[styles.buttonText, styles.buttonQuietText]}>{cancelLabel}</Text>
         </Pressable>
         <Pressable
           style={[styles.button, { flex: 2 }]}
@@ -393,7 +398,7 @@ function CameraShot({
             if (photo?.uri) onCapture(photo.uri);
           }}
         >
-          <Text style={styles.buttonText}>Capture</Text>
+          <Text style={styles.buttonText}>{captureLabel}</Text>
         </Pressable>
       </View>
     </View>
