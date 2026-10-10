@@ -42,7 +42,7 @@ export default async function FindingsPage({
   return (
     <>
       <PageHeader
-        title="Issues to fix"
+        title="Findings"
         summary="Corrective actions raised by inspections, most urgent first. Overdue and escalated states arrive on their own."
         badges={
           <>

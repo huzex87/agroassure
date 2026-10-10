@@ -1,5 +1,7 @@
 # AgroAssure go-live guide
 
+> **Reference.** For setting up, start with [`owner-guide.md`](../owner-guide.md). This long guide keeps the step-by-step detail for SMS and email providers and the Android build.
+
 This is everything left on **your** side, the owner's, before real people can
 test. The code is done. What remains is accounts, settings and one app build.
 

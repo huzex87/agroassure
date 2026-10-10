@@ -1,5 +1,7 @@
 # AgroAssure pilot: testing guide
 
+> **Reference.** Day to day, people should use [`handbook.md`](../handbook.md). This longer guide is a testing script with expected results for a pilot group.
+
 Thank you for helping test AgroAssure before it goes into daily use. This guide
 tells you what to try, what should happen, and how to tell us when it doesn't.
 
@@ -201,7 +203,7 @@ You'll only see the pages your role can use.
 - [ ] **Inspections.** Open an inspection an inspector has submitted. Check you
       can see every answer, the notes, photos, the check-in location and both
       signatures.
-- [ ] **Issues to fix.** Every "No" answer becomes an issue with a due date.
+- [ ] **Findings.** Every "No" answer becomes a finding with a due date.
       Check they make sense.
 
 ### B3. If you plan visits (supervisors)

@@ -44,9 +44,9 @@ import { isoDate, oneOf, optionalIsoDate, optionalString, requiredString, uuid }
 /** A role as a sentence names it, for the welcome email. */
 const ROLE_WORDS: Record<string, string> = {
   inspector: "an inspector",
-  desk_supervisor: "a desk supervisor",
+  desk_supervisor: "a reviewer",
   authorising_officer: "an authorising officer",
-  state_admin: "a state administrator",
+  state_admin: "an administrator",
   national_admin: "a national administrator",
   auditor: "an auditor",
 };
