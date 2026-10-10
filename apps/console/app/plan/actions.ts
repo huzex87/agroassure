@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ApiError, post } from "../../lib/api";
+import { attempt, type ActionResult } from "../../lib/action-result";
 
 // Sending inspectors: a planned week, or one suggestion taken up.
 
@@ -74,8 +75,11 @@ export async function assignSuggestion(
   }
 }
 
-export async function cancelVisit(assignmentId: string) {
-  await post(`/v1/assignments/${assignmentId}/cancel`, {});
-  revalidatePath("/plan");
-  revalidatePath("/");
+export async function cancelVisit(assignmentId: string): Promise<ActionResult> {
+  const result = await attempt(() => post(`/v1/assignments/${assignmentId}/cancel`, {}));
+  if (result.ok) {
+    revalidatePath("/plan");
+    revalidatePath("/");
+  }
+  return result;
 }
