@@ -30,9 +30,21 @@ export async function currentPosition(): Promise<GeoPoint> {
   if (status !== "granted") {
     throw new Error("Location permission is needed to record where an inspection happened.");
   }
-  const position = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.High,
-  });
+  // A fresh fix can take a long time indoors (warehouses, shops with metal
+  // roofs) and getCurrentPositionAsync never gives up on its own, which would
+  // leave "Start inspection" and "Add photo" spinning. Wait a bounded time,
+  // then fall back to the last fix the phone has - the inspector was outside a
+  // moment ago - and only fail if there is none at all.
+  const fresh = await Promise.race([
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
+  ]).catch(() => null);
+  const position = fresh ?? (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60_000 }));
+  if (!position) {
+    throw new Error(
+      "The phone could not find its location. Step outside or near a window, make sure Location is on, and try again.",
+    );
+  }
   return {
     lat: position.coords.latitude,
     lng: position.coords.longitude,

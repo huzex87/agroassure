@@ -33,15 +33,39 @@ export class ApiError extends Error {
   }
 }
 
+// fetch() has no timeout of its own. On a weak signal, or while the free-tier
+// server is waking (up to a minute), a request can hang indefinitely - and one
+// hung request would hold the single in-flight sync open forever, so nothing
+// else would ever be sent. Every request is therefore bounded; an evidence
+// upload carries a whole photo and gets longer.
+const TIMEOUT_MS = 60_000;
+const UPLOAD_TIMEOUT_MS = 180_000;
+
 async function request<T>(
   path: string,
   headers: Record<string, string>,
   init?: RequestInit,
+  timeoutMs = TIMEOUT_MS,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...headers, ...(init?.headers ?? {}) },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { "content-type": "application/json", ...headers, ...(init?.headers ?? {}) },
+    });
+  } catch (err) {
+    throw new Error(
+      controller.signal.aborted
+        ? "The server took too long to answer. Your work is saved on the phone and will be sent again."
+        : "No connection to the server. Your work is saved on the phone and will be sent again.",
+      { cause: err },
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     // The gateway sends a sentence in `message`; anything else reaching an
@@ -66,10 +90,10 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+async function call<T>(path: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error("This device is not signed in.");
-  return request<T>(path, { authorization: `Bearer ${token}` }, init);
+  return request<T>(path, { authorization: `Bearer ${token}` }, init, timeoutMs);
 }
 
 /** A request that carries no session yet, because it is how you get one. */
@@ -135,7 +159,7 @@ export function httpTransport(): SyncTransport {
           mime,
           contentBase64: bytesToBase64(bytes),
         }),
-      });
+      }, UPLOAD_TIMEOUT_MS);
       return { locked: body.locked };
     },
 

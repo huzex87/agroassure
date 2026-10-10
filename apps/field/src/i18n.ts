@@ -35,6 +35,11 @@ const STRINGS = {
     ha: "Faɗi abin da ka gani. Amsar \"A'a\" tana buƙatar ɗan bayani.",
   },
   save: { en: "Save", ha: "Adana" },
+  capture: { en: "Capture", ha: "Ɗauki hoto" },
+  cameraNeeded: {
+    en: "Camera permission is needed to attach a photo. You can allow it in the phone's Settings.",
+    ha: "Ana buƙatar izinin kyamara don haɗa hoto. Za ka iya ba da izini a Saitunan waya.",
+  },
   addPhoto: { en: "Add photo", ha: "Ƙara hoto" },
   photoBound: {
     en: "🔒 Saved as evidence. Photos can't be changed after you submit.",
