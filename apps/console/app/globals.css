@@ -95,7 +95,132 @@
   --ink-faint: #587062;
   --line-firm: #c4d0bf;
   --surface-sunk: #e8eee5;
+  --primary-50: #eef7f1;
+  --primary-100: #d8ede0;
+  --primary-200: #b3dcc4;
+  --primary-600: #115a39;
+  --primary-700: #0d4a2f;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23587062' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --dot: rgb(11 42 32 / 0.09);
+  --sh-raised: 0 1px 2px rgb(11 42 32 / 0.05), 0 4px 12px -2px rgb(11 42 32 / 0.06);
+  --sh-lifted: 0 2px 4px rgb(11 42 32 / 0.05), 0 12px 28px -6px rgb(11 42 32 / 0.10);
+  --sh-overlay: 0 24px 60px -12px rgb(11 42 32 / 0.22);
 }
+
+/* Dark mode: the same tokens with night values. It follows the device unless
+   the person has chosen (the toggle in the rail sets data-theme). The Pine rail
+   and hero stay Pine; the page around them goes near-black. Buttons keep a
+   dark label on the lighter green so contrast holds both ways. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #0a1510;
+    --foreground: #e6efe9;
+    --card: #101f18;
+    --card-foreground: #e6efe9;
+    --popover: #101f18;
+    --popover-foreground: #e6efe9;
+    --brand: #2fa45f;
+    --millet-tint: #3a2e0c;
+    --millet-ink: #f6c95a;
+    --primary: #3dbe7a;
+    --primary-foreground: #06180f;
+    --secondary: #172a21;
+    --secondary-foreground: #cfe6d8;
+    --muted: #172a21;
+    --muted-foreground: #a9bdb0;
+    --accent: #14291f;
+    --accent-foreground: #8fe0b0;
+    --border: #243a2f;
+    --input: #35503f;
+    --ring: #3dbe7a;
+    --success: #4cc27f;
+    --success-foreground: #06180f;
+    --success-muted: #12301f;
+    --success-border: #1f5236;
+    --warning: #f0a73a;
+    --warning-foreground: #1a1000;
+    --warning-muted: #2e2310;
+    --warning-border: #5a4217;
+    --destructive: #f0766a;
+    --destructive-foreground: #1a0502;
+    --destructive-muted: #34171a;
+    --destructive-border: #67302c;
+    --chart-1: #3dbe7a;
+    --chart-4: #e0794d;
+    --chart-5: #6fa8cc;
+    --ink-muted: #a9bdb0;
+    --ink-faint: #8aa396;
+    --line-firm: #2f4a3b;
+    --surface-sunk: #0c1914;
+    --primary-50: #12301f;
+    --primary-100: #163a27;
+    --primary-200: #1f5236;
+    --primary-600: #52cd8c;
+    --primary-700: #8fe0b0;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%238aa396' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    --dot: rgb(255 255 255 / 0.07);
+    --sh-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px -2px rgb(0 0 0 / 0.35);
+    --sh-lifted: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 28px -6px rgb(0 0 0 / 0.5);
+    --sh-overlay: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a1510;
+  --foreground: #e6efe9;
+  --card: #101f18;
+  --card-foreground: #e6efe9;
+  --popover: #101f18;
+  --popover-foreground: #e6efe9;
+  --brand: #2fa45f;
+  --millet-tint: #3a2e0c;
+  --millet-ink: #f6c95a;
+  --primary: #3dbe7a;
+  --primary-foreground: #06180f;
+  --secondary: #172a21;
+  --secondary-foreground: #cfe6d8;
+  --muted: #172a21;
+  --muted-foreground: #a9bdb0;
+  --accent: #14291f;
+  --accent-foreground: #8fe0b0;
+  --border: #243a2f;
+  --input: #35503f;
+  --ring: #3dbe7a;
+  --success: #4cc27f;
+  --success-foreground: #06180f;
+  --success-muted: #12301f;
+  --success-border: #1f5236;
+  --warning: #f0a73a;
+  --warning-foreground: #1a1000;
+  --warning-muted: #2e2310;
+  --warning-border: #5a4217;
+  --destructive: #f0766a;
+  --destructive-foreground: #1a0502;
+  --destructive-muted: #34171a;
+  --destructive-border: #67302c;
+  --chart-1: #3dbe7a;
+  --chart-4: #e0794d;
+  --chart-5: #6fa8cc;
+  --ink-muted: #a9bdb0;
+  --ink-faint: #8aa396;
+  --line-firm: #2f4a3b;
+  --surface-sunk: #0c1914;
+  --primary-50: #12301f;
+  --primary-100: #163a27;
+  --primary-200: #1f5236;
+  --primary-600: #52cd8c;
+  --primary-700: #8fe0b0;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%238aa396' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --dot: rgb(255 255 255 / 0.07);
+  --sh-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px -2px rgb(0 0 0 / 0.35);
+  --sh-lifted: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 28px -6px rgb(0 0 0 / 0.5);
+  --sh-overlay: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 
 /* Tailwind v4 reads utilities from @theme. `inline` means the utilities point
    at the variables above rather than copying their values. */
@@ -160,11 +285,11 @@
   --color-critical: var(--destructive);
   --color-critical-bg: var(--destructive-muted);
   --color-critical-line: var(--destructive-border);
-  --color-primary-50: #eef7f1;
-  --color-primary-100: #d8ede0;
-  --color-primary-200: #b3dcc4;
-  --color-primary-600: #115a39; /* the fill on hover */
-  --color-primary-700: #0d4a2f; /* text and icons on a tint */
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-600: var(--primary-600); /* the fill on hover */
+  --color-primary-700: var(--primary-700); /* text and icons on a tint */
 
   /* Three radii and nothing else. A control (button, input, chip with a label)
      is 10, a card or panel is 14, and a status badge is a pill. Eleven slightly
@@ -196,9 +321,9 @@
   /* Three levels, deliberately. Everything used to carry the same border and
      the same shadow, which flattens hierarchy: when every block is lifted,
      nothing is. */
-  --shadow-raised: 0 1px 2px rgb(11 42 32 / 0.05), 0 4px 12px -2px rgb(11 42 32 / 0.06);
-  --shadow-lifted: 0 2px 4px rgb(11 42 32 / 0.05), 0 12px 28px -6px rgb(11 42 32 / 0.10);
-  --shadow-overlay: 0 24px 60px -12px rgb(11 42 32 / 0.22);
+  --shadow-raised: var(--sh-raised);
+  --shadow-lifted: var(--sh-lifted);
+  --shadow-overlay: var(--sh-overlay);
 }
 
 @layer base {
@@ -208,7 +333,7 @@
 
   html {
     background: var(--background);
-    color-scheme: light;
+    color-scheme: light dark;
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: 5rem;
   }
@@ -289,7 +414,7 @@
   select.field {
     appearance: none;
     padding-right: 2.25rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23587062' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-image: var(--chevron);
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
@@ -340,7 +465,7 @@
   /* A faint survey grid, for the places that show position rather than data:
      the registry map and the sign-in backdrop. */
   .survey-grid {
-    background-image: radial-gradient(circle at 1px 1px, rgb(11 42 32 / 0.09) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
     background-size: 20px 20px;
   }
 }

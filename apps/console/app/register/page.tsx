@@ -27,7 +27,7 @@ function Stepper({ at }: { at: number }) {
             <span
               className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${
                 done
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-primary-foreground"
                   : current
                     ? "bg-primary-50 text-primary-700 ring-2 ring-inset ring-primary"
                     : "bg-surface-sunk text-ink-faint ring-1 ring-inset ring-line"

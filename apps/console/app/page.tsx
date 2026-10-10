@@ -141,7 +141,7 @@ export default async function DashboardPage() {
           href="/settings/status"
           className="group flex items-center gap-3 rounded-card border border-destructive-border bg-destructive-muted px-4 py-3 transition-colors hover:border-destructive"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-destructive text-white shadow-raised">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-destructive text-primary-foreground shadow-raised">
             <AlertTriangle className="size-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
           href="/team#requests"
           className="group flex items-center gap-3 rounded-card border border-primary-100 bg-primary-50 px-4 py-3 transition-colors hover:border-primary-200"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-raised">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-raised">
             <UserPlus className="size-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
