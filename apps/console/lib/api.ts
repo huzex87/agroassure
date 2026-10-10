@@ -126,7 +126,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     cache: "no-store",
   });
 
-  if (response.status === 401) redirect("/signin");
+  if (response.status === 401) redirect("/signin?expired=1");
   if (!response.ok) {
     const message = readableError(await response.text(), response);
     throw new ApiError(response.status, message, denialDigest(response.status, message));

@@ -169,6 +169,7 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{
     error?: string;
+    expired?: string;
     sent?: string;
     demo?: string;
     email?: string;
@@ -210,10 +211,18 @@ export default async function SignInPage({
       </a>
     </p>
   ) : null;
-  const { error, sent, demo, email: prefill } = await searchParams;
+  const { error, expired, sent, demo, email: prefill } = await searchParams;
   const notice = error ? (
     <p className="mb-4 rounded-control border border-critical-line bg-critical-bg px-3.5 py-3 text-sm leading-relaxed text-critical">
       {error}
+    </p>
+  ) : expired ? (
+    // Not an error: sessions end, and the person did nothing wrong.
+    <p
+      role="status"
+      className="mb-4 rounded-control border border-primary-100 bg-primary-50 px-3.5 py-3 text-sm leading-relaxed text-primary-700"
+    >
+      Your session ended, so please sign in again to carry on. Nothing you had already saved is lost.
     </p>
   ) : null;
 
