@@ -63,6 +63,26 @@ Resend will **not** send from `@gmail.com`, `@yahoo.com` or other free-mail addr
 
 Now follow the [handbook](handbook.md): add facilities, check checklists, invite inspectors, plan visits. Before inspectors use the phone app, run the [phone field test](phone-field-test.md) on a real handset.
 
+## Building and sharing the phone app
+
+The Android app is built on Expo's servers and shared as a link. Do this the first time, and again whenever the link stops working. **Settings → System status** now opens the link for you and says if it fails.
+
+1. On a computer with Node and pnpm: `git pull`, `pnpm install`, then `cd apps/field`.
+2. `npx eas-cli login` (the Expo account that owns the project), then `npx eas-cli build -p android --profile preview`. It takes 10 to 20 minutes and ends with a **link and a QR code**.
+3. In Render, set `FIELD_APP_DOWNLOAD_URL` to that link. Every invite from then on carries it. Invites already sent keep the old link.
+4. On a phone, open the link, download the file, and when Android asks, allow **Install unknown apps** for the browser, then **Install**.
+
+If the app will not install:
+
+| What you see | Why, and what to do |
+|---|---|
+| The link says not found or expired | Expo keeps a build for a limited time. Run the build again and update `FIELD_APP_DOWNLOAD_URL` |
+| "App not installed" | An older copy signed differently is on the phone. Uninstall AgroAssure, then install again |
+| "Blocked" or "Can't install unknown apps" | Settings, then allow installs from the browser that downloaded the file |
+| Installs, but says it cannot reach the server | The app was built pointing at a different server. The address is `EXPO_PUBLIC_API_URL` in `apps/field/eas.json`; fix it and build again |
+
+Do not change the app's identifier (`ng.gov.kano.agroassure` in `apps/field/app.json`) once phones have it. A different identifier is a different app: nothing updates in place and new signing credentials are needed.
+
 ## Looking after it
 
 - **Deploying.** A push to `main` redeploys both the gateway (Render) and the console (Vercel).

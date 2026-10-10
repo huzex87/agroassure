@@ -32,6 +32,27 @@ export interface SystemStatus {
 export interface Facts {
   dbUp: boolean;
   projectionLag: number | null;
+  /**
+   * What happened when the app download link was opened: absent when it was not
+   * tried, null when it answered, else a plain sentence about what went wrong.
+   */
+  downloadProblem?: string | null;
+}
+
+/**
+ * Opens the app download link the way an inspector's phone would, and says in
+ * words what went wrong, or null if it answered. An Expo build link expires and
+ * a mistyped one leads nowhere; either way the first anyone hears of it was an
+ * inspector who could not install the app.
+ */
+export async function probeDownloadLink(url: string, timeoutMs = 5000): Promise<string | null> {
+  try {
+    const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+    await res.body?.cancel();
+    return res.status >= 400 ? `The link answered "${res.status}", so a phone cannot download from it.` : null;
+  } catch {
+    return "The link did not answer, so a phone cannot download from it.";
+  }
 }
 
 // Providers that refuse to send from an address at a domain the sender does not
@@ -189,7 +210,15 @@ export function buildSystemStatus(config: AppConfig, facts: Facts): SystemStatus
   );
 
   add(
-    config.invites.appDownloadUrl
+    config.invites.appDownloadUrl && facts.downloadProblem
+      ? {
+          id: "download",
+          title: "App download link",
+          state: "warn",
+          detail: `${facts.downloadProblem} Invites carry this link, so new inspectors cannot install the app.`,
+          fix: "Build the app again (see the owner's guide, \"Building and sharing the phone app\"), then set FIELD_APP_DOWNLOAD_URL to the new link.",
+        }
+      : config.invites.appDownloadUrl
       ? {
           id: "download",
           title: "App download link",
