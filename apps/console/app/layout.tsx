@@ -8,6 +8,7 @@ import { tryGet, type Me } from "../lib/api";
 import { accountLine } from "../lib/roles";
 import { ToastProvider } from "../components/toast";
 import { QuickFind } from "../components/quick-find";
+import { ThemeToggle } from "../components/theme-toggle";
 import "./globals.css";
 
 // Two faces, each doing one job.
@@ -74,6 +75,10 @@ function Wordmark({ size = "sm", onDark = false }: { size?: "sm" | "md"; onDark?
   );
 }
 
+// Applies a saved light/dark choice before first paint. Inline on purpose: a
+// module would load after the page had already flashed the wrong theme.
+const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const signedIn = Boolean((await cookies()).get("agroassure_session"));
   const fonts = `${sans.variable} ${mono.variable}`;
@@ -83,7 +88,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // session that does not exist. A sign-in page is one card and nothing else.
   if (!signedIn) {
     return (
-      <html lang="en" className={fonts}>
+      <html lang="en" className={fonts} suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        </head>
         <body className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           {/* The brand panel. It says what this is in one line and why it can be
               trusted in three, and it is the first colour a client meets. */}
@@ -143,7 +151,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const roles = me?.roles ?? null;
 
   return (
-    <html lang="en" className={fonts}>
+    <html lang="en" className={fonts} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-screen">
         <ToastProvider>
           <a
@@ -213,6 +224,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     </span>
                   </div>
                 ) : null}
+                <ThemeToggle />
                 <form action={signOut}>
                   <button
                     type="submit"

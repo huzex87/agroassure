@@ -70,9 +70,9 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
                   aria-hidden
                   className={`grid size-6 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold ${
                     step.done
-                      ? "bg-success text-white"
+                      ? "bg-success text-success-foreground"
                       : current
-                        ? "bg-primary text-white shadow-raised"
+                        ? "bg-primary text-primary-foreground shadow-raised"
                         : "bg-surface-sunk text-ink-muted ring-1 ring-inset ring-line"
                   }`}
                 >
