@@ -49,15 +49,19 @@ jobs:
 
       - name: Show the link to paste into Render
         run: |
-          url=$(jq -r '.[0].buildDetailsPageUrl // empty' "$RUNNER_TEMP/build.json")
+          page=$(jq -r '.[0].buildDetailsPageUrl // empty' "$RUNNER_TEMP/build.json")
           apk=$(jq -r '.[0].artifacts.buildUrl // empty' "$RUNNER_TEMP/build.json")
+          # Prefer the build page; the direct file works too if the CLI did not print a page.
+          link="${page:-$apk}"
           {
             echo "## Android build finished"
             echo
-            echo "**Build page (use this for FIELD_APP_DOWNLOAD_URL):** $url"
+            echo "**Link for FIELD_APP_DOWNLOAD_URL:** $link"
+            echo
+            echo "Build page: ${page:-not printed by this version of the Expo CLI}"
             echo
             echo "Direct file: $apk"
             echo
-            echo "In Render, open agroassure-gateway, then Environment, set FIELD_APP_DOWNLOAD_URL to the build page link, and save."
+            echo "In Render, open agroassure-gateway, then Environment, set FIELD_APP_DOWNLOAD_URL to the link above, and save."
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          test -n "$url"
+          test -n "$link"
