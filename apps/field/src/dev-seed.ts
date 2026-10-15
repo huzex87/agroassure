@@ -1,28 +1,13 @@
 import { uuidv7, type BootstrapBundle } from "@agroassure/domain";
 
-// A day's work, without a server.
-//
-// The bootstrap bundle is ordinary data: the gateway builds one from the
-// assignments a supervisor made, and the device stores it verbatim. That means a
-// hand-built bundle exercises exactly the same code path as a real one — the
-// same applyBootstrap, the same tables, the same instrument binding — and lets
-// the field path be walked on a handset with no database anywhere near it.
-//
-// This exists to test the native side: SQLite writes, the camera, the GPS. It is
-// reachable only from a __DEV__-guarded control on the visits screen, so it
-// cannot appear in a release build. It is not a fixture for the test suite —
-// those build their own — and nothing in the app depends on it.
-//
-// ponytail: the coordinates are a real place in Katsina so the check-in
-// geofence has something meaningful to measure against. Stand anywhere else and
-// the visit is flagged as far from the registered point, which is correct
-// behaviour and worth seeing at least once.
+// A day's work, without a server. __DEV__ only.
 
 const FACILITY_ID = "018f0000-0000-7000-8000-0000000000fa";
 const VERSION_ID = "018f0000-0000-7000-8000-0000000000ve";
 
 export function sampleBundle(): BootstrapBundle {
   return {
+    jurisdictionCode: "KT",
     facilities: [
       {
         id: FACILITY_ID,
@@ -43,8 +28,6 @@ export function sampleBundle(): BootstrapBundle {
         facilityType: "agro_dealer",
         name: "Danmarke Agro Supplies",
         lga: "Katsina",
-        // No registered point: paper never recorded one for this site, which is
-        // ordinary in the registry and must not break a check-in.
         regLat: null,
         regLng: null,
         regAccuracyM: null,
@@ -79,41 +62,41 @@ export function sampleBundle(): BootstrapBundle {
                 },
                 {
                   ordinal: 2,
-                  promptEn: "Are damaged bags segregated from saleable stock?",
-                  promptHa: "An ware buhunan da suka lalace daga kayan sayarwa?",
+                  promptEn: "Is the storage area dry and free of leaks?",
+                  promptHa: "Wurin ajiya ya bushe kuma babu zubewa?",
                   weight: 2,
-                  severityOnFail: "critical",
-                  allowsNa: true,
+                  severityOnFail: "major",
+                  allowsNa: false,
                 },
                 {
                   ordinal: 3,
-                  promptEn: "Is the store dry and free of standing water?",
-                  promptHa: "Shagon ya bushe kuma babu tsayayyen ruwa?",
+                  promptEn: "Are different products clearly separated and labelled?",
+                  promptHa: "An raba kayayyaki daban-daban da alama?",
                   weight: 2,
-                  severityOnFail: "major",
+                  severityOnFail: "minor",
                   allowsNa: false,
                 },
               ],
             },
             {
               ordinal: 2,
-              titleEn: "Labelling and records",
-              titleHa: "Lakabi da rikodi",
+              titleEn: "Documentation",
+              titleHa: "Takardu",
               checkpoints: [
                 {
                   ordinal: 1,
-                  promptEn: "Do bags carry an intact manufacturer's label?",
-                  promptHa: "Buhunan suna da lakabin masana'anta cikakke?",
+                  promptEn: "Is a current licence displayed on the premises?",
+                  promptHa: "Ana nuna lasisi na yanzu a shagon?",
                   weight: 3,
                   severityOnFail: "critical",
                   allowsNa: false,
                 },
                 {
                   ordinal: 2,
-                  promptEn: "Is the current licence displayed at the premises?",
-                  promptHa: "An nuna lasisin yanzu a wurin kasuwanci?",
-                  weight: 1,
-                  severityOnFail: "minor",
+                  promptEn: "Are purchase and sales records kept up to date?",
+                  promptHa: "Ana kiyaye bayanan saye da sayarwa?",
+                  weight: 2,
+                  severityOnFail: "major",
                   allowsNa: false,
                 },
               ],
@@ -122,16 +105,6 @@ export function sampleBundle(): BootstrapBundle {
         },
       },
     ],
-    priorFindings: [
-      {
-        id: "018f0000-0000-7000-8000-0000000000f1",
-        facilityId: FACILITY_ID,
-        reference: "CA-01184-03",
-        summary: "Damaged stock not segregated from saleable bags.",
-        severity: "critical",
-        status: "open",
-        dueDate: null,
-      },
-    ],
+    priorFindings: [],
   };
 }
