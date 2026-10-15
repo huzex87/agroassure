@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import { Button, Panel } from "../../components/ui";
 import { authorizeUrl, challengeFor, newState, newVerifier, oidcSettings } from "../../lib/oidc";
 import { isWellFormedToken } from "../../lib/api";
-import { Loader2, Mail } from "lucide-react";
-import { AutoRefresh } from "../../components/auto-refresh";
+import { Mail } from "lucide-react";
+import { GatewayWait } from "../../components/gateway-wait";
 import { SubmitButton } from "../../components/forms";
 import { sendSignInLink } from "./email-actions";
 import { registerOptions } from "../register/actions";
@@ -179,26 +179,11 @@ export default async function SignInPage({
   const methods = await signInMethods();
 
   // The gateway did not answer. On a host that sleeps when idle this is the
-  // first request after a quiet spell, and it is starting. Say so and keep
-  // asking, rather than fall through to a sign-in the server cannot honour.
+  // first request after a quiet spell, and it is starting. After a longer wait
+  // the page escalates to "unavailable" so a suspended or down service is not
+  // mislabelled as a cold start.
   if (methods === null) {
-    return (
-      <div className="w-full">
-        <Panel className="shadow-lifted">
-          <div className="flex flex-col items-center gap-3 py-2 text-center" role="status">
-            <span className="grid size-12 place-items-center rounded-full bg-primary-50 text-primary ring-1 ring-inset ring-primary-100">
-              <Loader2 className="size-6 animate-spin" aria-hidden />
-            </span>
-            <h1 className="text-lg font-semibold text-ink">Getting things ready</h1>
-            <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
-              The service was resting and is starting up. This can take up to a minute. This page will continue by
-              itself.
-            </p>
-          </div>
-        </Panel>
-        <AutoRefresh seconds={5} />
-      </div>
-    );
+    return <GatewayWait />;
   }
 
   const [users, registration] = await Promise.all([settings ? [] : devUsers(), registerOptions()]);
