@@ -11,14 +11,6 @@ import { refreshQueued, syncNow, useAutoSync, type SyncStatus } from "../src/aut
 import { useLanguage, type StringKey } from "../src/i18n";
 import { chipTone, colors, styles } from "../src/theme";
 
-// The day. Everything on this screen is read from the device's own database, so
-// it renders identically with a full signal and with none.
-//
-// Sending happens on its own (see auto-sync). What this screen owes the
-// inspector is the truth about it, in one line: everything is sent, or this
-// many things are waiting and they are safe. The one thing an inspector must
-// be able to trust here is that nothing they did has been lost.
-
 type Row = AssignedFacility & {
   open: { id: string; reference: string } | null;
   submitted: { id: string; ratingBand: string | null } | null;
@@ -52,8 +44,6 @@ export default function Today() {
     useCallback(() => {
       load();
       inspectorName().then(setName).catch(() => undefined);
-      // A phone that has not been set up has nothing to show here. Go straight
-      // to the one thing it can do: take an invite code.
       Promise.all([identity(), inspectorId()]).then(([id, who]) => {
         if (!id.deviceId || !who) router.replace("/activate");
       });
@@ -61,7 +51,6 @@ export default function Today() {
     }, [load]),
   );
 
-  // A finished send may have brought new visits with it.
   useEffect(() => {
     if (sync.phase === "sent") load();
   }, [sync.phase, sync.lastSentAt, load]);
@@ -69,8 +58,6 @@ export default function Today() {
   function loadSampleDay() {
     setNote(null);
     try {
-      // Required inside the handler rather than imported at the top so the
-      // fixture is not part of the module graph a release build starts from.
       const { sampleBundle } = require("../src/dev-seed") as typeof import("../src/dev-seed");
       applyBootstrap(getStore(), sampleBundle());
       load();
@@ -91,15 +78,20 @@ export default function Today() {
         router.replace("/activate");
         return;
       }
+      const store = getStore();
+      const jurisdictionCode = store.jurisdictionCode();
+      if (!jurisdictionCode) {
+        setNote(
+          "This phone has not received its day list yet. Connect once so the visits can download, then try again.",
+        );
+        return;
+      }
       const { inspection } = await inspectionSession(userId);
       const started = await inspection.start({
         facilityId: row.id,
-        jurisdictionCode: "KT",
+        jurisdictionCode,
         at: await currentPosition(),
       });
-      // A check-in outside the geofence is recorded and flagged, never blocked.
-      // Registered coordinates are often wrong; the inspector is standing there
-      // and the supervisor can see the distance.
       if (started.checkin.flagged) setNote(t("checkinFar"));
       router.push(`/inspection/${started.inspectionId}`);
     } catch (err) {
@@ -110,9 +102,6 @@ export default function Today() {
     }
   }
 
-  // The day at a glance: who this is for, and how far through it they are. The
-  // first thing an inspector wants on opening the app is "what is left", and a
-  // list of cards makes them count.
   const total = rows.length;
   const finished = rows.filter((r) => r.submitted).length;
   const hour = new Date().getHours();
@@ -150,9 +139,6 @@ export default function Today() {
           </View>
         </Pressable>
       ) : total > 0 ? (
-        // One card for the state of the day: how far through, and whether
-        // everything done so far has been sent. Two cards said the same kind of
-        // thing twice and pushed the first visit down the screen.
         <View style={[styles.card, { gap: 12 }]}>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>
@@ -186,11 +172,6 @@ export default function Today() {
       {rows.length === 0 ? (
         <View style={styles.card}>
           <Text style={styles.body}>{t("noVisits")}</Text>
-
-          {/* Development only. A day's work normally arrives by sync; this puts
-              a bundle straight into the device store so the field path can be
-              walked on a handset with no server. __DEV__ is false in a release
-              build, so this control cannot ship. */}
           {__DEV__ ? (
             <Pressable
               style={[styles.button, styles.buttonQuiet]}
@@ -215,8 +196,6 @@ export default function Today() {
         >
           <View style={[styles.rowBetween, { alignItems: "flex-start" }]}>
             <Text style={[styles.h2, { flexShrink: 1 }]}>{row.name}</Text>
-            {/* Where this visit stands, at a glance. A submitted visit says so
-                at the foot of its card, so it is not repeated here. */}
             {row.submitted ? null : (
               <View
                 style={[
@@ -236,8 +215,6 @@ export default function Today() {
             {row.lga ? ` · ${row.lga}` : ""}
           </Text>
 
-          {/* Why this facility, in words. An inspector is never handed a list
-              they cannot account for. */}
           {row.assignmentReason ? (
             <View style={styles.reasonBlock}>
               <Text style={styles.overline}>{t("whyThisVisit")}</Text>
@@ -286,13 +263,6 @@ export default function Today() {
   );
 }
 
-/**
- * One line about sending, and a way to hurry it.
- *
- * Green when there is nothing waiting, blue while it goes, amber when work is
- * waiting — and every state says in words that the work is safe, because the
- * colour alone would leave an inspector guessing whether amber means lost.
- */
 function SendStatus({ sync, t, embedded = false }: { sync: SyncStatus; t: (k: StringKey) => string; embedded?: boolean }) {
   const sending = sync.phase === "sending";
   const waiting = sync.queued > 0;

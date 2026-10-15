@@ -7,7 +7,7 @@
     "scheme": "agroassure",
     "userInterfaceStyle": "light",
     "ios": {
-      "bundleIdentifier": "ng.gov.kano.agroassure",
+      "bundleIdentifier": "ng.agroassure.field",
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "AgroAssure attaches photographs to inspection findings at the moment they are observed.",
@@ -15,7 +15,7 @@
       }
     },
     "android": {
-      "package": "ng.gov.kano.agroassure",
+      "package": "ng.agroassure.field",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -39,7 +39,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "AgroAssure records where an inspection took place, to bind the record to the site."
+          "locationWhenInUsePermission": "AgroAssure records where an inspection took place, to bind the record to the site.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
         }
       ]
     ],
