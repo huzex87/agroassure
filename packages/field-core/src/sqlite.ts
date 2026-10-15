@@ -96,6 +96,13 @@ CREATE TABLE IF NOT EXISTS outbox_event (
 CREATE INDEX IF NOT EXISTS outbox_pending ON outbox_event (sync_state, created_at);
 
 CREATE TABLE IF NOT EXISTS pull_cursor (name TEXT PRIMARY KEY, cursor TEXT);
+
+-- One-row table: the jurisdiction code from the last bootstrap, used when
+-- minting inspection references offline (INS-<CODE>-YYYY-xxxxxx).
+CREATE TABLE IF NOT EXISTS device_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 export interface LocalResponse {
@@ -175,6 +182,19 @@ export class FieldStore {
   }
 
   // ---- reference data, replaced wholesale at each bootstrap ---------------
+
+  setJurisdictionCode(code: string): void {
+    this.db.run(
+      `INSERT OR REPLACE INTO device_meta (key, value) VALUES ('jurisdiction_code', ?)`,
+      [code.toUpperCase()],
+    );
+  }
+
+  /** Short code used in offline inspection references, or null before first bootstrap. */
+  jurisdictionCode(): string | null {
+    const row = this.db.run(`SELECT value FROM device_meta WHERE key = 'jurisdiction_code'`)[0];
+    return row ? str(row.value) : null;
+  }
 
   replaceAssignedFacilities(facilities: AssignedFacility[]): void {
     this.db.run("DELETE FROM assigned_facility");
@@ -564,23 +584,21 @@ export class FieldStore {
     }
   }
 
-  /** The number behind the app's "Offline (3 queued)" badge. */
   pendingCount(): number {
-    const row = this.db.run(`SELECT count(*) AS n FROM outbox_event WHERE sync_state = 'pending'`)[0];
+    const row = this.db.run(
+      `SELECT count(*) AS n FROM outbox_event WHERE sync_state = 'pending'`,
+    )[0];
     return num(row?.n ?? 0);
   }
 
-  // ---- cursors ------------------------------------------------------------
-
-  cursor(name: string): string | null {
+  getCursor(name: string): string {
     const row = this.db.run(`SELECT cursor FROM pull_cursor WHERE name = ?`, [name])[0];
-    return row ? nullableStr(row.cursor) : null;
+    return row ? str(row.cursor) : "";
   }
 
   setCursor(name: string, cursor: string): void {
     this.db.run(
-      `INSERT INTO pull_cursor (name, cursor) VALUES (?,?)
-       ON CONFLICT (name) DO UPDATE SET cursor = excluded.cursor`,
+      `INSERT OR REPLACE INTO pull_cursor (name, cursor) VALUES (?, ?)`,
       [name, cursor],
     );
   }

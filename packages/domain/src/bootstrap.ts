@@ -65,6 +65,12 @@ export interface BootstrapPriorFinding {
 }
 
 export interface BootstrapBundle {
+  /**
+   * Short code for the inspector's jurisdiction (e.g. "KT"). Used when the
+   * device mints an inspection reference offline. One code per bootstrap: a
+   * phone is assigned within a single jurisdiction.
+   */
+  jurisdictionCode: string;
   facilities: AssignedFacility[];
   instrumentVersions: BootstrapInstrumentVersion[];
   priorFindings: BootstrapPriorFinding[];
