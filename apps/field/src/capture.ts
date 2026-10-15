@@ -8,6 +8,11 @@ import type { GeoPoint } from "@agroassure/domain";
 // Nothing re-derives them later, so the metadata cannot be attached to a
 // different file and the file cannot claim different coordinates.
 
+/** How long to wait for a fresh GPS fix before falling back to last-known. */
+const FRESH_FIX_TIMEOUT_MS = 12_000;
+/** Accept a cached fix up to half an hour old when a fresh one is unavailable. */
+const LAST_KNOWN_MAX_AGE_MS = 30 * 60_000;
+
 export interface CapturedExhibit {
   sha256: string;
   localUri: string;
@@ -33,13 +38,14 @@ export async function currentPosition(): Promise<GeoPoint> {
   // A fresh fix can take a long time indoors (warehouses, shops with metal
   // roofs) and getCurrentPositionAsync never gives up on its own, which would
   // leave "Start inspection" and "Add photo" spinning. Wait a bounded time,
-  // then fall back to the last fix the phone has - the inspector was outside a
-  // moment ago - and only fail if there is none at all.
+  // then fall back to the last fix the phone has — the inspector was outside a
+  // moment ago — and only fail if there is none at all.
   const fresh = await Promise.race([
     Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), FRESH_FIX_TIMEOUT_MS)),
   ]).catch(() => null);
-  const position = fresh ?? (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60_000 }));
+  const position =
+    fresh ?? (await Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }));
   if (!position) {
     throw new Error(
       "The phone could not find its location. Step outside or near a window, make sure Location is on, and try again.",
@@ -61,6 +67,9 @@ export async function describeCapture(
   localUri: string,
   mime = "image/jpeg",
 ): Promise<CapturedExhibit> {
+  if (!localUri) {
+    throw new Error("No photo was captured. Try again, or check that the camera is free.");
+  }
   const [sha256, at] = await Promise.all([hashFile(localUri), currentPosition()]);
   return {
     sha256,

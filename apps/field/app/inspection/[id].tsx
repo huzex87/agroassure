@@ -365,7 +365,16 @@ export default function Checklist() {
       </Pressable>
 
       <Modal visible={camera !== null} animationType="slide">
-        <CameraShot cancelLabel={t("cancel")} captureLabel={t("capture")} onCapture={(uri) => shoot(camera as string, uri)} onCancel={() => setCamera(null)} />
+        <CameraShot
+          cancelLabel={t("cancel")}
+          captureLabel={t("capture")}
+          onCapture={(uri) => shoot(camera as string, uri)}
+          onCancel={() => setCamera(null)}
+          onError={(message) => {
+            setCamera(null);
+            setError(message);
+          }}
+        />
       </Modal>
     </ScrollView>
     </KeyboardAvoidingView>
@@ -375,30 +384,56 @@ export default function Checklist() {
 function CameraShot({
   onCapture,
   onCancel,
+  onError,
   cancelLabel,
   captureLabel,
 }: {
   onCapture: (uri: string) => void;
   onCancel: () => void;
+  onError: (message: string) => void;
   cancelLabel: string;
   captureLabel: string;
 }) {
   const [view, setView] = useState<CameraView | null>(null);
+  const [busy, setBusy] = useState(false);
+
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
       <CameraView ref={setView} style={{ flex: 1 }} facing="back" />
       <View style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-        <Pressable style={[styles.button, styles.buttonQuiet, { flex: 1 }]} onPress={onCancel}>
+        <Pressable
+          style={[styles.button, styles.buttonQuiet, { flex: 1 }]}
+          onPress={onCancel}
+          disabled={busy}
+        >
           <Text style={[styles.buttonText, styles.buttonQuietText]}>{cancelLabel}</Text>
         </Pressable>
         <Pressable
-          style={[styles.button, { flex: 2 }]}
+          style={[styles.button, { flex: 2 }, busy ? styles.buttonDisabled : null]}
+          disabled={busy}
           onPress={async () => {
-            const photo = await view?.takePictureAsync({ quality: 0.6 });
-            if (photo?.uri) onCapture(photo.uri);
+            if (!view) {
+              onError("The camera is not ready yet. Wait a moment and try again.");
+              return;
+            }
+            setBusy(true);
+            try {
+              // quality 0.6 keeps uploads practical on weak field data while
+              // remaining readable for a desk officer reviewing a finding.
+              const photo = await view.takePictureAsync({ quality: 0.6, skipProcessing: false });
+              if (!photo?.uri) {
+                onError("No photo was captured. Try again, or check that the camera is free.");
+                return;
+              }
+              onCapture(photo.uri);
+            } catch (err) {
+              onError(err instanceof Error ? err.message : "Camera failed. Try again.");
+            } finally {
+              setBusy(false);
+            }
           }}
         >
-          <Text style={styles.buttonText}>{captureLabel}</Text>
+          <Text style={styles.buttonText}>{busy ? "…" : captureLabel}</Text>
         </Pressable>
       </View>
     </View>

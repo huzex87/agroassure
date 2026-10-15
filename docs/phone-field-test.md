@@ -10,6 +10,20 @@ The app has been tested in code and in a simulator. It has not been tested on a 
 2. **Use a modest phone.** An older Android with 2 GB of memory is the right test. If it works there, it works on a better one.
 3. **Invite a test inspector.** In the console: *Settings → Team → Invite an inspector*. Use your own phone number or email.
 4. **Plan one visit** for that inspector: *Visits → choose the inspector → tick a facility → Plan visit*.
+5. **Confirm the gateway is up.** Open the console sign-in page. If it says "Service unavailable", fix hosting first — the phone cannot sync to a suspended server.
+
+## Hardware readiness (native APIs)
+
+These are the four edges that only a real handset exercises. Tick each before treating the app as field-ready.
+
+| API | What the app does | Pass criteria |
+|-----|-------------------|---------------|
+| **Camera** (`expo-camera`) | On **No**, opens back camera; capture binds SHA-256 + GPS + time to the photo | Permission prompt appears once; photo appears as thumbnail; console later shows the exhibit |
+| **Location** (`expo-location`) | Check-in and each photo take a position; 12s timeout then last-known fix | Permission prompt; start inspection works outdoors; indoors does not spin forever |
+| **Secure store** (`expo-secure-store`) | Device ed25519 key + session token + PIN hash | After force-stop and reopen, still signed in (or PIN gate); key survives app restart |
+| **SQLite** (`expo-sqlite`) | Offline store + outbox | Airplane mode: full visit completes; after signal returns, work sends without a manual button |
+
+Known limitation (documented in code): the private key is held in SecureStore and passes through JavaScript to sign. True non-exportable hardware keys need a native Keystore module later; the `Signer` port is the swap point.
 
 ## The checks
 
@@ -24,15 +38,27 @@ Tick each one. Write down anything that felt slow, small, confusing or wrong, ev
 | 5 | Hold the phone in one hand and answer a whole checklist | Every button reachable with a thumb; no mis-taps |
 | 6 | **Turn on airplane mode**, then complete the inspection | Work normally and say the work is waiting to send |
 | 7 | Answer **No**, add a note, add a photo | Keep the note and photo; say photos can't change after submit |
-| 8 | Finish, have someone sign with a finger, tap Submit | Accept the signature and submit |
-| 9 | **Turn airplane mode off** | Send by itself within a minute, with no button to press |
-| 10 | Open *Inspections* in the console | Show the inspection with its answers. **Note whether the photo and signature appear too** |
-| 11 | Set an app PIN, lock the phone, reopen | Ask for the PIN; **Forgot PIN?** lead to a clear next step |
-| 12 | Switch to **Hausa** | Show Hausa on every screen. Ask a native speaker to read them |
-| 13 | Mid-inspection, take a phone call or lock the screen | Return to exactly where you were, with nothing lost |
-| 14 | Scroll the longest checklist quickly | Stay smooth, with no freezing or jumping |
-| 15 | In the console: *Settings → Team → Phones → Sign out this phone* | Stop working at once. What it already sent stays in the console. **Write down what happens to work that had not been sent** |
+| 8 | **Deny camera once**, then grant it | Clear message when denied; works after grant |
+| 9 | **Indoors / under a metal roof**, start a visit or add a photo | Either gets a fix within ~12s or uses last-known; does not spin forever |
+| 10 | Finish, have someone sign with a finger, tap Submit | Accept the signature and submit |
+| 11 | **Turn airplane mode off** | Send by itself within a minute, with no button to press |
+| 12 | Open *Inspections* in the console | Show the inspection with its answers. **Note whether the photo appears too** |
+| 13 | Set an app PIN, lock the phone, reopen | Ask for the PIN; **Forgot PIN?** lead to a clear next step |
+| 14 | Force-stop the app, reopen | Still enrolled; PIN gate if set; outbox not empty if anything was waiting |
+| 15 | Switch to **Hausa** | Show Hausa on every screen. Ask a native speaker to read them |
+| 16 | Mid-inspection, take a phone call or lock the screen | Return to exactly where you were, with nothing lost |
+| 17 | Scroll the longest checklist quickly | Stay smooth, with no freezing or jumping |
+| 18 | In the console: *Settings → Team → Phones → Sign out this phone* | Stop working at once. What it already sent stays in the console. **Write down what happens to work that had not been sent** |
 
 ## What to send back
 
 For each check that did not pass: the number, the phone model and Android version, what happened, and a screenshot or a short screen recording. Group them into three piles: **can't do the job**, **slow or confusing**, and **would be nicer**. Fix the first pile before any inspector uses the app.
+
+## Build notes
+
+```bash
+cd apps/field
+eas build -p android --profile preview   # APK for internal test
+```
+
+The preview profile sets `EXPO_PUBLIC_API_URL` to the live gateway. If the gateway URL changes (e.g. after moving off Render), update `apps/field/eas.json` and rebuild.

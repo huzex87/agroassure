@@ -36,7 +36,12 @@ jest.mock("expo-location", () => ({
     // A few metres from the registered point, so a check-in is not flagged.
     coords: { latitude: 12.98551, longitude: 7.61897, accuracy: 5 },
   }),
-  Accuracy: { High: 4 },
+  // Used by currentPosition() when a fresh fix times out indoors.
+  getLastKnownPositionAsync: async () => ({
+    coords: { latitude: 12.98551, longitude: 7.61897, accuracy: 12 },
+  }),
+  // Must match the Accuracy values capture.ts requests (Balanced, not only High).
+  Accuracy: { Lowest: 1, Low: 2, Balanced: 3, High: 4, Highest: 5, BestForNavigation: 6 },
 }));
 
 jest.mock("expo-camera", () => {
