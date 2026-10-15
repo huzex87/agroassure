@@ -57,6 +57,9 @@ const PUSH_BATCH = 100;
 
 /** Apply the pre-departure bundle. After this the day needs no network. */
 export function applyBootstrap(store: FieldStore, bundle: BootstrapBundle): void {
+  if (bundle.jurisdictionCode) {
+    store.setJurisdictionCode(bundle.jurisdictionCode);
+  }
   store.replaceAssignedFacilities(bundle.facilities);
   store.replaceInstrumentVersions(bundle.instrumentVersions);
   store.replacePriorFindings(bundle.priorFindings);

@@ -72,6 +72,27 @@ export class QueryService {
    * inspector holding an app that knows which form to use and not what is on it.
    */
   async bootstrap(userId: string, jurisdictionId: string | null): Promise<BootstrapBundle> {
+    // Short code for offline inspection references (INS-<CODE>-YYYY-xxxxxx).
+    let jurisdictionCode = "XX";
+    if (jurisdictionId) {
+      const [jx] = await this.pg.query<{ code: string }>(
+        `SELECT code FROM jurisdiction WHERE id = $1`,
+        [jurisdictionId],
+      );
+      if (jx?.code) jurisdictionCode = jx.code;
+    } else {
+      // National / unscoped users: prefer the jurisdiction of their first assignment.
+      const [fromAssignment] = await this.pg.query<{ code: string }>(
+        `SELECT j.code FROM assignment a
+         JOIN facility f ON f.id = a.facility_id
+         JOIN jurisdiction j ON j.id = f.jurisdiction_id
+         WHERE a.assigned_to_user_id = $1 AND a.status IN ('planned','in_progress')
+         LIMIT 1`,
+        [userId],
+      );
+      if (fromAssignment?.code) jurisdictionCode = fromAssignment.code;
+    }
+
     // Today's list: what this inspector has been assigned, with the reason the
     // supervisor scheduled it travelling alongside (principle P6).
     const facilities = await this.pg.query<{
@@ -174,6 +195,7 @@ export class QueryService {
     );
 
     return {
+      jurisdictionCode,
       facilities: facilities.map<AssignedFacility>((f) => ({
         id: f.id,
         licenceNumber: f.licence_number,

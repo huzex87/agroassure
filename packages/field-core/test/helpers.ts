@@ -119,6 +119,7 @@ export function bootstrapBundle(
   structure: InstrumentStructure = agroDealerStructure(),
 ): BootstrapBundle {
   return {
+    jurisdictionCode: "KT",
     facilities: [
       {
         id: FACILITY_ID,
