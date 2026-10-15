@@ -12,6 +12,10 @@ import { CONFIG, type AppConfig } from "../config/config";
 // physically contains no findings, remarks, decisions, or evidence. A careless
 // join here cannot leak adverse data, because the adverse data is not in any
 // table this connection can reach.
+//
+// Lookup is exact match only (token, serial, or licence number). A partial
+// business-name search would let a caller probe which firms currently hold a
+// valid certificate; that is a directory, not a verification surface.
 
 export const NO_RECORD_MESSAGE =
   "No current certificate is on record for this search. This does not indicate a " +
@@ -87,6 +91,10 @@ export class PublicVerifyService implements OnModuleDestroy {
    * (never inspected, expired, revoked, simply not found) returns the identical
    * neutral payload, so the caller cannot tell them apart. Absence of a record
    * is never presented as evidence of wrongdoing.
+   *
+   * Match is exact on verification token, serial, or licence number only.
+   * Partial name search is deliberately refused: it would turn this endpoint
+   * into a directory of currently-valid certificate holders.
    */
   async verify(query: string): Promise<VerifyResult> {
     const q = query.trim();
@@ -97,10 +105,9 @@ export class PublicVerifyService implements OnModuleDestroy {
        WHERE upper(verification_token) = upper($1)
           OR upper(serial)             = upper($1)
           OR upper(licence_number)     = upper($1)
-          OR business_name ILIKE $2
        ORDER BY valid_to DESC
        LIMIT 1`,
-      [q, `%${q}%`],
+      [q],
     );
 
     return toVerifyResult(rows.rows[0]);
